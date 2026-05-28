@@ -1,0 +1,134 @@
+<div class="shell">
+
+  <!-- ═══ SIDEBAR ════════════════════════════════════════════════════════════ -->
+  <aside class="sidebar">
+
+    <div class="brand">
+      <div class="brand-logo">iR</div>
+      <div class="brand-text">
+        <span class="brand-name">InnResto</span>
+        <span class="brand-sub">Restauration · Innov</span>
+      </div>
+    </div>
+
+    <nav class="nav">
+
+      <a class="nav-item"
+         routerLink="/dashboard"
+         routerLinkActive="active"
+         [routerLinkActiveOptions]="{ exact: true }">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+        </svg>
+        Tableau de bord
+      </a>
+
+      <div class="nav-section">
+        <span class="nav-section-label">Points de vente</span>
+        <a class="nav-item" routerLink="/points-de-vente" routerLinkActive="active">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          Points de vente
+        </a>
+      </div>
+
+      <div class="nav-section">
+        <span class="nav-section-label">Paramètres</span>
+
+        <a class="nav-item" routerLink="/parametres/categories-produit" routerLinkActive="active">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
+          Catégories produit
+        </a>
+
+        <a class="nav-item" routerLink="/parametres/categories-matiere-premiere" routerLinkActive="active">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+          Catégories MP
+        </a>
+
+        <a class="nav-item" routerLink="/parametres/unites-de-mesure" routerLinkActive="active">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20V4M4 12h16"/>
+          </svg>
+          Unités de mesure
+        </a>
+
+        <a class="nav-item" routerLink="/parametres/modes-de-paiement" routerLinkActive="active">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+            <line x1="1" y1="10" x2="23" y2="10"/>
+          </svg>
+          Modes de paiement
+        </a>
+
+        <a class="nav-item" routerLink="/parametres/caisses" routerLinkActive="active">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="7" width="20" height="14" rx="2"/>
+            <path d="M16 3H8L2 7h20l-6-4z"/>
+          </svg>
+          Caisses
+        </a>
+
+        <a class="nav-item" routerLink="/parametres/cartes" routerLinkActive="active">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+          Cartes
+        </a>
+      </div>
+
+    </nav>
+
+    <div class="user-block">
+      <div class="user-avatar">{{ userInitials() }}</div>
+      <div class="user-info">
+        <span class="user-name">{{ user()?.prenom }} {{ user()?.nom }}</span>
+        <span class="user-role">{{ user()?.roles?.[0] ?? '—' }}</span>
+      </div>
+      <button class="btn-icon logout-btn" type="button" title="Se déconnecter" (click)="logout()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ═══ MAIN ════════════════════════════════════════════════════════════════ -->
+  <main class="main">
+    <router-outlet />
+  </main>
+
+</div>

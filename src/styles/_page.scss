@@ -1,0 +1,9 @@
+// Styles partagés pour les pages CRUD
+// À importer via @use 'styles/page' dans les .page.scss
+
+.param-page {
+  padding: var(--space-8);
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+}

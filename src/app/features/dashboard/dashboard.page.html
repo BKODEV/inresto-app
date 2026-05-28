@@ -1,29 +1,46 @@
-<div class="shell">
-  <header>
+<div class="page">
+
+  <div class="page-header">
     <div>
-      <h1>Bienvenue, {{ user()?.prenom }} {{ user()?.nom }}</h1>
-      <p class="muted">Identifiant : <strong>{{ user()?.identifiant }}</strong></p>
+      <h1 class="page-title">Tableau de bord</h1>
+      <p class="page-subtitle">Bienvenue, {{ user()?.prenom }} {{ user()?.nom }}</p>
     </div>
-    <button type="button" class="btn" (click)="logout()">Se déconnecter</button>
-  </header>
+  </div>
 
-  <section class="grid">
-    <article class="tile">
-      <span class="label">Rôles</span>
-      <strong>{{ (user()?.roles ?? []).join(', ') || '—' }}</strong>
-    </article>
-    <article class="tile">
-      <span class="label">Statut</span>
-      <strong>{{ user()?.statut }}</strong>
-    </article>
-    <article class="tile">
-      <span class="label">Permissions</span>
-      <strong>{{ (user()?.permissions ?? []).length }}</strong>
-    </article>
-  </section>
+  <div class="stats-grid">
+    <div class="card stat-card">
+      <span class="stat-label">Rôles</span>
+      <strong class="stat-value">{{ (user()?.roles ?? []).join(', ') || '—' }}</strong>
+    </div>
+    <div class="card stat-card">
+      <span class="stat-label">Statut</span>
+      @if (user()?.statut === 'actif') {
+        <span class="badge badge-success">Actif</span>
+      } @else {
+        <span class="badge badge-danger">Inactif</span>
+      }
+    </div>
+    <div class="card stat-card">
+      <span class="stat-label">Permissions</span>
+      <strong class="stat-value">{{ (user()?.permissions ?? []).length }}</strong>
+    </div>
+  </div>
 
-  <p class="placeholder">
-    Squelette du tableau de bord — les modules (Accueil, Carte, Plan des tables, etc.)
-    viendront se brancher ici.
-  </p>
+  <div class="empty-state" style="margin-top: 24px">
+    <div class="empty-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1"/>
+        <rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="14" y="14" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/>
+      </svg>
+    </div>
+    <span class="empty-title">Modules à venir</span>
+    <span class="empty-message">
+      Les modules Accueil, Carte, Plan des tables et rapports seront disponibles ici.
+    </span>
+  </div>
+
 </div>
