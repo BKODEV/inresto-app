@@ -1,0 +1,29 @@
+<div class="shell">
+  <header>
+    <div>
+      <h1>Bienvenue, {{ user()?.prenom }} {{ user()?.nom }}</h1>
+      <p class="muted">Identifiant : <strong>{{ user()?.identifiant }}</strong></p>
+    </div>
+    <button type="button" class="btn" (click)="logout()">Se déconnecter</button>
+  </header>
+
+  <section class="grid">
+    <article class="tile">
+      <span class="label">Rôles</span>
+      <strong>{{ (user()?.roles ?? []).join(', ') || '—' }}</strong>
+    </article>
+    <article class="tile">
+      <span class="label">Statut</span>
+      <strong>{{ user()?.statut }}</strong>
+    </article>
+    <article class="tile">
+      <span class="label">Permissions</span>
+      <strong>{{ (user()?.permissions ?? []).length }}</strong>
+    </article>
+  </section>
+
+  <p class="placeholder">
+    Squelette du tableau de bord — les modules (Accueil, Carte, Plan des tables, etc.)
+    viendront se brancher ici.
+  </p>
+</div>
