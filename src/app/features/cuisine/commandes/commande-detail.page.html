@@ -1,0 +1,339 @@
+<div class="detail-page">
+  <a class="back" routerLink="/cuisine/commandes">← Retour aux commandes</a>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (commande(); as c) {
+    <div class="head">
+      <div class="ht">
+        <h1>{{ c.numero }}</h1>
+        <div class="meta">
+          <span class="badge" [class]="statutBadge()">{{ statutLabel() }}</span>
+          <span class="muted">{{ c.fournisseur?.nom ?? '—' }}</span>
+          <span class="muted">· {{ formatDate(c.date_commande) }}</span>
+        </div>
+      </div>
+      <div class="actions">
+        <button
+          class="btn btn-secondary"
+          type="button"
+          [disabled]="pdfBusy()"
+          (click)="telechargerPdf()"
+        >
+          @if (pdfBusy()) {
+            <span class="spinner" style="width: 14px; height: 14px"></span>
+          }
+          Bon de commande (PDF)
+        </button>
+        @if (isReceptionnable() && canReceptionner()) {
+          <button
+            class="btn btn-primary"
+            type="button"
+            [disabled]="busy()"
+            (click)="openReception()"
+          >
+            Réceptionner
+          </button>
+        }
+        @if (isBrouillon() && canUpdate()) {
+          <button
+            class="btn btn-primary"
+            type="button"
+            [disabled]="busy() || (c.lignes?.length ?? 0) === 0"
+            (click)="envoyer()"
+          >
+            Envoyer
+          </button>
+        }
+        @if (isAnnulable() && canUpdate()) {
+          <button class="btn btn-secondary" type="button" [disabled]="busy()" (click)="annuler()">
+            Annuler la commande
+          </button>
+        }
+        @if (isBrouillon() && canDelete()) {
+          <button class="btn btn-danger" type="button" [disabled]="busy()" (click)="supprimer()">
+            Supprimer
+          </button>
+        }
+      </div>
+    </div>
+
+    @if (actionError()) {
+      <div class="alert-error" style="margin-bottom: 16px">{{ actionError() }}</div>
+    }
+
+    <div class="kpis">
+      <div class="kpi">
+        <div class="k-l">Montant prévisionnel</div>
+        <div class="k-v">
+          {{ formatMontant(c.montant_previsionnel) }} <span class="cur">FCFA</span>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="k-l">Lignes</div>
+        <div class="k-v">{{ c.lignes?.length ?? 0 }}</div>
+      </div>
+    </div>
+
+    @if (c.notes) {
+      <div class="card info-card"><b>Notes :</b> {{ c.notes }}</div>
+    }
+
+    <div class="sec-head">
+      <div>
+        <h2>Lignes de commande</h2>
+        @if (isBrouillon()) {
+          <p>Modifiables tant que la commande est en brouillon.</p>
+        } @else {
+          <p>Commande verrouillée — lignes en lecture seule.</p>
+        }
+      </div>
+      @if (isBrouillon() && canUpdate()) {
+        <button class="btn btn-primary" type="button" (click)="openCreateLigne()">
+          + Ajouter une ligne
+        </button>
+      }
+    </div>
+
+    @if ((c.lignes?.length ?? 0) === 0) {
+      <div class="empty-state">
+        <span class="empty-title">Aucune ligne</span>
+        <span class="empty-message">Ajoutez des matières premières à commander.</span>
+      </div>
+    } @else {
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Matière première</th>
+              <th class="num">Quantité</th>
+              <th>Unité</th>
+              <th class="num">Prix unitaire</th>
+              <th class="num">Sous-total</th>
+              @if (isBrouillon() && canUpdate()) {
+                <th></th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (ligne of c.lignes; track ligne.id) {
+              <tr>
+                <td class="td-primary">{{ matiereLibelle(ligne) }}</td>
+                <td class="num td-mono">{{ ligne.quantite_commandee }}</td>
+                <td>{{ uniteSymbole(ligne.unite_id, ligne) }}</td>
+                <td class="num td-mono">{{ formatMontant(ligne.prix_unitaire_previsionnel) }}</td>
+                <td class="num td-mono">{{ formatMontant(ligne.sous_total) }} FCFA</td>
+                @if (isBrouillon() && canUpdate()) {
+                  <td class="td-actions">
+                    <button
+                      class="btn-icon"
+                      type="button"
+                      (click)="openEditLigne(ligne)"
+                      title="Modifier"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      class="btn-icon btn-icon-danger"
+                      type="button"
+                      (click)="deleteLigne(ligne)"
+                      title="Supprimer"
+                    >
+                      🗑
+                    </button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  } @else {
+    <div class="empty-state"><span class="empty-title">Commande introuvable</span></div>
+  }
+</div>
+
+<!-- DRAWER : ligne de commande -->
+@if (ligneDrawerOpen()) {
+  <div class="drawer-overlay" (click)="closeLigneDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">{{ editingLigne() ? 'Modifier la ligne' : 'Nouvelle ligne' }}</h2>
+      <button class="btn-icon" type="button" (click)="closeLigneDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="ligneForm" (ngSubmit)="saveLigne()" novalidate>
+      @if (ligneError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ ligneError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Matière première <span class="required">*</span></span>
+        <select
+          class="field-select"
+          formControlName="matiere_premiere_id"
+          (change)="onMatiereSelected()"
+        >
+          <option [ngValue]="null" disabled>Sélectionner…</option>
+          @for (m of matieresCommandables(); track m.id) {
+            <option [ngValue]="m.id">{{ m.libelle }}</option>
+          }
+        </select>
+        @if (matieresCommandables().length === 0) {
+          <span class="field-hint">
+            Aucune matière au catalogue de ce fournisseur. Ajoutez-en au catalogue avant de
+            commander.
+          </span>
+        }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Unité <span class="required">*</span></span>
+        <select class="field-select" formControlName="unite_id">
+          <option [ngValue]="null" disabled>Sélectionner…</option>
+          @for (u of unites(); track u.id) {
+            <option [ngValue]="u.id">{{ u.libelle }} ({{ u.symbole }})</option>
+          }
+        </select>
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Quantité commandée <span class="required">*</span></span>
+        <input
+          class="field-input"
+          type="number"
+          min="0"
+          step="0.001"
+          formControlName="quantite_commandee"
+        />
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Prix unitaire prévisionnel <span class="required">*</span></span>
+        <input
+          class="field-input"
+          type="number"
+          min="0"
+          step="0.01"
+          formControlName="prix_unitaire_previsionnel"
+        />
+      </label>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeLigneDrawer()">Annuler</button>
+      <button
+        class="btn btn-primary"
+        type="button"
+        [disabled]="ligneSaving()"
+        (click)="saveLigne()"
+      >
+        @if (ligneSaving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        {{ editingLigne() ? 'Enregistrer' : 'Ajouter' }}
+      </button>
+    </div>
+  </div>
+}
+
+<!-- DRAWER : réception -->
+@if (receptionDrawerOpen()) {
+  <div class="drawer-overlay" (click)="closeReceptionDrawer()"></div>
+  <div class="drawer drawer-wide" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <div>
+        <h2 class="drawer-title">Réceptionner la livraison</h2>
+        <p class="drawer-sub">
+          La confirmation met à jour le stock du site, crée les dépenses d'achat et fait transiter
+          la commande. Action irréversible.
+        </p>
+      </div>
+      <button class="btn-icon" type="button" (click)="closeReceptionDrawer()">✕</button>
+    </div>
+    <div class="drawer-body">
+      @if (receptionError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ receptionError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Site de réception <span class="required">*</span></span>
+        <select
+          class="field-select"
+          [value]="receptionSiteId() ?? ''"
+          (change)="onReceptionSite($any($event.target).value)"
+        >
+          <option value="" disabled>Sélectionner…</option>
+          @for (s of sites(); track s.id) {
+            <option [value]="s.id">{{ s.nom }}</option>
+          }
+        </select>
+        @if (sites().length === 0) {
+          <span class="field-error">Aucun site rattaché à votre compte.</span>
+        }
+      </label>
+
+      <div class="dr-hint" style="margin-top: 16px">
+        Ajustez les quantités réellement reçues et les prix réels. Retirez les lignes non livrées.
+      </div>
+
+      @for (group of receptionLignes(); track group; let i = $index) {
+        <div class="entry" [formGroup]="group">
+          <div class="entry-top">
+            <div class="entry-idx">
+              <b>{{ group.value.matiere_libelle }}</b>
+            </div>
+            <button
+              class="entry-rm"
+              type="button"
+              (click)="removeReceptionLigne(group)"
+              title="Retirer"
+            >
+              ✕
+            </button>
+          </div>
+          <div class="frow">
+            <div>
+              <label class="ctl-l">Quantité reçue <span class="req">*</span></label>
+              <input
+                class="field-input"
+                type="number"
+                min="0"
+                step="0.001"
+                formControlName="quantite_recue"
+              />
+            </div>
+            <div>
+              <label class="ctl-l">Prix unitaire réel <span class="req">*</span></label>
+              <input
+                class="field-input"
+                type="number"
+                min="0"
+                step="0.01"
+                formControlName="prix_unitaire_reel"
+              />
+            </div>
+          </div>
+        </div>
+      }
+      @if (receptionLignes().length === 0) {
+        <div class="empty-state">
+          <span class="empty-message">Aucune ligne à réceptionner.</span>
+        </div>
+      }
+    </div>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeReceptionDrawer()">
+        Annuler
+      </button>
+      <button
+        class="btn btn-primary"
+        type="button"
+        [disabled]="receptionSaving()"
+        (click)="confirmerReception()"
+      >
+        @if (receptionSaving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Confirmer la réception
+      </button>
+    </div>
+  </div>
+}

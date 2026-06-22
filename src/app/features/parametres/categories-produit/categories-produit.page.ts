@@ -12,6 +12,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 import { CategorieProduitService } from '../../../core/api/categorie-produit/categorie-produit.service';
 import { CategorieProduit } from '../../../core/api/categorie-produit/categorie-produit.model';
+import { apiErrorMessage } from '../../../core/api/api-error.util';
 
 @Component({
   selector: 'app-categories-produit-page',
@@ -37,6 +38,7 @@ export class CategoriesProduitPage implements OnInit {
   readonly form = this.fb.nonNullable.group({
     libelle: ['', [Validators.required, Validators.maxLength(255)]],
     description: [''],
+    ordre: [0, [Validators.required, Validators.min(0)]],
   });
 
   ngOnInit(): void {
@@ -59,14 +61,18 @@ export class CategoriesProduitPage implements OnInit {
 
   openCreate(): void {
     this.editingItem.set(null);
-    this.form.reset({ libelle: '', description: '' });
+    this.form.reset({ libelle: '', description: '', ordre: 0 });
     this.formError.set(null);
     this.drawerOpen.set(true);
   }
 
   openEdit(item: CategorieProduit): void {
     this.editingItem.set(item);
-    this.form.reset({ libelle: item.libelle, description: item.description ?? '' });
+    this.form.reset({
+      libelle: item.libelle,
+      description: item.description ?? '',
+      ordre: item.ordre,
+    });
     this.formError.set(null);
     this.drawerOpen.set(true);
   }
@@ -84,8 +90,8 @@ export class CategoriesProduitPage implements OnInit {
     this.saving.set(true);
     this.formError.set(null);
 
-    const { libelle, description } = this.form.getRawValue();
-    const payload = { libelle, description: description || null };
+    const { libelle, description, ordre } = this.form.getRawValue();
+    const payload = { libelle, description: description || null, ordre };
     const editing = this.editingItem();
 
     const request$ = editing
@@ -104,13 +110,15 @@ export class CategoriesProduitPage implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.saving.set(false);
-        this.formError.set(err.error?.message ?? 'Une erreur est survenue.');
+        this.formError.set(apiErrorMessage(err));
       },
     });
   }
 
   delete(item: CategorieProduit): void {
-    if (!confirm(`Supprimer « ${item.libelle} » ?`)) { return; }
+    if (!confirm(`Supprimer « ${item.libelle} » ?`)) {
+      return;
+    }
     this.deletingId.set(item.id);
     this.service
       .delete(item.id)

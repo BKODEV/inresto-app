@@ -1,0 +1,139 @@
+:host {
+  display: block;
+}
+
+.tab-page {
+  padding: 4px 2px;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.page-title {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.page-subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  margin: 6px 0 0;
+}
+
+.toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+.site-context {
+  font-size: var(--text-base);
+  color: var(--text-dim);
+
+  strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .site-context-hint {
+    color: var(--text-mute);
+    font-size: var(--text-sm);
+  }
+}
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field-label.inline {
+  min-width: 240px;
+}
+.field-text {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-mute);
+  font-size: var(--text-sm);
+  padding: var(--space-8) 0;
+}
+
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+.data-table .num {
+  text-align: right;
+}
+.td-mono.neg {
+  color: var(--red, #ef4444);
+}
+.td-mono.pos {
+  color: var(--green, #10b981);
+}
+
+.drawer-wide {
+  width: min(640px, 100vw);
+}
+.drawer-sub {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  margin: 6px 0 0;
+}
+
+.add-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.dt-sub {
+  font-size: var(--text-base);
+  font-weight: 700;
+  margin: 22px 0 12px;
+}
+
+.rapport-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.rk {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+}
+.rk-l {
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  font-weight: 600;
+}
+.rk-v {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+@media (max-width: 768px) {
+  .add-row {
+    grid-template-columns: 1fr;
+  }
+  .rapport-kpis {
+    grid-template-columns: 1fr;
+  }
+}

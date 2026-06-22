@@ -13,6 +13,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { UniteDeMesureService } from '../../../core/api/unite-de-mesure/unite-de-mesure.service';
 import { UniteDeMesure } from '../../../core/api/unite-de-mesure/unite-de-mesure.model';
 import { Statut } from '../../../core/api/api.types';
+import { apiErrorMessage } from '../../../core/api/api-error.util';
 
 @Component({
   selector: 'app-unites-de-mesure-page',
@@ -105,13 +106,15 @@ export class UnitesDeMesurePage implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.saving.set(false);
-        this.formError.set(err.error?.message ?? 'Une erreur est survenue.');
+        this.formError.set(apiErrorMessage(err, 'Une erreur est survenue.'));
       },
     });
   }
 
   delete(item: UniteDeMesure): void {
-    if (!confirm(`Supprimer « ${item.libelle} » ?`)) { return; }
+    if (!confirm(`Supprimer « ${item.libelle} » ?`)) {
+      return;
+    }
     this.deletingId.set(item.id);
     this.service
       .delete(item.id)

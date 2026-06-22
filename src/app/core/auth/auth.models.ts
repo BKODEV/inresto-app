@@ -1,3 +1,5 @@
+import { Site } from '../api/site/site.model';
+
 export interface AuthUser {
   id: string;
   nom: string;
@@ -10,6 +12,8 @@ export interface AuthUser {
   last_login_at: string | null;
   roles: string[];
   permissions: string[];
+  /** Périmètre métier : sites de rattachement de l'utilisateur. */
+  sites: Site[];
 }
 
 export interface LoginRequest {

@@ -1,0 +1,47 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, map } from 'rxjs';
+
+import { environment } from '../../../../environments/environment';
+import { ApiResponse } from '../api.types';
+import { CreateTablePayload, StatutTable, TableSalle, UpdateTablePayload } from './table.model';
+
+interface TableIndex {
+  tables: TableSalle[];
+}
+
+@Injectable({ providedIn: 'root' })
+export class TableService {
+  private readonly http = inject(HttpClient);
+  private readonly base = `${environment.apiUrl}/tables`;
+
+  list(pointDeVenteId?: number): Observable<TableSalle[]> {
+    let params = new HttpParams();
+    if (pointDeVenteId) {
+      params = params.set('point_de_vente_id', pointDeVenteId);
+    }
+    return this.http
+      .get<ApiResponse<TableIndex>>(this.base, { params })
+      .pipe(map((r) => r.data.tables));
+  }
+
+  create(payload: CreateTablePayload): Observable<TableSalle> {
+    return this.http.post<ApiResponse<TableSalle>>(this.base, payload).pipe(map((r) => r.data));
+  }
+
+  update(id: number, payload: UpdateTablePayload): Observable<TableSalle> {
+    return this.http
+      .put<ApiResponse<TableSalle>>(`${this.base}/${id}`, payload)
+      .pipe(map((r) => r.data));
+  }
+
+  changerStatut(id: number, statut: StatutTable): Observable<TableSalle> {
+    return this.http
+      .patch<ApiResponse<TableSalle>>(`${this.base}/${id}/statut`, { statut })
+      .pipe(map((r) => r.data));
+  }
+
+  delete(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${id}`);
+  }
+}

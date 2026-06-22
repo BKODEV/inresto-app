@@ -5,7 +5,7 @@ import { Observable, tap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { ApiMessage, AuthUser, LoginRequest, LoginResponse, MeResponse } from './auth.models';
-import { AUTH_TOKEN_STORAGE_KEY, AUTH_USER_STORAGE_KEY } from './auth.tokens';
+import { AUTH_TOKEN_STORAGE_KEY, AUTH_USER_STORAGE_KEY, SUPER_ADMIN_ROLE } from './auth.tokens';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -19,6 +19,21 @@ export class AuthService {
   readonly token = this._token.asReadonly();
   readonly user = this._user.asReadonly();
   readonly isAuthenticated = computed(() => this._token() !== null);
+
+  /** Le super-admin détient implicitement toutes les permissions. */
+  readonly isSuperAdmin = computed(() => this._user()?.roles.includes(SUPER_ADMIN_ROLE) ?? false);
+
+  /**
+   * Une entrée sans permission est visible par tout utilisateur connecté.
+   * Le super-admin a accès à tout sans vérification.
+   * Sinon, l'utilisateur doit détenir la permission correspondante.
+   */
+  hasPermission(permission?: string): boolean {
+    if (!permission || this.isSuperAdmin()) {
+      return true;
+    }
+    return this._user()?.permissions.includes(permission) ?? false;
+  }
 
   login(payload: LoginRequest): Observable<LoginResponse> {
     return this.http

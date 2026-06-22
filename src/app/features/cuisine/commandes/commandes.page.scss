@@ -1,0 +1,31 @@
+:host {
+  display: block;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+
+.field-label.inline {
+  flex-direction: column;
+  gap: 6px;
+  min-width: 220px;
+}
+
+.data-table .num {
+  text-align: right;
+}
+
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--muted, #64748b);
+}

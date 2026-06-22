@@ -1,0 +1,564 @@
+<div class="param-page">
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (site(); as s) {
+    <!-- Fil d'Ariane -->
+    <nav class="crumb">
+      <a routerLink="/parametres/sites">Sites</a>
+      <span class="sep">›</span>
+      <span class="cur">{{ s.nom }}</span>
+    </nav>
+
+    <!-- En-tête -->
+    <div class="site-head">
+      <div class="site-tile" aria-hidden="true">
+        <svg
+          width="26"
+          height="26"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M3 21h18" />
+          <path d="M5 21V7l7-4 7 4v14" />
+          <path d="M9 21v-6h6v6" />
+          <path d="M9 11h.01" />
+          <path d="M15 11h.01" />
+        </svg>
+      </div>
+      <div class="site-head-text">
+        <h1 class="page-title">{{ s.nom }}</h1>
+        <div class="site-meta">
+          <span class="badge badge-neutral td-mono">{{ s.code }}</span>
+          @if (s.statut === 'actif') {
+            <span class="badge badge-success">Actif</span>
+          } @else {
+            <span class="badge badge-neutral">Inactif</span>
+          }
+          <span class="badge badge-neutral">
+            {{ pointsDeVente().length }} point{{ pointsDeVente().length > 1 ? 's' : '' }} de vente
+          </span>
+        </div>
+      </div>
+      @if (canUpdateSite()) {
+        <button class="btn btn-secondary" type="button" (click)="openEditSite()">
+          Modifier le site
+        </button>
+      }
+    </div>
+
+    <!-- Informations du site -->
+    <div class="card info-card">
+      <div class="card-title">Informations du site</div>
+      <div class="info-grid">
+        <div class="field-view">
+          <div class="fv-label">Code</div>
+          <div class="fv-value td-mono">{{ s.code }}</div>
+        </div>
+        <div class="field-view">
+          <div class="fv-label">Nom du site</div>
+          <div class="fv-value">{{ s.nom }}</div>
+        </div>
+        <div class="field-view">
+          <div class="fv-label">Statut</div>
+          <div class="fv-value">
+            @if (s.statut === 'actif') {
+              <span class="badge badge-success">Actif</span>
+            } @else {
+              <span class="badge badge-neutral">Inactif</span>
+            }
+          </div>
+        </div>
+        <div class="field-view">
+          <div class="fv-label">Adresse</div>
+          <div class="fv-value">{{ s.adresse || '—' }}</div>
+        </div>
+        <div class="field-view">
+          <div class="fv-label">Créé le</div>
+          <div class="fv-value td-mono">
+            {{ s.created_at ? (s.created_at | date: 'dd MMM yyyy') : '—' }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Paramètres d'établissement (en-tête des documents PDF) -->
+    @if (canViewParametre()) {
+      <div class="card info-card">
+        <div class="card-title-row">
+          <div class="card-title">Paramètres d'établissement</div>
+          @if (canUpdateParametre()) {
+            <button class="btn btn-secondary" type="button" (click)="openEditParametre()">
+              {{ parametre() ? 'Modifier' : 'Configurer' }}
+            </button>
+          }
+        </div>
+        <p class="page-subtitle">
+          Identité, coordonnées et logo utilisés sur les documents imprimés (factures, reçus, bons
+          de commande, fiches techniques) de ce site.
+        </p>
+
+        @if (parametreLoading()) {
+          <div class="loading-row">
+            <div class="spinner"></div>
+            <span>Chargement…</span>
+          </div>
+        } @else if (parametre(); as p) {
+          <div class="etab-grid">
+            <div class="etab-logo">
+              @if (p.logo_url) {
+                <img [src]="p.logo_url" alt="Logo de l'établissement" />
+              } @else {
+                <div class="etab-logo-empty">Aucun logo</div>
+              }
+              @if (canUpdateParametre()) {
+                <div class="etab-logo-actions">
+                  <label class="btn btn-secondary btn-sm">
+                    {{ p.logo_url ? 'Remplacer' : 'Ajouter un logo' }}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      hidden
+                      [disabled]="logoBusy()"
+                      (change)="onLogoSelected($event)"
+                    />
+                  </label>
+                  @if (p.logo_url) {
+                    <button
+                      class="btn btn-danger btn-sm"
+                      type="button"
+                      [disabled]="logoBusy()"
+                      (click)="deleteLogo()"
+                    >
+                      Supprimer
+                    </button>
+                  }
+                </div>
+              }
+              @if (logoError()) {
+                <div class="field-error">{{ logoError() }}</div>
+              }
+            </div>
+
+            <div class="info-grid">
+              <div class="field-view">
+                <div class="fv-label">Nom commercial</div>
+                <div class="fv-value">{{ p.nom_commercial }}</div>
+              </div>
+              <div class="field-view">
+                <div class="fv-label">Devise</div>
+                <div class="fv-value td-mono">{{ p.devise }}</div>
+              </div>
+              @if (p.slogan) {
+                <div class="field-view">
+                  <div class="fv-label">Slogan</div>
+                  <div class="fv-value">{{ p.slogan }}</div>
+                </div>
+              }
+              @if (p.telephone) {
+                <div class="field-view">
+                  <div class="fv-label">Téléphone</div>
+                  <div class="fv-value">{{ p.telephone }}</div>
+                </div>
+              }
+              @if (p.email) {
+                <div class="field-view">
+                  <div class="fv-label">E-mail</div>
+                  <div class="fv-value">{{ p.email }}</div>
+                </div>
+              }
+              @if (p.adresse) {
+                <div class="field-view">
+                  <div class="fv-label">Adresse</div>
+                  <div class="fv-value">{{ p.adresse }}</div>
+                </div>
+              }
+              @if (p.ncc) {
+                <div class="field-view">
+                  <div class="fv-label">NCC</div>
+                  <div class="fv-value td-mono">{{ p.ncc }}</div>
+                </div>
+              }
+              @if (p.rccm) {
+                <div class="field-view">
+                  <div class="fv-label">RCCM</div>
+                  <div class="fv-value td-mono">{{ p.rccm }}</div>
+                </div>
+              }
+            </div>
+          </div>
+        } @else {
+          <div class="empty-state">
+            <span class="empty-title">Établissement non configuré</span>
+            <span class="empty-message">
+              Renseignez les informations de l'établissement pour personnaliser les documents
+              imprimés de ce site.
+            </span>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Points de vente -->
+    <div class="sec-head">
+      <div>
+        <h2 class="sec-title">
+          Points de vente
+          <span class="sec-count">{{ pointsDeVente().length }}</span>
+        </h2>
+        <p class="page-subtitle">Établissements rattachés à ce site.</p>
+      </div>
+      @if (canCreatePdv()) {
+        <button class="btn btn-primary" type="button" (click)="openCreatePdv()">
+          + Nouveau point de vente
+        </button>
+      }
+    </div>
+
+    <div class="pdv-grid">
+      @for (pdv of pointsDeVente(); track pdv.id) {
+        <div
+          class="pdv-card"
+          [class.lounge]="pdv.type === 'Lounge'"
+          [class.resto]="pdv.type === 'Restaurant'"
+        >
+          <div class="pdv-top">
+            <div class="pdv-id">
+              <span class="pdv-ic" aria-hidden="true">
+                @if (pdv.type === 'Lounge') {
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M5 22h14" />
+                    <path d="M6 9h12l-1 5a3 3 0 0 1-3 2.5h-4A3 3 0 0 1 7 14z" />
+                    <path d="M9 9V5l3-2 3 2v4" />
+                  </svg>
+                } @else {
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.7"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M4 3v7a3 3 0 0 0 6 0V3" />
+                    <path d="M7 3v18" />
+                    <path d="M17 3c-1.5 1-2.5 3-2.5 6.5S15.5 15 17 15v6" />
+                  </svg>
+                }
+              </span>
+              <div>
+                <a
+                  class="pdv-name pdv-name-link"
+                  [routerLink]="['/parametres/points-de-vente', pdv.id]"
+                  >{{ pdv.nom }}</a
+                >
+                <div class="pdv-type">{{ pdv.type }}</div>
+              </div>
+            </div>
+            <div class="pdv-act">
+              @if (canUpdatePdv()) {
+                <button class="btn-icon" type="button" (click)="openEditPdv(pdv)" title="Modifier">
+                  ✎
+                </button>
+              }
+              @if (canDeletePdv()) {
+                <button
+                  class="btn-icon btn-icon-danger"
+                  type="button"
+                  [disabled]="deletingPdvId() === pdv.id"
+                  (click)="deletePdv(pdv)"
+                  title="Supprimer"
+                >
+                  🗑
+                </button>
+              }
+            </div>
+          </div>
+
+          @if (pdv.description) {
+            <p class="pdv-desc">{{ pdv.description }}</p>
+          }
+
+          <div class="pdv-meta">
+            <div class="pdv-m">
+              <div class="pdv-ml">Caisses</div>
+              <div class="pdv-mv td-mono">{{ pdv.caisses_count ?? 0 }}</div>
+            </div>
+          </div>
+
+          <div class="pdv-row">
+            <span
+              class="badge"
+              [class.badge-info]="pdv.type === 'Restaurant'"
+              [class.badge-warning]="pdv.type === 'Lounge'"
+              >{{ pdv.type }}</span
+            >
+            <span class="grow"></span>
+            @if (pdv.statut === 'actif') {
+              <span class="badge badge-success">Actif</span>
+            } @else {
+              <span class="badge badge-neutral">Inactif</span>
+            }
+          </div>
+        </div>
+      }
+
+      @if (canCreatePdv()) {
+        <button class="pdv-add" type="button" (click)="openCreatePdv()">
+          <span class="plus">+</span>
+          <span class="t">Ajouter un point de vente</span>
+        </button>
+      } @else if (pointsDeVente().length === 0) {
+        <div class="empty-state">
+          <span class="empty-title">Aucun point de vente</span>
+          <span class="empty-message">Ce site n'a pas encore de point de vente.</span>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="empty-state">
+      <span class="empty-title">Site introuvable</span>
+      <span class="empty-message"
+        ><a routerLink="/parametres/sites">Retour à la liste des sites</a></span
+      >
+    </div>
+  }
+</div>
+
+<!-- Drawer : modifier le site -->
+@if (siteDrawerOpen()) {
+  <div class="drawer-overlay" (click)="closeSiteDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Modifier le site</h2>
+      <button class="btn-icon" type="button" (click)="closeSiteDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="siteForm" (ngSubmit)="saveSite()" novalidate>
+      @if (siteError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ siteError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Nom <span class="required">*</span></span>
+        <input class="field-input" type="text" formControlName="nom" autocomplete="off" />
+        @if (siteForm.controls.nom.touched && siteForm.controls.nom.invalid) {
+          <span class="field-error">Le nom est requis.</span>
+        }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Code <span class="required">*</span></span>
+        <input class="field-input" type="text" formControlName="code" autocomplete="off" />
+        @if (siteForm.controls.code.touched && siteForm.controls.code.invalid) {
+          <span class="field-error">Le code est requis (20 caractères max).</span>
+        }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Adresse</span>
+        <textarea
+          class="field-textarea"
+          formControlName="adresse"
+          rows="2"
+          placeholder="Adresse optionnelle…"
+        ></textarea>
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Statut</span>
+        <select class="field-select" formControlName="statut">
+          <option value="actif">Actif</option>
+          <option value="inactif">Inactif</option>
+        </select>
+      </label>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeSiteDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="savingSite()" (click)="saveSite()">
+        @if (savingSite()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Enregistrer
+      </button>
+    </div>
+  </div>
+}
+
+<!-- Drawer : point de vente -->
+@if (pdvDrawerOpen()) {
+  <div class="drawer-overlay" (click)="closePdvDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">
+        {{ editingPdv() ? 'Modifier le point de vente' : 'Nouveau point de vente' }}
+      </h2>
+      <button class="btn-icon" type="button" (click)="closePdvDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="pdvForm" (ngSubmit)="savePdv()" novalidate>
+      @if (pdvError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ pdvError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Nom <span class="required">*</span></span>
+        <input
+          class="field-input"
+          type="text"
+          formControlName="nom"
+          placeholder="Ex : Lounge Cocody"
+          autocomplete="off"
+        />
+        @if (pdvForm.controls.nom.touched && pdvForm.controls.nom.invalid) {
+          <span class="field-error">Le nom est requis.</span>
+        }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Type <span class="required">*</span></span>
+        <select class="field-select" formControlName="type">
+          <option value="Restaurant">Restaurant</option>
+          <option value="Lounge">Lounge</option>
+        </select>
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Description</span>
+        <textarea
+          class="field-textarea"
+          formControlName="description"
+          rows="2"
+          placeholder="Ex : Service soir…"
+        ></textarea>
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Statut</span>
+        <select class="field-select" formControlName="statut">
+          <option value="actif">Actif</option>
+          <option value="inactif">Inactif</option>
+        </select>
+      </label>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closePdvDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="savingPdv()" (click)="savePdv()">
+        @if (savingPdv()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        {{ editingPdv() ? 'Enregistrer' : 'Créer' }}
+      </button>
+    </div>
+  </div>
+}
+
+<!-- Drawer : paramètres d'établissement -->
+@if (parametreDrawerOpen()) {
+  <div class="drawer-overlay" (click)="closeParametreDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Paramètres d'établissement</h2>
+      <button class="btn-icon" type="button" (click)="closeParametreDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="parametreForm" (ngSubmit)="saveParametre()" novalidate>
+      @if (parametreError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ parametreError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Nom commercial <span class="required">*</span></span>
+        <input class="field-input" type="text" formControlName="nom_commercial" autocomplete="off" />
+        @if (
+          parametreForm.controls.nom_commercial.touched &&
+          parametreForm.controls.nom_commercial.invalid
+        ) {
+          <span class="field-error">Le nom commercial est requis.</span>
+        }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Devise <span class="required">*</span></span>
+        <input
+          class="field-input"
+          type="text"
+          formControlName="devise"
+          placeholder="XOF"
+          autocomplete="off"
+        />
+        @if (parametreForm.controls.devise.touched && parametreForm.controls.devise.invalid) {
+          <span class="field-error">La devise est requise (10 caractères max).</span>
+        }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Slogan</span>
+        <input class="field-input" type="text" formControlName="slogan" autocomplete="off" />
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Adresse</span>
+        <textarea class="field-textarea" formControlName="adresse" rows="2"></textarea>
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Téléphone</span>
+        <input class="field-input" type="text" formControlName="telephone" autocomplete="off" />
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">E-mail</span>
+        <input class="field-input" type="email" formControlName="email" autocomplete="off" />
+        @if (parametreForm.controls.email.touched && parametreForm.controls.email.invalid) {
+          <span class="field-error">Format d'e-mail invalide.</span>
+        }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Site web</span>
+        <input class="field-input" type="text" formControlName="site_web" autocomplete="off" />
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Raison sociale</span>
+        <input class="field-input" type="text" formControlName="raison_sociale" autocomplete="off" />
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">NCC</span>
+        <input class="field-input" type="text" formControlName="ncc" autocomplete="off" />
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">RCCM</span>
+        <input class="field-input" type="text" formControlName="rccm" autocomplete="off" />
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Régime fiscal</span>
+        <input class="field-input" type="text" formControlName="regime_fiscal" autocomplete="off" />
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Mentions de pied de page</span>
+        <textarea
+          class="field-textarea"
+          formControlName="mentions_pied_page"
+          rows="2"
+          placeholder="Mentions légales affichées en bas des documents…"
+        ></textarea>
+      </label>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeParametreDrawer()">
+        Annuler
+      </button>
+      <button
+        class="btn btn-primary"
+        type="button"
+        [disabled]="savingParametre()"
+        (click)="saveParametre()"
+      >
+        @if (savingParametre()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Enregistrer
+      </button>
+    </div>
+  </div>
+}

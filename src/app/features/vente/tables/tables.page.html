@@ -1,0 +1,177 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Plan de tables</h1>
+      <p class="page-subtitle">Tables physiques par point de vente et leur état en temps réel.</p>
+    </div>
+    <button
+      class="btn btn-primary"
+      type="button"
+      (click)="openCreate()"
+      [disabled]="selectedPdvId() === null"
+    >
+      + Nouvelle table
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (pdvs().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun point de vente</span>
+      <span class="empty-message">
+        @if (currentSite(); as site) {
+          Le site « {{ site.nom }} » n'a pas de point de vente. Ajoutez-en un depuis les Paramètres.
+        } @else {
+          Sélectionnez un site dans la barre du haut.
+        }
+      </span>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <label class="field-label">
+        <span class="field-text">Point de vente</span>
+        <select
+          class="field-select"
+          [value]="selectedPdvId()"
+          (change)="onPdvChange($any($event.target).value)"
+        >
+          @for (pdv of pdvs(); track pdv.id) {
+            <option [value]="pdv.id">{{ pdv.nom }}</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    <div class="legend">
+      @for (s of statuts; track s.value) {
+        <span class="legend-item">
+          <span class="dot" [class]="'dot--' + s.value"></span>{{ s.label }}
+        </span>
+      }
+    </div>
+
+    @if (loadingTables()) {
+      <div class="loading-row">
+        <div class="spinner"></div>
+        <span>Chargement des tables…</span>
+      </div>
+    } @else if (tables().length === 0) {
+      <div class="empty-state">
+        <span class="empty-title">Aucune table</span>
+        <span class="empty-message">Ajoutez des tables à ce point de vente.</span>
+      </div>
+    } @else {
+      <div class="tables-grid">
+        @for (table of tables(); track table.id) {
+          <button
+            type="button"
+            class="table-card"
+            [class]="'table-card--' + table.statut"
+            (click)="openEdit(table)"
+          >
+            <span class="table-num">{{ table.numero }}</span>
+            <span class="table-cap">{{ table.capacite }} couverts</span>
+            <span class="table-statut">{{ statutLabel[table.statut] }}</span>
+          </button>
+        }
+      </div>
+    }
+  }
+</div>
+
+@if (drawerOpen()) {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">
+        {{ editingTable() ? 'Table ' + editingTable()!.numero : 'Nouvelle table' }}
+      </h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="drawer-body">
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+
+      @if (editingTable(); as table) {
+        <div class="field-text" style="margin-bottom: 8px">État de la table</div>
+        <div class="statut-grid">
+          @for (s of statuts; track s.value) {
+            <button
+              type="button"
+              [class]="
+                'statut-btn statut-btn--' + s.value + (table.statut === s.value ? ' active' : '')
+              "
+              (click)="changerStatut(table, s.value)"
+            >
+              {{ s.label }}
+            </button>
+          }
+        </div>
+        <hr class="sep" />
+      }
+
+      <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+        <label class="field-label">
+          <span class="field-text">Numéro <span class="required">*</span></span>
+          <input
+            class="field-input"
+            type="text"
+            formControlName="numero"
+            placeholder="Ex : 12 ou T3"
+            autocomplete="off"
+          />
+          @if (form.controls.numero.touched && form.controls.numero.invalid) {
+            <span class="field-error">Le numéro est requis.</span>
+          }
+        </label>
+        <label class="field-label" style="margin-top: 16px">
+          <span class="field-text">Capacité (couverts) <span class="required">*</span></span>
+          <input class="field-input" type="number" min="1" formControlName="capacite" />
+          @if (form.controls.capacite.touched && form.controls.capacite.invalid) {
+            <span class="field-error">Capacité minimale : 1.</span>
+          }
+        </label>
+      </form>
+    </div>
+
+    <div class="drawer-footer">
+      @if (editingTable(); as table) {
+        <button
+          class="btn btn-danger"
+          type="button"
+          [disabled]="deleting()"
+          (click)="delete(table)"
+        >
+          Supprimer
+        </button>
+      }
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="save()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        {{ editingTable() ? 'Enregistrer' : 'Créer' }}
+      </button>
+    </div>
+  </div>
+}

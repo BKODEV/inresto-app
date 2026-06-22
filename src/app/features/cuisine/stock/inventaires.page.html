@@ -1,0 +1,284 @@
+<div class="tab-page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Inventaires</h2>
+      <p class="page-subtitle">Comptage physique du stock par site et corrections à la clôture.</p>
+    </div>
+    @if (canCreate() && selectedSiteId()) {
+      <button
+        class="btn btn-primary"
+        type="button"
+        [disabled]="creating()"
+        (click)="creerInventaire()"
+      >
+        + Nouvel inventaire
+      </button>
+    }
+  </div>
+
+  @if (currentSite(); as site) {
+    <div class="toolbar">
+      <span class="site-context">
+        Site : <strong>{{ site.nom }}</strong>
+        <span class="site-context-hint">— change le site depuis la barre du haut</span>
+      </span>
+    </div>
+  }
+
+  @if (listError()) {
+    <div class="alert-error" style="margin-bottom: 16px">{{ listError() }}</div>
+  }
+
+  @if (siteLoading() || loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (sites().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun site</span>
+      <span class="empty-message">Aucun site n'est disponible pour votre compte.</span>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun inventaire</span>
+      <span class="empty-message">Démarrez un inventaire pour ce site.</span>
+    </div>
+  } @else {
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Statut</th>
+            <th class="num">Valeur totale</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track item.id) {
+            <tr>
+              <td class="td-primary">{{ formatDate(item.date_inventaire) }}</td>
+              <td>
+                @if (item.statut === 'en_cours') {
+                  <span class="badge badge-warning">En cours</span>
+                } @else {
+                  <span class="badge badge-success">Clôturé</span>
+                }
+              </td>
+              <td class="num td-mono">
+                {{
+                  item.statut === 'cloture'
+                    ? formatMontant(item.valeur_totale_stock) + ' FCFA'
+                    : '—'
+                }}
+              </td>
+              <td class="td-actions">
+                <button class="btn btn-secondary btn-sm" type="button" (click)="openDetail(item)">
+                  {{ item.statut === 'en_cours' ? 'Saisir' : 'Voir' }}
+                </button>
+                <button class="btn-icon" type="button" (click)="openRapport(item)" title="Rapport">
+                  📊
+                </button>
+                @if (item.statut === 'en_cours' && canDelete()) {
+                  <button
+                    class="btn-icon btn-icon-danger"
+                    type="button"
+                    (click)="deleteInventaire(item)"
+                    title="Supprimer"
+                  >
+                    🗑
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<!-- DRAWER : détail / saisie -->
+@if (detailOpen()) {
+  <div class="drawer-overlay" (click)="closeDetail()"></div>
+  <div class="drawer drawer-wide" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <div>
+        <h2 class="drawer-title">
+          @if (detail(); as d) {
+            Inventaire — {{ formatDate(d.date_inventaire) }}
+          } @else {
+            Inventaire
+          }
+        </h2>
+        @if (detail(); as d) {
+          @if (d.statut === 'en_cours') {
+            <p class="drawer-sub">En cours — saisissez les quantités physiques comptées.</p>
+          } @else {
+            <p class="drawer-sub">Clôturé — lignes en lecture seule.</p>
+          }
+        }
+      </div>
+      <button class="btn-icon" type="button" (click)="closeDetail()">✕</button>
+    </div>
+    <div class="drawer-body">
+      @if (detailLoading()) {
+        <div class="loading-row">
+          <div class="spinner"></div>
+          <span>Chargement…</span>
+        </div>
+      } @else if (detail(); as d) {
+        @if (ligneError()) {
+          <div class="alert-error" style="margin-bottom: 14px">{{ ligneError() }}</div>
+        }
+
+        @if (detailEnCours() && canUpdate()) {
+          <form class="add-row" [formGroup]="ligneForm" (ngSubmit)="ajouterLigne()" novalidate>
+            <select class="field-select" formControlName="matiere_premiere_id">
+              <option [ngValue]="null" disabled>Matière…</option>
+              @for (m of matieres(); track m.id) {
+                <option [ngValue]="m.id">{{ m.libelle }}</option>
+              }
+            </select>
+            <input
+              class="field-input"
+              type="number"
+              min="0"
+              step="0.001"
+              formControlName="quantite_physique"
+              placeholder="Qté physique"
+            />
+            <button class="btn btn-primary" type="submit" [disabled]="ligneSaving()">
+              Ajouter
+            </button>
+          </form>
+        }
+
+        @if ((d.lignes?.length ?? 0) === 0) {
+          <div class="empty-state"><span class="empty-message">Aucune ligne saisie.</span></div>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Matière première</th>
+                <th class="num">Théorique</th>
+                <th class="num">Physique</th>
+                <th class="num">Écart</th>
+                @if (detailEnCours() && canUpdate()) {
+                  <th></th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (ligne of d.lignes; track ligne.id) {
+                <tr>
+                  <td class="td-primary">{{ matiereLibelle(ligne) }}</td>
+                  <td class="num td-mono">{{ ligne.quantite_theorique }}</td>
+                  <td class="num td-mono">{{ ligne.quantite_physique }}</td>
+                  <td class="num td-mono" [class]="ecartClass(ligne.ecart)">
+                    {{ ligne.ecart ?? '—' }}
+                  </td>
+                  @if (detailEnCours() && canUpdate()) {
+                    <td class="td-actions">
+                      <button
+                        class="btn-icon btn-icon-danger"
+                        type="button"
+                        (click)="supprimerLigne(ligne)"
+                        title="Supprimer"
+                      >
+                        🗑
+                      </button>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      } @else {
+        <div class="empty-state"><span class="empty-title">Inventaire introuvable</span></div>
+      }
+    </div>
+    @if (detailEnCours() && canUpdate()) {
+      <div class="drawer-footer">
+        <button class="btn btn-secondary" type="button" (click)="closeDetail()">Fermer</button>
+        <button
+          class="btn btn-primary"
+          type="button"
+          [disabled]="busy() || (detail()?.lignes?.length ?? 0) === 0"
+          (click)="cloturer()"
+        >
+          @if (busy()) {
+            <span class="spinner" style="width: 14px; height: 14px"></span>
+          }
+          Clôturer l'inventaire
+        </button>
+      </div>
+    }
+  </div>
+}
+
+<!-- DRAWER : rapport -->
+@if (rapportOpen()) {
+  <div class="drawer-overlay" (click)="closeRapport()"></div>
+  <div class="drawer drawer-wide" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Rapport d'inventaire</h2>
+      <button class="btn-icon" type="button" (click)="closeRapport()">✕</button>
+    </div>
+    <div class="drawer-body">
+      @if (rapportLoading()) {
+        <div class="loading-row">
+          <div class="spinner"></div>
+          <span>Chargement…</span>
+        </div>
+      } @else if (rapport(); as r) {
+        <div class="rapport-kpis">
+          <div class="rk">
+            <div class="rk-l">Matières inventoriées</div>
+            <div class="rk-v">{{ r.nb_matieres_inventoriees }} / {{ r.nb_matieres_site }}</div>
+          </div>
+          <div class="rk">
+            <div class="rk-l">Taux de couverture</div>
+            <div class="rk-v">{{ r.taux_couverture }} %</div>
+          </div>
+          <div class="rk">
+            <div class="rk-l">Valeur totale</div>
+            <div class="rk-v">{{ formatMontant(r.valeur_totale_stock) }} FCFA</div>
+          </div>
+        </div>
+
+        <h3 class="dt-sub">Lignes & écarts</h3>
+        @if (r.lignes.length === 0) {
+          <div class="empty-state"><span class="empty-message">Aucune ligne.</span></div>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Matière première</th>
+                <th class="num">Théorique</th>
+                <th class="num">Physique</th>
+                <th class="num">Écart</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (ligne of r.lignes; track ligne.id) {
+                <tr>
+                  <td class="td-primary">{{ matiereLibelle(ligne) }}</td>
+                  <td class="num td-mono">{{ ligne.quantite_theorique }}</td>
+                  <td class="num td-mono">{{ ligne.quantite_physique }}</td>
+                  <td class="num td-mono" [class]="ecartClass(ligne.ecart)">
+                    {{ ligne.ecart ?? '—' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      } @else {
+        <div class="empty-state"><span class="empty-title">Rapport indisponible</span></div>
+      }
+    </div>
+  </div>
+}

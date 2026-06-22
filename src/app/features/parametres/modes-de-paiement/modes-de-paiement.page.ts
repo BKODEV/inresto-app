@@ -13,6 +13,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ModeDePaiementService } from '../../../core/api/mode-de-paiement/mode-de-paiement.service';
 import { ModeDePaiement } from '../../../core/api/mode-de-paiement/mode-de-paiement.model';
 import { Statut } from '../../../core/api/api.types';
+import { apiErrorMessage } from '../../../core/api/api-error.util';
 
 @Component({
   selector: 'app-modes-de-paiement-page',
@@ -104,13 +105,15 @@ export class ModesDePaiementPage implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.saving.set(false);
-        this.formError.set(err.error?.message ?? 'Une erreur est survenue.');
+        this.formError.set(apiErrorMessage(err, 'Une erreur est survenue.'));
       },
     });
   }
 
   delete(item: ModeDePaiement): void {
-    if (!confirm(`Supprimer « ${item.libelle} » ?`)) { return; }
+    if (!confirm(`Supprimer « ${item.libelle} » ?`)) {
+      return;
+    }
     this.deletingId.set(item.id);
     this.service
       .delete(item.id)

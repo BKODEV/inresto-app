@@ -1,0 +1,277 @@
+:host {
+  display: block;
+  flex: 1;
+}
+
+.param-page {
+  padding: var(--page-pad);
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-mute);
+  font-size: var(--text-sm);
+  padding: var(--space-8) 0;
+}
+
+/* ── Fil d'Ariane ─────────────────────────────────────────────────────────── */
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  color: var(--text-mute);
+  margin-bottom: 18px;
+
+  a {
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--text);
+  }
+  .sep {
+    opacity: 0.6;
+  }
+  .cur {
+    color: var(--text);
+    font-weight: 500;
+  }
+}
+
+/* ── En-tête ──────────────────────────────────────────────────────────────── */
+.pdv-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 26px;
+
+  --accent: var(--blue);
+  &.lounge {
+    --accent: var(--purple);
+  }
+  &.resto {
+    --accent: var(--blue);
+  }
+}
+.pdv-tile {
+  width: 58px;
+  height: 58px;
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent);
+}
+.pdv-head-text {
+  flex: 1;
+  min-width: 0;
+}
+.pdv-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Carte infos ──────────────────────────────────────────────────────────── */
+.info-card {
+  padding: 22px 26px 24px;
+  margin-bottom: 32px;
+}
+.card-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px 40px;
+  margin-top: 22px;
+}
+.field-view .fv-label {
+  font-size: 11px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  font-weight: 600;
+}
+.field-view .fv-value {
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: 8px;
+  color: var(--text);
+
+  .link {
+    color: var(--blue);
+    text-decoration: none;
+  }
+  .link:hover {
+    text-decoration: underline;
+  }
+}
+.fv-wide {
+  grid-column: 1 / -1;
+}
+
+/* ── Section caisses ──────────────────────────────────────────────────────── */
+.sec-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.sec-title {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.sec-count {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--amber);
+  background: var(--amber-soft);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  padding: 3px 9px;
+  border-radius: var(--radius-full);
+}
+
+.caisse-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.caisse-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: var(--border-strong);
+  }
+}
+.caisse-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.caisse-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.caisse-ic {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+}
+.caisse-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.caisse-sub {
+  font-size: 12px;
+  color: var(--text-mute);
+  margin-top: 3px;
+}
+.caisse-act {
+  display: flex;
+  gap: 6px;
+}
+.caisse-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.caisse-add {
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-dim);
+  cursor: pointer;
+  min-height: 110px;
+  font: inherit;
+  transition: all 0.15s ease;
+
+  &:hover {
+    border-color: var(--amber);
+    color: var(--amber);
+    background: var(--amber-soft);
+  }
+  .plus {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: grid;
+    place-items: center;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .t {
+    font-size: 13px;
+    font-weight: 600;
+  }
+}
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field-text {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-dim);
+}
+.required {
+  color: var(--red);
+}
+
+@media (max-width: 900px) {
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .caisse-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .caisse-grid {
+    grid-template-columns: 1fr;
+  }
+}

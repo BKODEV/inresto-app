@@ -1,0 +1,143 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Sites</h1>
+      <p class="page-subtitle">Sites d'exploitation (cuisine, stock et budget propres).</p>
+    </div>
+    @if (canCreate()) {
+      <button class="btn btn-primary" type="button" (click)="openCreate()">+ Nouveau site</button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun site</span>
+      <span class="empty-message">Créez votre premier site d'exploitation.</span>
+    </div>
+  } @else {
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Code</th>
+            <th>Nom</th>
+            <th>Adresse</th>
+            <th>Points de vente</th>
+            <th>Statut</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track item.id) {
+            <tr>
+              <td class="td-mono">{{ item.id }}</td>
+              <td class="td-mono">{{ item.code }}</td>
+              <td class="td-primary">
+                <a class="row-link" [routerLink]="[item.id]">{{ item.nom }}</a>
+              </td>
+              <td>{{ item.adresse || '—' }}</td>
+              <td class="td-mono">{{ item.points_de_vente_count ?? 0 }}</td>
+              <td>
+                @if (item.statut === 'actif') {
+                  <span class="badge badge-success">Actif</span>
+                } @else {
+                  <span class="badge badge-neutral">Inactif</span>
+                }
+              </td>
+              <td class="td-actions">
+                @if (canUpdate()) {
+                  <button class="btn-icon" type="button" (click)="openEdit(item)" title="Modifier">
+                    ✎
+                  </button>
+                }
+                @if (canDelete()) {
+                  <button
+                    class="btn-icon btn-icon-danger"
+                    type="button"
+                    [disabled]="deletingId() === item.id"
+                    (click)="delete(item)"
+                    title="Supprimer"
+                  >
+                    🗑
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+@if (drawerOpen()) {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">{{ editingItem() ? 'Modifier le site' : 'Nouveau site' }}</h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Nom <span class="required">*</span></span>
+        <input
+          class="field-input"
+          type="text"
+          formControlName="nom"
+          placeholder="Ex : Cuisine Centrale"
+          autocomplete="off"
+        />
+        @if (form.controls.nom.touched && form.controls.nom.invalid) {
+          <span class="field-error">Le nom est requis.</span>
+        }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Code <span class="required">*</span></span>
+        <input
+          class="field-input"
+          type="text"
+          formControlName="code"
+          placeholder="Ex : CC-01"
+          autocomplete="off"
+        />
+        @if (form.controls.code.touched && form.controls.code.invalid) {
+          <span class="field-error">Le code est requis (20 caractères max).</span>
+        }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Adresse</span>
+        <textarea
+          class="field-textarea"
+          formControlName="adresse"
+          rows="2"
+          placeholder="Adresse optionnelle…"
+        ></textarea>
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Statut</span>
+        <select class="field-select" formControlName="statut">
+          <option value="actif">Actif</option>
+          <option value="inactif">Inactif</option>
+        </select>
+      </label>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="save()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        {{ editingItem() ? 'Enregistrer' : 'Créer' }}
+      </button>
+    </div>
+  </div>
+}

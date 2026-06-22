@@ -14,6 +14,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { interval, startWith } from 'rxjs';
 
 import { AuthService } from '../../../core/auth/auth.service';
+import { apiErrorMessage } from '../../../core/api/api-error.util';
 
 @Component({
   selector: 'app-login-page',
@@ -77,13 +78,10 @@ export class LoginPage implements OnInit {
   }
 
   private extractError(err: HttpErrorResponse): string {
-    if (err.error?.message) {
-      return err.error.message as string;
-    }
     if (err.status === 0) {
       return 'Impossible de joindre le serveur. Vérifiez votre connexion.';
     }
-    return 'Une erreur est survenue. Veuillez réessayer.';
+    return apiErrorMessage(err, 'Une erreur est survenue. Veuillez réessayer.');
   }
 
   private deviceName(): string {

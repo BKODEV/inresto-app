@@ -1,0 +1,284 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Budget</h1>
+      <p class="page-subtitle">Budgets mensuels par site, consommation et charges.</p>
+    </div>
+    @if (canManage() && selectedSiteId()) {
+      <button class="btn btn-primary" type="button" (click)="openCreate()">+ Nouveau budget</button>
+    }
+  </div>
+
+  @if (currentSite(); as site) {
+    <div class="toolbar">
+      <span class="site-context">
+        Site : <strong>{{ site.nom }}</strong>
+        <span class="site-context-hint">— change le site depuis la barre du haut</span>
+      </span>
+    </div>
+  }
+
+  @if (siteLoading() || loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (sites().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun site</span>
+      <span class="empty-message">Aucun site n'est disponible pour votre compte.</span>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun budget</span>
+      <span class="empty-message">Créez le premier budget mensuel de ce site.</span>
+    </div>
+  } @else {
+    <div class="budget-grid">
+      @for (item of items(); track item.id) {
+        <div class="budget-card card">
+          <div class="bc-head">
+            <div class="bc-mois">{{ formatMois(item.mois) }}</div>
+            <span class="badge" [class]="niveauBadge(item.niveau_alerte)">{{
+              niveauLabel(item.niveau_alerte)
+            }}</span>
+          </div>
+
+          <div class="gauge">
+            <div
+              class="gauge-fill"
+              [class]="niveauBadge(item.niveau_alerte)"
+              [style.width.%]="gaugePct(item.pourcentage_consomme)"
+            ></div>
+          </div>
+          <div class="gauge-legend">
+            <span>{{ formatMontant(item.montant_consomme) }} consommé</span>
+            <span>{{ item.pourcentage_consomme }} %</span>
+          </div>
+
+          <div class="bc-figures">
+            <div>
+              <div class="bf-l">Alloué</div>
+              <div class="bf-v">{{ formatMontant(item.montant_alloue) }}</div>
+            </div>
+            <div>
+              <div class="bf-l">Restant</div>
+              <div class="bf-v" [class.neg]="isNeg(item.montant_restant)">
+                {{ formatMontant(item.montant_restant) }}
+              </div>
+            </div>
+          </div>
+
+          <div class="bc-actions">
+            <button class="btn btn-secondary btn-sm" type="button" (click)="openDetail(item)">
+              Détail & charges
+            </button>
+            @if (canManage()) {
+              <button class="btn-icon" type="button" (click)="openEdit(item)" title="Modifier">
+                ✎
+              </button>
+              <button
+                class="btn-icon btn-icon-danger"
+                type="button"
+                [disabled]="deletingId() === item.id"
+                (click)="delete(item)"
+                title="Supprimer"
+              >
+                🗑
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- DRAWER : créer/éditer un budget -->
+@if (drawerOpen()) {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">{{ editingItem() ? 'Modifier le budget' : 'Nouveau budget' }}</h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Mois <span class="required">*</span></span>
+        <input class="field-input" type="month" formControlName="mois" />
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Montant alloué <span class="required">*</span></span>
+        <input
+          class="field-input"
+          type="number"
+          min="0"
+          step="0.01"
+          formControlName="montant_alloue"
+        />
+      </label>
+      <div class="field-label" style="margin-top: 16px">
+        <span class="field-text">Seuils d'alerte</span>
+        <label class="check"
+          ><input type="checkbox" formControlName="seuil_alerte_75" /> 75 %</label
+        >
+        <label class="check"
+          ><input type="checkbox" formControlName="seuil_alerte_90" /> 90 %</label
+        >
+        <label class="check"
+          ><input type="checkbox" formControlName="seuil_alerte_100" /> 100 %</label
+        >
+      </div>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="save()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        {{ editingItem() ? 'Enregistrer' : 'Créer' }}
+      </button>
+    </div>
+  </div>
+}
+
+<!-- DRAWER : détail mois + charges -->
+@if (detailOpen()) {
+  <div class="drawer-overlay" (click)="closeDetail()"></div>
+  <div class="drawer drawer-wide" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">
+        @if (detail(); as d) {
+          Budget — {{ formatMois(d.mois) }}
+        } @else {
+          Budget
+        }
+      </h2>
+      <button class="btn-icon" type="button" (click)="closeDetail()">✕</button>
+    </div>
+    <div class="drawer-body">
+      @if (detailLoading()) {
+        <div class="loading-row">
+          <div class="spinner"></div>
+          <span>Chargement…</span>
+        </div>
+      } @else if (detail(); as d) {
+        <div class="gauge big">
+          <div
+            class="gauge-fill"
+            [class]="niveauBadge(d.niveau_alerte)"
+            [style.width.%]="gaugePct(d.pourcentage_consomme)"
+          ></div>
+        </div>
+        <div class="detail-figures">
+          <div>
+            <div class="bf-l">Alloué</div>
+            <div class="bf-v">{{ formatMontant(d.montant_alloue) }}</div>
+          </div>
+          <div>
+            <div class="bf-l">Consommé</div>
+            <div class="bf-v">{{ formatMontant(d.montant_consomme) }}</div>
+          </div>
+          <div>
+            <div class="bf-l">Restant</div>
+            <div class="bf-v" [class.neg]="isNeg(d.montant_restant)">
+              {{ formatMontant(d.montant_restant) }}
+            </div>
+          </div>
+          <div>
+            <div class="bf-l">Niveau</div>
+            <div class="bf-v">
+              <span class="badge" [class]="niveauBadge(d.niveau_alerte)">{{
+                niveauLabel(d.niveau_alerte)
+              }}</span>
+            </div>
+          </div>
+        </div>
+
+        <h3 class="dt-sub">Dépenses</h3>
+        @if ((d.depenses?.length ?? 0) === 0) {
+          <div class="empty-state">
+            <span class="empty-message">Aucune dépense ce mois-ci.</span>
+          </div>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Libellé</th>
+                <th>Type</th>
+                <th>Date</th>
+                <th class="num">Montant</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (dep of d.depenses; track dep.id) {
+                <tr>
+                  <td class="td-primary">{{ dep.libelle }}</td>
+                  <td>
+                    @if (dep.type === 'achat_fournisseur') {
+                      <span class="badge badge-info">Achat</span>
+                    } @else {
+                      <span class="badge badge-neutral">Charge</span>
+                    }
+                  </td>
+                  <td>{{ formatDate(dep.date_depense) }}</td>
+                  <td class="num td-mono">{{ formatMontant(dep.montant) }} FCFA</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        @if (canAddCharge()) {
+          <h3 class="dt-sub">Ajouter une charge hors stock</h3>
+          <form class="charge-form" [formGroup]="chargeForm" (ngSubmit)="addCharge()" novalidate>
+            @if (chargeError()) {
+              <div class="alert-error" style="margin-bottom: 12px">{{ chargeError() }}</div>
+            }
+            <div class="frow3">
+              <div>
+                <label class="ctl-l">Libellé <span class="req">*</span></label>
+                <input
+                  class="field-input"
+                  type="text"
+                  formControlName="libelle"
+                  placeholder="Ex : Électricité"
+                />
+              </div>
+              <div>
+                <label class="ctl-l">Montant <span class="req">*</span></label>
+                <input
+                  class="field-input"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  formControlName="montant"
+                />
+              </div>
+              <div>
+                <label class="ctl-l">Date <span class="req">*</span></label>
+                <input class="field-input" type="date" formControlName="date_depense" />
+              </div>
+            </div>
+            <button
+              class="btn btn-primary"
+              type="submit"
+              [disabled]="chargeSaving()"
+              style="margin-top: 12px"
+            >
+              @if (chargeSaving()) {
+                <span class="spinner" style="width: 14px; height: 14px"></span>
+              }
+              Enregistrer la charge
+            </button>
+          </form>
+        }
+      } @else {
+        <div class="empty-state"><span class="empty-title">Budget introuvable</span></div>
+      }
+    </div>
+  </div>
+}

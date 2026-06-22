@@ -1,0 +1,131 @@
+<div class="tab-page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Fiches techniques</h2>
+      <p class="page-subtitle">
+        Recettes actives des produits, versionnées. La création se fait depuis le produit.
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucune fiche active</span>
+      <span class="empty-message">Créez la fiche technique depuis un produit.</span>
+    </div>
+  } @else {
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Produit</th>
+            <th class="num">Version</th>
+            <th>Statut</th>
+            <th class="num">Coût de référence</th>
+            <th>Composition</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track item.id) {
+            <tr class="row-clickable" (click)="openProduit(item)">
+              <td class="td-primary">{{ produitLibelle(item) }}</td>
+              <td class="num td-mono">v{{ item.version }}</td>
+              <td>
+                <span class="badge" [class]="statutBadge(item.statut)">{{ item.statut }}</span>
+              </td>
+              <td class="num td-mono">{{ formatMontant(item.cout_matiere) }} FCFA</td>
+              <td>
+                {{ item.lignes_matieres?.length ?? 0 }} MP ·
+                {{ item.lignes_sous_recettes?.length ?? 0 }} SR
+              </td>
+              <td class="td-actions">
+                <button
+                  class="btn-icon"
+                  type="button"
+                  (click)="openProduit(item); $event.stopPropagation()"
+                  title="Ouvrir la fiche produit"
+                >
+                  ›
+                </button>
+                <button
+                  class="btn-icon"
+                  type="button"
+                  [disabled]="pdfBusyId() === item.id"
+                  (click)="imprimerPdf(item); $event.stopPropagation()"
+                  title="Imprimer (PDF)"
+                >
+                  🖨
+                </button>
+                <button
+                  class="btn-icon"
+                  type="button"
+                  (click)="openHistorique(item); $event.stopPropagation()"
+                  title="Historique"
+                >
+                  🕑
+                </button>
+                @if (canDelete()) {
+                  <button
+                    class="btn-icon btn-icon-danger"
+                    type="button"
+                    [disabled]="deletingId() === item.id"
+                    (click)="delete(item); $event.stopPropagation()"
+                    title="Supprimer"
+                  >
+                    🗑
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<!-- DRAWER : historique -->
+@if (historiqueOpen()) {
+  <div class="drawer-overlay" (click)="closeHistorique()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Historique — {{ historiqueProduit() }}</h2>
+      <button class="btn-icon" type="button" (click)="closeHistorique()">✕</button>
+    </div>
+    <div class="drawer-body">
+      @if (historiqueLoading()) {
+        <div class="loading-row">
+          <div class="spinner"></div>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="num">Version</th>
+              <th>Statut</th>
+              <th class="num">Coût de référence</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (v of historique(); track v.id) {
+              <tr>
+                <td class="num td-mono">v{{ v.version }}</td>
+                <td>
+                  <span class="badge" [class]="statutBadge(v.statut)">{{ v.statut }}</span>
+                </td>
+                <td class="num td-mono">{{ formatMontant(v.cout_matiere) }} FCFA</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </div>
+}

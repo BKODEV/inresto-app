@@ -1,0 +1,87 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Cuisine — écran de production (KDS)</h1>
+      <p class="page-subtitle">Commandes envoyées en cuisine à préparer puis marquer servies.</p>
+    </div>
+    <button class="btn btn-secondary" type="button" [disabled]="refreshing()" (click)="refresh()">
+      @if (refreshing()) {
+        <span class="spinner" style="width: 14px; height: 14px"></span>
+      }
+      Rafraîchir
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (pdvs().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun point de vente</span>
+      <span class="empty-message">
+        @if (currentSite(); as site) {
+          Le site « {{ site.nom }} » n'a pas de point de vente.
+        } @else {
+          Sélectionnez un site dans la barre du haut.
+        }
+      </span>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <label class="field-label">
+        <span class="field-text">Point de vente</span>
+        <select
+          class="field-select"
+          [value]="selectedPdvId()"
+          (change)="onPdvChange($any($event.target).value)"
+        >
+          @for (pdv of pdvs(); track pdv.id) {
+            <option [value]="pdv.id">{{ pdv.nom }}</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    @if (commandes().length === 0) {
+      <div class="empty-state">
+        <span class="empty-title">Rien à préparer</span>
+        <span class="empty-message">Aucune commande en cuisine pour ce point de vente.</span>
+      </div>
+    } @else {
+      <div class="kds-grid">
+        @for (c of commandes(); track c.id) {
+          <div class="kds-card">
+            <div class="kds-head">
+              <span class="kds-table">Table {{ c.table?.numero ?? c.table_id }}</span>
+              <span class="kds-time">#{{ c.id }}</span>
+            </div>
+            <div class="kds-lignes">
+              @for (l of lignesActives(c); track l.id) {
+                <div class="kds-ligne">
+                  <span class="q">{{ l.quantite }}×</span>
+                  <span>{{ l.produit?.libelle ?? '#' + l.produit_id }}</span>
+                </div>
+                @if (l.commentaire) {
+                  <div class="kds-time" style="margin-left: 24px">↳ {{ l.commentaire }}</div>
+                }
+              }
+            </div>
+            <button
+              class="btn btn-primary"
+              type="button"
+              [disabled]="servingId() === c.id"
+              (click)="servir(c)"
+            >
+              @if (servingId() === c.id) {
+                <span class="spinner" style="width: 14px; height: 14px"></span>
+              }
+              Marquer servie
+            </button>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

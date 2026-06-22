@@ -12,6 +12,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 import { CategorieMatierePremièreService } from '../../../core/api/categorie-matiere-premiere/categorie-matiere-premiere.service';
 import { CategorieMatierePremiere } from '../../../core/api/categorie-matiere-premiere/categorie-matiere-premiere.model';
+import { apiErrorMessage } from '../../../core/api/api-error.util';
 
 @Component({
   selector: 'app-categories-matiere-premiere-page',
@@ -104,13 +105,15 @@ export class CategoriesMatierePremierePage implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.saving.set(false);
-        this.formError.set(err.error?.message ?? 'Une erreur est survenue.');
+        this.formError.set(apiErrorMessage(err, 'Une erreur est survenue.'));
       },
     });
   }
 
   delete(item: CategorieMatierePremiere): void {
-    if (!confirm(`Supprimer « ${item.libelle} » ?`)) { return; }
+    if (!confirm(`Supprimer « ${item.libelle} » ?`)) {
+      return;
+    }
     this.deletingId.set(item.id);
     this.service
       .delete(item.id)

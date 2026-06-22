@@ -1,0 +1,385 @@
+<div class="param-page">
+  <a class="back-link" routerLink="/vente/caisse/commandes">← Commandes</a>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (commande(); as c) {
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">
+          Commande #{{ c.id }} —
+          {{ c.table?.numero ? 'Table ' + c.table?.numero : 'Table ' + c.table_id }}
+        </h1>
+        <div class="statut-badges">
+          @switch (c.statut) {
+            @case ('ouverte') {
+              <span class="badge badge-neutral">Ouverte</span>
+            }
+            @case ('envoyee_en_cuisine') {
+              <span class="badge badge-info">En cuisine</span>
+            }
+            @case ('servie') {
+              <span class="badge badge-warning">Servie</span>
+            }
+            @case ('encaissee') {
+              <span class="badge badge-success">Encaissée</span>
+            }
+            @case ('annulee') {
+              <span class="badge badge-danger">Annulée</span>
+            }
+          }
+        </div>
+      </div>
+    </div>
+
+    @if (error()) {
+      <div class="alert-error" style="margin-bottom: 16px">{{ error() }}</div>
+    }
+
+    <div class="order-grid">
+      <!-- Sélection de produits (commande ouverte) -->
+      <div>
+        @if (estOuverte()) {
+          <div class="card" style="padding: var(--space-4)">
+            <h2 class="page-subtitle" style="margin: 0 0 12px">Ajouter un produit</h2>
+            @if (produitsCarte().length === 0) {
+              <p class="field-text">Aucune carte active pour ce point de vente.</p>
+            } @else {
+              <div class="produits-grid">
+                @for (cp of produitsCarte(); track cp.id) {
+                  <button
+                    type="button"
+                    class="produit-card"
+                    [disabled]="busy()"
+                    (click)="ajouterProduit(cp)"
+                  >
+                    <span class="produit-nom">{{
+                      cp.produit?.libelle ?? '#' + cp.produit_id
+                    }}</span>
+                    <span class="produit-prix">{{ cp.prix_vente }}</span>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+        } @else if (!estTerminee()) {
+          <div class="card" style="padding: var(--space-4)">
+            <p class="field-text">
+              La commande est {{ estEnvoyee() ? 'en cuisine' : 'servie' }} : l'ajout de produits est
+              clos.
+            </p>
+          </div>
+        }
+
+        <!-- Paiements & remises (récap) -->
+        @if (c.paiements?.length || c.remises?.length) {
+          <div class="card" style="padding: var(--space-4); margin-top: var(--space-4)">
+            @if (c.remises?.length) {
+              <h3 class="field-text" style="margin: 0 0 8px">Remises</h3>
+              <div class="sub-list">
+                @for (r of c.remises; track r.id) {
+                  <div class="sub-row">
+                    <span
+                      >{{ r.type === 'pourcentage' ? r.valeur + ' %' : r.valeur }} —
+                      {{ r.motif || 'sans motif' }}</span
+                    >
+                  </div>
+                }
+              </div>
+            }
+            @if (c.paiements?.length) {
+              <h3 class="field-text" style="margin: 12px 0 8px">Paiements</h3>
+              <div class="sub-list">
+                @for (p of c.paiements; track p.id) {
+                  <div class="sub-row">
+                    <span>{{
+                      p.mode_de_paiement?.libelle ?? 'Mode #' + p.mode_de_paiement_id
+                    }}</span>
+                    <span>{{ p.montant }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Ticket -->
+      <div class="ticket">
+        <div class="card" style="padding: var(--space-4)">
+          <h2 class="page-subtitle" style="margin: 0 0 8px">Ticket</h2>
+
+          @if (lignesActives().length === 0) {
+            <p class="field-text">Aucune ligne.</p>
+          } @else {
+            <div class="ticket-lignes">
+              @for (l of lignesActives(); track l.id) {
+                <div class="ticket-ligne">
+                  <span class="ticket-qte">{{ l.quantite }}×</span>
+                  <span class="ticket-nom">{{ l.produit?.libelle ?? '#' + l.produit_id }}</span>
+                  <span class="ticket-prix">{{ l.prix_unitaire }}</span>
+                  @if (!estTerminee()) {
+                    <button
+                      class="btn-icon btn-icon-danger"
+                      type="button"
+                      title="Annuler la ligne"
+                      (click)="openAnnulerLigne(l)"
+                    >
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                      >
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          <hr class="sep" />
+
+          <div class="sub-list">
+            <div class="sub-row">
+              <span>Total lignes</span><span>{{ c.montant_total }}</span>
+            </div>
+            <div class="sub-row">
+              <span>Montant dû</span><strong>{{ c.montant_du }}</strong>
+            </div>
+            <div class="sub-row">
+              <span>Payé</span><span>{{ c.montant_paye }}</span>
+            </div>
+            <div class="sub-row">
+              <span>Reste à payer</span>
+              <strong
+                [class.total-value--reste]="+c.reste_a_payer > 0"
+                [class.total-value--ok]="+c.reste_a_payer <= 0"
+                >{{ c.reste_a_payer }}</strong
+              >
+            </div>
+          </div>
+
+          <div class="actions-row">
+            @if (lignesActives().length > 0) {
+              <button
+                class="btn btn-secondary"
+                type="button"
+                [disabled]="pdfBusy()"
+                (click)="imprimerFacture()"
+              >
+                Facture
+              </button>
+              <button
+                class="btn btn-secondary"
+                type="button"
+                [disabled]="pdfBusy()"
+                (click)="imprimerRecu()"
+              >
+                Reçu
+              </button>
+            }
+            @if (estOuverte()) {
+              <button
+                class="btn btn-primary"
+                type="button"
+                [disabled]="busy() || lignesActives().length === 0"
+                (click)="envoyerEnCuisine()"
+              >
+                Envoyer en cuisine
+              </button>
+              <button
+                class="btn btn-secondary"
+                type="button"
+                [disabled]="busy()"
+                (click)="openRemise()"
+              >
+                Remise
+              </button>
+              <button
+                class="btn btn-danger"
+                type="button"
+                [disabled]="busy()"
+                (click)="annulerCommande()"
+              >
+                Annuler
+              </button>
+            } @else if (estEnvoyee()) {
+              <button class="btn btn-primary" type="button" [disabled]="busy()" (click)="servir()">
+                Marquer servie
+              </button>
+              <button
+                class="btn btn-danger"
+                type="button"
+                [disabled]="busy()"
+                (click)="annulerCommande()"
+              >
+                Annuler
+              </button>
+            } @else if (estServie()) {
+              <button
+                class="btn btn-secondary"
+                type="button"
+                [disabled]="busy()"
+                (click)="openRemise()"
+              >
+                Remise
+              </button>
+              <button
+                class="btn btn-secondary"
+                type="button"
+                [disabled]="busy()"
+                (click)="openPaiement()"
+              >
+                Paiement
+              </button>
+              <button
+                class="btn btn-primary"
+                type="button"
+                [disabled]="busy() || +c.reste_a_payer > 0"
+                (click)="encaisser()"
+              >
+                Encaisser
+              </button>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="empty-state"><span class="empty-title">Commande introuvable</span></div>
+  }
+</div>
+
+<!-- Drawer paiement -->
+@if (drawerMode() === 'paiement') {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Ajouter un paiement</h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="paiementForm" (ngSubmit)="ajouterPaiement()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Mode de paiement <span class="required">*</span></span>
+        <select class="field-select" formControlName="mode_de_paiement_id">
+          <option [value]="0" disabled>Sélectionner…</option>
+          @for (m of modes(); track m.id) {
+            <option [value]="m.id">{{ m.libelle }}</option>
+          }
+        </select>
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Montant <span class="required">*</span></span>
+        <input class="field-input" type="number" min="0.01" step="0.01" formControlName="montant" />
+      </label>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="busy()" (click)="ajouterPaiement()">
+        @if (busy()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Enregistrer
+      </button>
+    </div>
+  </div>
+}
+
+<!-- Drawer remise -->
+@if (drawerMode() === 'remise') {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Appliquer une remise</h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="remiseForm" (ngSubmit)="ajouterRemise()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Type</span>
+        <select class="field-select" formControlName="type">
+          <option value="pourcentage">Pourcentage (%)</option>
+          <option value="montant_fixe">Montant fixe</option>
+        </select>
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Valeur <span class="required">*</span></span>
+        <input class="field-input" type="number" min="0.01" step="0.01" formControlName="valeur" />
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Motif</span>
+        <input class="field-input" type="text" formControlName="motif" placeholder="Optionnel" />
+      </label>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="busy()" (click)="ajouterRemise()">
+        @if (busy()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Appliquer
+      </button>
+    </div>
+  </div>
+}
+
+<!-- Drawer annuler ligne -->
+@if (drawerMode() === 'annuler-ligne') {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Annuler la ligne</h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="annulerLigneForm" (ngSubmit)="annulerLigne()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Motif <span class="required">*</span></span>
+        <input
+          class="field-input"
+          type="text"
+          formControlName="motif"
+          placeholder="Ex : erreur de saisie"
+        />
+        @if (annulerLigneForm.controls.motif.touched && annulerLigneForm.controls.motif.invalid) {
+          <span class="field-error">Le motif est requis.</span>
+        }
+      </label>
+      @if (estServie()) {
+        <label class="field-label" style="margin-top: 16px">
+          <span class="field-text">Devenir du stock déjà déchargé</span>
+          <select class="field-select" formControlName="sort">
+            <option value="remise_en_stock">Remettre en stock</option>
+            <option value="perte">Perte (consommé puis jeté)</option>
+          </select>
+        </label>
+      }
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Retour</button>
+      <button class="btn btn-danger" type="button" [disabled]="busy()" (click)="annulerLigne()">
+        @if (busy()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Annuler la ligne
+      </button>
+    </div>
+  </div>
+}

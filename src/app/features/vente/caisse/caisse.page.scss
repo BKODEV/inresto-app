@@ -1,0 +1,238 @@
+:host {
+  display: block;
+  flex: 1;
+}
+
+.param-page {
+  padding: var(--page-pad);
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-mute);
+  font-size: var(--text-sm);
+  padding: var(--space-8) 0;
+}
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field-text {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-dim);
+}
+.required {
+  color: var(--red);
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-mute);
+  text-decoration: none;
+  &:hover {
+    color: var(--text);
+  }
+}
+
+.toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+  .field-select {
+    min-width: 220px;
+  }
+}
+
+/* Montants récapitulatifs */
+.totaux {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  padding: var(--space-4);
+}
+.total-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.total-label {
+  font-size: var(--text-xs);
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.total-value {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text);
+}
+.total-value--due {
+  color: var(--amber);
+}
+.total-value--reste {
+  color: var(--red);
+}
+.total-value--ok {
+  color: var(--green);
+}
+
+/* Layout commande : produits à gauche, ticket à droite */
+.order-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: var(--space-5);
+  align-items: start;
+
+  @media (max-width: 900px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.produits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+.produit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  background: var(--surface, #fff);
+  cursor: pointer;
+  text-align: left;
+  &:hover:not(:disabled) {
+    border-color: var(--amber);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+.produit-nom {
+  font-weight: 600;
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+.produit-prix {
+  color: var(--text-dim);
+  font-size: var(--text-xs);
+}
+
+.ticket {
+  position: sticky;
+  top: var(--space-4);
+}
+.ticket-lignes {
+  display: flex;
+  flex-direction: column;
+}
+.ticket-ligne {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-sm);
+}
+.ticket-ligne.inactive {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+.ticket-qte {
+  font-weight: 700;
+  min-width: 24px;
+}
+.ticket-nom {
+  flex: 1;
+}
+.ticket-prix {
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.statut-badges {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.actions-row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-4);
+}
+
+.sep {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--space-4) 0;
+}
+
+.sub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--text-sm);
+}
+.sub-row {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-dim);
+}
+
+/* KDS */
+.kds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+.kds-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--amber);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--surface, #fff);
+}
+.kds-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.kds-table {
+  font-weight: 700;
+  font-size: var(--text-base);
+}
+.kds-time {
+  font-size: var(--text-xs);
+  color: var(--text-mute);
+}
+.kds-lignes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-sm);
+}
+.kds-ligne {
+  display: flex;
+  gap: 8px;
+}
+.kds-ligne .q {
+  font-weight: 700;
+}

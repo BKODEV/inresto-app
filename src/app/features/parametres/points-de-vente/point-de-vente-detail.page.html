@@ -1,0 +1,261 @@
+<div class="param-page">
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (pdv(); as p) {
+    <!-- Fil d'Ariane -->
+    <nav class="crumb">
+      <a routerLink="/parametres/sites">Sites</a>
+      <span class="sep">›</span>
+      @if (p.site) {
+        <a [routerLink]="['/parametres/sites', p.site.id]">{{ p.site.nom }}</a>
+        <span class="sep">›</span>
+      }
+      <span class="cur">{{ p.nom }}</span>
+    </nav>
+
+    <!-- En-tête -->
+    <div
+      class="pdv-head"
+      [class.lounge]="p.type === 'Lounge'"
+      [class.resto]="p.type === 'Restaurant'"
+    >
+      <div class="pdv-tile" aria-hidden="true">
+        @if (p.type === 'Lounge') {
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M5 22h14" />
+            <path d="M6 9h12l-1 5a3 3 0 0 1-3 2.5h-4A3 3 0 0 1 7 14z" />
+            <path d="M9 9V5l3-2 3 2v4" />
+          </svg>
+        } @else {
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M4 3v7a3 3 0 0 0 6 0V3" />
+            <path d="M7 3v18" />
+            <path d="M17 3c-1.5 1-2.5 3-2.5 6.5S15.5 15 17 15v6" />
+          </svg>
+        }
+      </div>
+      <div class="pdv-head-text">
+        <h1 class="page-title">{{ p.nom }}</h1>
+        <div class="pdv-meta-row">
+          <span
+            class="badge"
+            [class.badge-info]="p.type === 'Restaurant'"
+            [class.badge-warning]="p.type === 'Lounge'"
+            >{{ p.type }}</span
+          >
+          @if (p.statut === 'actif') {
+            <span class="badge badge-success">Actif</span>
+          } @else {
+            <span class="badge badge-neutral">Inactif</span>
+          }
+          <span class="badge badge-neutral"
+            >{{ caisses().length }} caisse{{ caisses().length > 1 ? 's' : '' }}</span
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- Informations -->
+    <div class="card info-card">
+      <div class="card-title">Informations du point de vente</div>
+      <div class="info-grid">
+        <div class="field-view">
+          <div class="fv-label">Nom</div>
+          <div class="fv-value">{{ p.nom }}</div>
+        </div>
+        <div class="field-view">
+          <div class="fv-label">Type</div>
+          <div class="fv-value">{{ p.type }}</div>
+        </div>
+        <div class="field-view">
+          <div class="fv-label">Site</div>
+          <div class="fv-value">
+            @if (p.site) {
+              <a class="link" [routerLink]="['/parametres/sites', p.site.id]">{{ p.site.nom }}</a>
+            } @else {
+              —
+            }
+          </div>
+        </div>
+        <div class="field-view">
+          <div class="fv-label">Statut</div>
+          <div class="fv-value">
+            @if (p.statut === 'actif') {
+              <span class="badge badge-success">Actif</span>
+            } @else {
+              <span class="badge badge-neutral">Inactif</span>
+            }
+          </div>
+        </div>
+        <div class="field-view fv-wide">
+          <div class="fv-label">Description</div>
+          <div class="fv-value">{{ p.description || '—' }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Caisses -->
+    <div class="sec-head">
+      <div>
+        <h2 class="sec-title">
+          Caisses
+          <span class="sec-count">{{ caisses().length }}</span>
+        </h2>
+        <p class="page-subtitle">Caisses physiques rattachées à ce point de vente.</p>
+      </div>
+      @if (canCreate()) {
+        <button class="btn btn-primary" type="button" (click)="openCreate()">
+          + Nouvelle caisse
+        </button>
+      }
+    </div>
+
+    <div class="caisse-grid">
+      @for (caisse of caisses(); track caisse.id) {
+        <div class="caisse-card">
+          <div class="caisse-top">
+            <div class="caisse-id">
+              <span class="caisse-ic" aria-hidden="true">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="2" y="6" width="20" height="12" rx="2" />
+                  <circle cx="12" cy="12" r="2.5" />
+                  <path d="M6 12h.01" />
+                  <path d="M18 12h.01" />
+                </svg>
+              </span>
+              <div>
+                <div class="caisse-name">{{ caisse.libelle }}</div>
+                <div class="caisse-sub">
+                  {{ caisse.sessions_count ?? 0 }} session{{
+                    (caisse.sessions_count ?? 0) > 1 ? 's' : ''
+                  }}
+                </div>
+              </div>
+            </div>
+            <div class="caisse-act">
+              @if (canUpdate()) {
+                <button class="btn-icon" type="button" (click)="openEdit(caisse)" title="Modifier">
+                  ✎
+                </button>
+              }
+              @if (canDelete()) {
+                <button
+                  class="btn-icon btn-icon-danger"
+                  type="button"
+                  [disabled]="deletingId() === caisse.id || !caisseSupprimable(caisse)"
+                  [title]="
+                    caisseSupprimable(caisse)
+                      ? 'Supprimer'
+                      : 'Caisse avec historique : non supprimable'
+                  "
+                  (click)="delete(caisse)"
+                >
+                  🗑
+                </button>
+              }
+            </div>
+          </div>
+          <div class="caisse-row">
+            @if (caisse.statut === 'actif') {
+              <span class="badge badge-success">Actif</span>
+            } @else {
+              <span class="badge badge-neutral">Inactif</span>
+            }
+          </div>
+        </div>
+      }
+
+      @if (canCreate()) {
+        <button class="caisse-add" type="button" (click)="openCreate()">
+          <span class="plus">+</span>
+          <span class="t">Ajouter une caisse</span>
+        </button>
+      } @else if (caisses().length === 0) {
+        <div class="empty-state">
+          <span class="empty-title">Aucune caisse</span>
+          <span class="empty-message">Ce point de vente n'a pas de caisse.</span>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="empty-state">
+      <span class="empty-title">Point de vente introuvable</span>
+      <span class="empty-message"><a routerLink="/parametres/sites">Retour aux sites</a></span>
+    </div>
+  }
+</div>
+
+<!-- Drawer : caisse -->
+@if (drawerOpen()) {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">{{ editingCaisse() ? 'Modifier la caisse' : 'Nouvelle caisse' }}</h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Libellé <span class="required">*</span></span>
+        <input
+          class="field-input"
+          type="text"
+          formControlName="libelle"
+          placeholder="Ex : Caisse principale"
+          autocomplete="off"
+        />
+        @if (form.controls.libelle.touched && form.controls.libelle.invalid) {
+          <span class="field-error">Le libellé est requis.</span>
+        }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Statut</span>
+        <select class="field-select" formControlName="statut">
+          <option value="actif">Actif</option>
+          <option value="inactif">Inactif</option>
+        </select>
+      </label>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="save()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        {{ editingCaisse() ? 'Enregistrer' : 'Créer' }}
+      </button>
+    </div>
+  </div>
+}

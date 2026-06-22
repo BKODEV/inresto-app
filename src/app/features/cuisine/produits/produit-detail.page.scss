@@ -1,0 +1,293 @@
+:host {
+  display: block;
+  flex: 1;
+}
+
+.detail-page {
+  padding: var(--page-pad);
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-mute);
+  font-size: var(--text-sm);
+  padding: var(--space-8) 0;
+}
+
+/* ── Fil d'Ariane ─────────────────────────────────────────────────────────── */
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  color: var(--text-mute);
+  margin-bottom: 18px;
+
+  a {
+    color: var(--text-dim);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--text);
+  }
+  .sep {
+    opacity: 0.6;
+  }
+  .cur {
+    color: var(--text);
+    font-weight: 500;
+  }
+}
+
+/* ── En-tête ──────────────────────────────────────────────────────────────── */
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 26px;
+}
+.head-tile {
+  width: 58px;
+  height: 58px;
+  border-radius: var(--radius-lg);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  background: var(--amber-soft);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+.head-text {
+  flex: 1;
+  min-width: 0;
+}
+.page-title {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.head-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.head-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ── Bandeau économique ───────────────────────────────────────────────────── */
+.econ {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.econ-cell {
+  background: var(--surface);
+  padding: 16px 20px;
+
+  &.hl {
+    background: linear-gradient(180deg, var(--amber-soft), transparent 80%), var(--surface);
+  }
+}
+.econ-lbl {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  font-weight: 600;
+}
+.econ-val {
+  margin-top: 10px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+
+  .u {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-mute);
+    margin-left: 4px;
+  }
+  &.muted {
+    color: var(--text-mute);
+  }
+}
+.econ-cell.hl .econ-val {
+  color: var(--amber);
+}
+.econ-sub {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--text-mute);
+}
+
+/* ── Colonnes ─────────────────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 16px;
+  align-items: start;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.card-t {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.sub-h {
+  font-size: var(--text-base);
+  font-weight: 700;
+  margin: 22px 0 12px;
+
+  &:first-of-type {
+    margin-top: 4px;
+  }
+}
+.muted-line {
+  font-size: var(--text-sm);
+  color: var(--text-mute);
+  margin: 0 0 8px;
+}
+
+.data-table .num {
+  text-align: right;
+}
+
+/* ── Informations produit (colonne droite) ───────────────────────────────── */
+.fv {
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--border);
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+.fv-label {
+  font-size: 11px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  font-weight: 600;
+}
+.fv-value {
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 6px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ── Drawer fiche (lignes) ────────────────────────────────────────────────── */
+.drawer-wide {
+  width: min(640px, 100vw);
+}
+.drawer-sub {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+.entry {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.entry-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.entry-idx {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.entry-rm {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-mute);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--red);
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.25);
+  }
+}
+.ctl-l {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 7px;
+}
+.req {
+  color: var(--amber);
+  margin-left: 2px;
+}
+.frow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+}
+.add-line {
+  width: 100%;
+  height: 46px;
+  border-radius: 12px;
+  border: 1.5px dashed var(--border-strong);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 8px;
+
+  &:hover {
+    border-color: var(--amber);
+    color: var(--amber);
+    background: var(--amber-soft);
+  }
+}
+
+@media (max-width: 900px) {
+  .econ {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Impression ───────────────────────────────────────────────────────────── */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

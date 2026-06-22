@@ -1,0 +1,153 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Prise de commande</h1>
+      <p class="page-subtitle">Commandes en cours par point de vente.</p>
+    </div>
+    <button
+      class="btn btn-primary"
+      type="button"
+      (click)="openCreate()"
+      [disabled]="sessions().length === 0 || tablesDisponibles().length === 0"
+    >
+      + Nouvelle commande
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (pdvs().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun point de vente</span>
+      <span class="empty-message">
+        @if (currentSite(); as site) {
+          Le site « {{ site.nom }} » n'a pas de point de vente.
+        } @else {
+          Sélectionnez un site dans la barre du haut.
+        }
+      </span>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <label class="field-label">
+        <span class="field-text">Point de vente</span>
+        <select
+          class="field-select"
+          [value]="selectedPdvId()"
+          (change)="onPdvChange($any($event.target).value)"
+        >
+          @for (pdv of pdvs(); track pdv.id) {
+            <option [value]="pdv.id">{{ pdv.nom }}</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    @if (sessions().length === 0) {
+      <div class="alert-error" style="margin-bottom: 16px">
+        Aucune session de caisse ouverte sur ce point de vente : ouvrez-en une dans l'onglet «
+        Sessions ».
+      </div>
+    }
+
+    @if (loadingData()) {
+      <div class="loading-row">
+        <div class="spinner"></div>
+        <span>Chargement…</span>
+      </div>
+    } @else if (commandes().length === 0) {
+      <div class="empty-state">
+        <span class="empty-title">Aucune commande en cours</span>
+        <span class="empty-message">Ouvrez une nouvelle commande sur une table libre.</span>
+      </div>
+    } @else {
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Table</th>
+              <th>Statut</th>
+              <th>Montant dû</th>
+              <th>Reste</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of commandes(); track c.id) {
+              <tr>
+                <td class="td-mono">{{ c.id }}</td>
+                <td class="td-primary">{{ tableLabel(c) }}</td>
+                <td>
+                  @switch (c.statut) {
+                    @case ('ouverte') {
+                      <span class="badge badge-neutral">Ouverte</span>
+                    }
+                    @case ('envoyee_en_cuisine') {
+                      <span class="badge badge-info">En cuisine</span>
+                    }
+                    @case ('servie') {
+                      <span class="badge badge-warning">Servie</span>
+                    }
+                  }
+                </td>
+                <td>{{ c.montant_du }}</td>
+                <td>{{ c.reste_a_payer }}</td>
+                <td class="td-actions">
+                  <a class="btn btn-secondary" [routerLink]="['/vente/caisse/commandes', c.id]">
+                    Ouvrir
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>
+
+@if (drawerOpen()) {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Nouvelle commande</h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="form" (ngSubmit)="create()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Table <span class="required">*</span></span>
+        <select class="field-select" formControlName="table_id">
+          <option [value]="0" disabled>Sélectionner…</option>
+          @for (t of tablesDisponibles(); track t.id) {
+            <option [value]="t.id">Table {{ t.numero }} ({{ t.capacite }} couv.)</option>
+          }
+        </select>
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Session de caisse <span class="required">*</span></span>
+        <select class="field-select" formControlName="session_caisse_id">
+          <option [value]="0" disabled>Sélectionner…</option>
+          @for (s of sessions(); track s.id) {
+            <option [value]="s.id">{{ s.caisse?.libelle }} (#{{ s.id }})</option>
+          }
+        </select>
+      </label>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="create()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Ouvrir la commande
+      </button>
+    </div>
+  </div>
+}

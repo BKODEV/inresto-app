@@ -1,0 +1,19 @@
+<div class="parametres-shell">
+  <nav class="param-tabs" role="tablist">
+    @for (tab of tabs; track tab.route) {
+      <a
+        class="param-tab"
+        role="tab"
+        [routerLink]="tab.route"
+        [class.active]="isActive(tab)"
+        [attr.aria-selected]="isActive(tab)"
+      >
+        {{ tab.label }}
+      </a>
+    }
+  </nav>
+
+  <div class="parametres-body">
+    <router-outlet />
+  </div>
+</div>

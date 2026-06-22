@@ -1,0 +1,334 @@
+<div class="detail-page">
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (produit(); as p) {
+    <!-- Fil d'Ariane -->
+    <nav class="crumb no-print">
+      <a routerLink="/cuisine/fiches-techniques/produits">Produits</a>
+      <span class="sep">›</span>
+      <span class="cur">{{ p.libelle }}</span>
+    </nav>
+
+    <!-- En-tête -->
+    <div class="head">
+      <div class="head-tile" aria-hidden="true">🍽️</div>
+      <div class="head-text">
+        <h1 class="page-title">{{ p.libelle }}</h1>
+        <div class="head-meta">
+          @if (p.categorie) {
+            <span class="badge badge-neutral">{{ p.categorie.libelle }}</span>
+          }
+          @if (p.est_menu) {
+            <span class="badge badge-info">Menu</span>
+          } @else {
+            <span class="badge badge-neutral">Plat</span>
+          }
+          @if (p.statut === 'actif') {
+            <span class="badge badge-success">Actif</span>
+          } @else {
+            <span class="badge badge-warning">Inactif</span>
+          }
+          @if (fiche(); as f) {
+            <span class="badge" [class]="statutBadge(f.statut)">Fiche v{{ f.version }}</span>
+          }
+        </div>
+      </div>
+      <div class="head-actions no-print">
+        <button class="btn btn-secondary" type="button" (click)="print()">Imprimer</button>
+        @if (canManage()) {
+          <button class="btn btn-primary" type="button" (click)="openFicheDrawer()">
+            {{ fiche() ? 'Modifier la fiche' : 'Créer la fiche technique' }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Bandeau économique -->
+    <div class="econ">
+      <div class="econ-cell hl">
+        <div class="econ-lbl">Coût matière (référence)</div>
+        <div class="econ-val">
+          {{ formatMontant(fiche()?.cout_matiere) }}<span class="u">FCFA</span>
+        </div>
+        <div class="econ-sub">meilleur prix catalogue</div>
+      </div>
+      <div class="econ-cell">
+        <div class="econ-lbl">Matières premières</div>
+        <div class="econ-val">{{ fiche()?.lignes_matieres?.length ?? 0 }}</div>
+        <div class="econ-sub">ingrédients</div>
+      </div>
+      <div class="econ-cell">
+        <div class="econ-lbl">Sous-recettes</div>
+        <div class="econ-val">{{ fiche()?.lignes_sous_recettes?.length ?? 0 }}</div>
+        <div class="econ-sub">préparations</div>
+      </div>
+      <div class="econ-cell">
+        <div class="econ-lbl">Prix de vente</div>
+        <div class="econ-val muted">—</div>
+        <div class="econ-sub">défini par carte</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Colonne gauche : composition -->
+      <div>
+        <section class="card">
+          <div class="card-head">
+            <div class="card-t">Fiche technique</div>
+            @if (fiche()) {
+              <button
+                class="btn-icon no-print"
+                type="button"
+                (click)="openHistorique()"
+                title="Historique des versions"
+              >
+                🕑
+              </button>
+            }
+          </div>
+
+          @if (fiche(); as f) {
+            <h3 class="sub-h">Matières premières</h3>
+            @if (f.lignes_matieres?.length) {
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Ingrédient</th>
+                    <th class="num">Quantité</th>
+                    <th>Unité</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ligne of f.lignes_matieres; track ligne.id) {
+                    <tr>
+                      <td class="td-primary">{{ matiereLibelle(ligne) }}</td>
+                      <td class="num td-mono">{{ ligne.quantite }}</td>
+                      <td>{{ uniteSymbole(ligne) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="muted-line">Aucune matière première.</p>
+            }
+
+            <h3 class="sub-h">Sous-recettes</h3>
+            @if (f.lignes_sous_recettes?.length) {
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Sous-recette</th>
+                    <th class="num">Quantité</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (ligne of f.lignes_sous_recettes; track ligne.id) {
+                    <tr>
+                      <td class="td-primary">{{ sousRecetteLibelle(ligne) }}</td>
+                      <td class="num td-mono">{{ ligne.quantite }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="muted-line">Aucune sous-recette.</p>
+            }
+          } @else {
+            <div class="empty-state">
+              <span class="empty-title">Pas encore de fiche technique</span>
+              <span class="empty-message">
+                @if (canManage()) {
+                  Définissez les matières premières et sous-recettes de ce produit.
+                } @else {
+                  Aucune recette n'a été saisie pour ce produit.
+                }
+              </span>
+              @if (canManage()) {
+                <button
+                  class="btn btn-primary"
+                  type="button"
+                  style="margin-top: 14px"
+                  (click)="openFicheDrawer()"
+                >
+                  Créer la fiche technique
+                </button>
+              }
+            </div>
+          }
+        </section>
+      </div>
+
+      <!-- Colonne droite : informations produit -->
+      <div>
+        <section class="card">
+          <div class="card-head"><div class="card-t">Informations produit</div></div>
+          <div class="fv">
+            <div class="fv-label">Catégorie</div>
+            <div class="fv-value">{{ p.categorie?.libelle ?? '—' }}</div>
+          </div>
+          <div class="fv">
+            <div class="fv-label">Type</div>
+            <div class="fv-value">{{ p.est_menu ? 'Menu / formule' : 'Plat' }}</div>
+          </div>
+          <div class="fv">
+            <div class="fv-label">Description</div>
+            <div class="fv-value">{{ p.description || '—' }}</div>
+          </div>
+          <div class="fv">
+            <div class="fv-label">Allergènes</div>
+            <div class="fv-value">{{ p.allergenes || 'Aucun' }}</div>
+          </div>
+        </section>
+      </div>
+    </div>
+  } @else {
+    <div class="empty-state">
+      <span class="empty-title">Produit introuvable</span>
+      <span class="empty-message">
+        <a routerLink="/cuisine/fiches-techniques/produits">Retour aux produits</a>
+      </span>
+    </div>
+  }
+</div>
+
+<!-- DRAWER : créer / nouvelle version de la fiche -->
+@if (drawerOpen()) {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer drawer-wide" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <div>
+        <h2 class="drawer-title">
+          {{ fiche() ? 'Nouvelle version de la fiche' : 'Nouvelle fiche technique' }}
+        </h2>
+        @if (fiche()) {
+          <p class="drawer-sub">
+            Enregistrer archive la version active et crée la version suivante.
+          </p>
+        }
+      </div>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body">
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+
+      <h3 class="sub-h">Matières premières</h3>
+      @for (group of lignesMatieres(); track group; let i = $index) {
+        <div class="entry" [formGroup]="group">
+          <div class="entry-top">
+            <span class="entry-idx">Matière {{ i + 1 }}</span>
+            <button class="entry-rm" type="button" (click)="removeMatiere(group)">✕</button>
+          </div>
+          <select class="field-select" formControlName="matiere_premiere_id">
+            <option [ngValue]="null" disabled>Sélectionner une matière…</option>
+            @for (m of matieres(); track m.id) {
+              <option [ngValue]="m.id">{{ m.libelle }}</option>
+            }
+          </select>
+          <div class="frow" style="margin-top: 12px">
+            <div>
+              <label class="ctl-l">Quantité <span class="req">*</span></label>
+              <input
+                class="field-input"
+                type="number"
+                min="0"
+                step="0.001"
+                formControlName="quantite"
+              />
+            </div>
+            <div>
+              <label class="ctl-l">Unité <span class="req">*</span></label>
+              <select class="field-select" formControlName="unite_id">
+                <option [ngValue]="null" disabled>Sélectionner…</option>
+                @for (u of unites(); track u.id) {
+                  <option [ngValue]="u.id">{{ u.libelle }} ({{ u.symbole }})</option>
+                }
+              </select>
+            </div>
+          </div>
+        </div>
+      }
+      <button class="add-line" type="button" (click)="addMatiere()">+ Ajouter une matière</button>
+
+      <h3 class="sub-h">Sous-recettes</h3>
+      @for (group of lignesSousRecettes(); track group; let i = $index) {
+        <div class="entry" [formGroup]="group">
+          <div class="entry-top">
+            <span class="entry-idx">Sous-recette {{ i + 1 }}</span>
+            <button class="entry-rm" type="button" (click)="removeSousRecette(group)">✕</button>
+          </div>
+          <select class="field-select" formControlName="sous_recette_id">
+            <option [ngValue]="null" disabled>Sélectionner une sous-recette…</option>
+            @for (s of sousRecettes(); track s.id) {
+              <option [ngValue]="s.id">{{ s.libelle }}</option>
+            }
+          </select>
+          <label class="ctl-l" style="margin-top: 12px">Quantité <span class="req">*</span></label>
+          <input
+            class="field-input"
+            type="number"
+            min="0"
+            step="0.001"
+            formControlName="quantite"
+          />
+        </div>
+      }
+      <button class="add-line" type="button" (click)="addSousRecette()">
+        + Ajouter une sous-recette
+      </button>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="save()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Enregistrer
+      </button>
+    </div>
+  </div>
+}
+
+<!-- DRAWER : historique -->
+@if (historiqueOpen()) {
+  <div class="drawer-overlay" (click)="closeHistorique()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Historique des versions</h2>
+      <button class="btn-icon" type="button" (click)="closeHistorique()">✕</button>
+    </div>
+    <div class="drawer-body">
+      @if (historiqueLoading()) {
+        <div class="loading-row">
+          <div class="spinner"></div>
+          <span>Chargement…</span>
+        </div>
+      } @else {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="num">Version</th>
+              <th>Statut</th>
+              <th class="num">Coût de référence</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (v of historique(); track v.id) {
+              <tr>
+                <td class="num td-mono">v{{ v.version }}</td>
+                <td>
+                  <span class="badge" [class]="statutBadge(v.statut)">{{ v.statut }}</span>
+                </td>
+                <td class="num td-mono">{{ formatMontant(v.cout_matiere) }} FCFA</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+  </div>
+}

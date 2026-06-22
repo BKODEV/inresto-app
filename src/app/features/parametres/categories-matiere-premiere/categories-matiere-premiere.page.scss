@@ -1,6 +1,11 @@
-:host { display: block; flex: 1; }
+:host {
+  display: block;
+  flex: 1;
+}
 
-.param-page { padding: var(--space-8); }
+.param-page {
+  padding: var(--page-pad);
+}
 
 .loading-row {
   display: flex;
@@ -11,6 +16,16 @@
   padding: var(--space-8) 0;
 }
 
-.field-label { display: flex; flex-direction: column; gap: 6px; }
-.field-text  { font-size: var(--text-sm); font-weight: 500; color: var(--text-dim); }
-.required    { color: var(--red); }
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field-text {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-dim);
+}
+.required {
+  color: var(--red);
+}

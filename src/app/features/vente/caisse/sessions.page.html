@@ -1,0 +1,207 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Sessions de caisse</h1>
+      <p class="page-subtitle">Ouverture, fermeture et contrôle d'écart par caisse.</p>
+    </div>
+    <button
+      class="btn btn-primary"
+      type="button"
+      (click)="openOuvrir()"
+      [disabled]="selectedCaisseId() === null || sessionOuverte() !== null"
+    >
+      + Ouvrir une session
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (caisses().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucune caisse</span>
+      <span class="empty-message">
+        @if (currentSite(); as site) {
+          Le site « {{ site.nom }} » n'a pas de caisse. Ajoutez-en une depuis le détail d'un point
+          de vente.
+        } @else {
+          Sélectionnez un site dans la barre du haut.
+        }
+      </span>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <label class="field-label">
+        <span class="field-text">Caisse</span>
+        <select
+          class="field-select"
+          [value]="selectedCaisseId()"
+          (change)="onCaisseChange($any($event.target).value)"
+        >
+          @for (caisse of caisses(); track caisse.id) {
+            <option [value]="caisse.id">
+              {{ caisse.libelle }} — {{ caisse.point_de_vente?.nom }}
+            </option>
+          }
+        </select>
+      </label>
+    </div>
+
+    @if (sessionOuverte(); as open) {
+      <div class="card" style="padding: var(--space-4); margin-bottom: var(--space-4)">
+        <div class="statut-badges" style="margin-bottom: 12px">
+          <span class="badge badge-success">Session ouverte</span>
+          <span class="field-text">Ouverte le {{ open.ouvert_le | date: 'short' }}</span>
+        </div>
+        <div class="totaux" style="padding: 0">
+          <div class="total-item">
+            <span class="total-label">Fonds initial</span>
+            <span class="total-value">{{ open.fonds_initial }}</span>
+          </div>
+        </div>
+        <div class="actions-row">
+          <button class="btn btn-primary" type="button" (click)="openFermer(open)">
+            Fermer la session
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (loadingSessions()) {
+      <div class="loading-row">
+        <div class="spinner"></div>
+        <span>Chargement…</span>
+      </div>
+    } @else {
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Ouverte le</th>
+              <th>Fermée le</th>
+              <th>Fonds</th>
+              <th>Théorique</th>
+              <th>Réel</th>
+              <th>Écart</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of sessions(); track s.id) {
+              <tr>
+                <td class="td-mono">{{ s.id }}</td>
+                <td>{{ s.ouvert_le | date: 'short' }}</td>
+                <td>{{ s.ferme_le ? (s.ferme_le | date: 'short') : '—' }}</td>
+                <td>{{ s.fonds_initial }}</td>
+                <td>{{ s.montant_theorique ?? '—' }}</td>
+                <td>{{ s.montant_reel ?? '—' }}</td>
+                <td>
+                  @if (s.ecart !== null) {
+                    <span
+                      class="badge"
+                      [class.badge-success]="+s.ecart === 0"
+                      [class.badge-danger]="+s.ecart !== 0"
+                      >{{ s.ecart }}</span
+                    >
+                  } @else {
+                    —
+                  }
+                </td>
+                <td>
+                  @if (s.statut === 'ouverte') {
+                    <span class="badge badge-success">Ouverte</span>
+                  } @else {
+                    <span class="badge badge-neutral">Fermée</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>
+
+@if (drawerMode() === 'ouvrir') {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Ouvrir une session</h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="ouvrirForm" (ngSubmit)="ouvrir()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Fonds de caisse initial</span>
+        <input
+          class="field-input"
+          type="number"
+          min="0"
+          step="0.01"
+          formControlName="fonds_initial"
+        />
+      </label>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="ouvrir()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Ouvrir
+      </button>
+    </div>
+  </div>
+}
+
+@if (drawerMode() === 'fermer') {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Fermer la session</h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="fermerForm" (ngSubmit)="fermer()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Montant réel compté <span class="required">*</span></span>
+        <input
+          class="field-input"
+          type="number"
+          min="0"
+          step="0.01"
+          formControlName="montant_reel"
+        />
+        @if (fermerForm.controls.montant_reel.touched && fermerForm.controls.montant_reel.invalid) {
+          <span class="field-error">Le montant réel est requis (0 accepté).</span>
+        }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Notes</span>
+        <textarea
+          class="field-textarea"
+          formControlName="notes"
+          rows="2"
+          placeholder="Optionnel"
+        ></textarea>
+      </label>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="fermer()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Fermer
+      </button>
+    </div>
+  </div>
+}

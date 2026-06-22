@@ -1,0 +1,121 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Commandes & réceptions</h1>
+      <p class="page-subtitle">Commandes fournisseur et réception des livraisons.</p>
+    </div>
+    @if (canCreate()) {
+      <button class="btn btn-primary" type="button" (click)="openCreate()">
+        + Nouvelle commande
+      </button>
+    }
+  </div>
+
+  <div class="toolbar">
+    <label class="field-label inline">
+      <span class="field-text">Statut</span>
+      <select class="field-select" [value]="statutFilter()" (change)="onStatutFilter($any($event.target).value)">
+        <option value="">Tous</option>
+        @for (s of statuts; track s) {
+          <option [value]="s">{{ statutLabel(s) }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucune commande</span>
+      <span class="empty-message">Créez une commande fournisseur pour démarrer.</span>
+    </div>
+  } @else {
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Numéro</th>
+            <th>Fournisseur</th>
+            <th>Date</th>
+            <th class="num">Montant prévisionnel</th>
+            <th>Statut</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track item.id) {
+            <tr>
+              <td class="td-mono">
+                <a class="row-link" [routerLink]="[item.id]">{{ item.numero }}</a>
+              </td>
+              <td class="td-primary">{{ fournisseurNom(item) }}</td>
+              <td>{{ formatDate(item.date_commande) }}</td>
+              <td class="num td-mono">{{ formatMontant(item.montant_previsionnel) }} FCFA</td>
+              <td>
+                <span class="badge" [class]="statutBadge(item.statut)">{{
+                  statutLabel(item.statut)
+                }}</span>
+              </td>
+              <td class="td-actions">
+                <a class="btn btn-secondary btn-sm" [routerLink]="[item.id]">Ouvrir</a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+@if (drawerOpen()) {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Nouvelle commande</h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+
+    <form class="drawer-body" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+      <label class="field-label">
+        <span class="field-text">Fournisseur <span class="required">*</span></span>
+        <select class="field-select" formControlName="fournisseur_id">
+          <option [ngValue]="null" disabled>Sélectionner…</option>
+          @for (f of fournisseurs(); track f.id) {
+            <option [ngValue]="f.id">{{ f.nom }}</option>
+          }
+        </select>
+        @if (form.controls.fournisseur_id.touched && form.controls.fournisseur_id.invalid) {
+          <span class="field-error">Le fournisseur est requis.</span>
+        }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Date de commande</span>
+        <input class="field-input" type="date" formControlName="date_commande" />
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Notes</span>
+        <textarea class="field-textarea" formControlName="notes" rows="2"></textarea>
+      </label>
+      <p class="hint" style="margin-top: 12px">
+        Les lignes de la commande se saisissent ensuite sur la fiche de la commande.
+      </p>
+    </form>
+
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="save()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Créer
+      </button>
+    </div>
+  </div>
+}

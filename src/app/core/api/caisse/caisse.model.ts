@@ -5,8 +5,10 @@ export interface Caisse {
   id: number;
   libelle: string;
   point_de_vente_id: number;
-  point_de_vente: PointDeVente;
+  point_de_vente?: PointDeVente;
   statut: Statut;
+  /** Nombre de sessions : > 0 ⇒ la caisse a un historique et n'est pas supprimable. */
+  sessions_count?: number;
   created_at: string;
   updated_at: string;
 }

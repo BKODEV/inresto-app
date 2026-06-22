@@ -1,0 +1,211 @@
+:host {
+  display: block;
+  flex: 1;
+}
+
+.param-page {
+  padding: var(--page-pad);
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-mute);
+  font-size: var(--text-sm);
+  padding: var(--space-8) 0;
+}
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field-text {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-dim);
+}
+.required {
+  color: var(--red);
+}
+
+.toolbar {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+.field-label.inline {
+  min-width: 240px;
+}
+.site-context {
+  font-size: var(--text-base);
+  color: var(--text-dim);
+
+  strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .site-context-hint {
+    color: var(--text-mute);
+    font-size: var(--text-sm);
+  }
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-right: 14px;
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+
+  input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--amber, #f59e0b);
+  }
+}
+
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+.data-table .num {
+  text-align: right;
+}
+
+// ── Cartes budget ──
+.budget-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.budget-card {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.bc-mois {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+// ── Jauge ──
+.gauge {
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--surface-2, rgba(148, 163, 184, 0.18));
+  overflow: hidden;
+
+  &.big {
+    height: 14px;
+    margin-bottom: 14px;
+  }
+}
+.gauge-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--transition-base, 0.25s ease);
+  background: var(--green, #10b981);
+
+  &.badge-success {
+    background: var(--green, #10b981);
+  }
+  &.badge-warning {
+    background: var(--amber, #f59e0b);
+  }
+  &.badge-danger {
+    background: var(--red, #ef4444);
+  }
+}
+.gauge-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  color: var(--text-mute);
+}
+
+.bc-figures,
+.detail-figures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.detail-figures {
+  grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 22px;
+}
+.bf-l {
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  font-weight: 600;
+}
+.bf-v {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin-top: 4px;
+
+  &.neg {
+    color: var(--red, #ef4444);
+  }
+}
+.bc-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+// ── Drawer détail ──
+.drawer-wide {
+  width: min(640px, 100vw);
+}
+.dt-sub {
+  font-size: var(--text-base);
+  font-weight: 700;
+  margin: 22px 0 12px;
+}
+.charge-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+.frow3 {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 12px;
+}
+.ctl-l {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-dim);
+  margin-bottom: 7px;
+}
+.req {
+  color: var(--amber);
+  margin-left: 2px;
+}
+
+@media (max-width: 768px) {
+  .detail-figures {
+    grid-template-columns: 1fr 1fr;
+  }
+  .frow3 {
+    grid-template-columns: 1fr;
+  }
+}
