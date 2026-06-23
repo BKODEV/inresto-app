@@ -222,6 +222,40 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'pilotage',
+        loadComponent: () =>
+          import('./features/pilotage/pilotage.layout').then((m) => m.PilotageLayout),
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'ventes' },
+          {
+            path: 'food-cost',
+            loadComponent: () =>
+              import('./features/pilotage/food-cost/food-cost.page').then((m) => m.FoodCostPage),
+            title: 'InnResto — Food cost',
+          },
+          {
+            path: 'ventes',
+            loadComponent: () =>
+              import('./features/pilotage/ventes/ventes.page').then((m) => m.VentesPage),
+            title: 'InnResto — Ventes',
+          },
+          {
+            path: 'stock',
+            loadComponent: () =>
+              import('./features/pilotage/stock/stock.page').then((m) => m.StockReportingPage),
+            title: 'InnResto — Stock (pilotage)',
+          },
+          {
+            path: 'budget',
+            loadComponent: () =>
+              import('./features/pilotage/budget/budget-reporting.page').then(
+                (m) => m.BudgetReportingPage,
+              ),
+            title: 'InnResto — Budget (pilotage)',
+          },
+        ],
+      },
+      {
         path: 'parametres',
         loadComponent: () =>
           import('./features/parametres/parametres.layout').then((m) => m.ParametresLayout),

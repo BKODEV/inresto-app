@@ -1,0 +1,32 @@
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+
+import { AuthService } from '../../core/auth/auth.service';
+
+interface PilotageTab {
+  label: string;
+  route: string;
+  permission: string;
+}
+
+@Component({
+  selector: 'app-pilotage-layout',
+  standalone: true,
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  templateUrl: './pilotage.layout.html',
+  styleUrl: './pilotage.layout.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class PilotageLayout {
+  private readonly auth = inject(AuthService);
+
+  private readonly allTabs: PilotageTab[] = [
+    { label: 'Food cost', route: 'food-cost', permission: 'reporting.food_cost' },
+    { label: 'Ventes', route: 'ventes', permission: 'reporting.ventes' },
+    { label: 'Stock', route: 'stock', permission: 'reporting.stock' },
+    { label: 'Budget', route: 'budget', permission: 'reporting.budget' },
+  ];
+
+  /** Onglets visibles selon les permissions de l'utilisateur. */
+  readonly tabs = computed(() => this.allTabs.filter((t) => this.auth.hasPermission(t.permission)));
+}

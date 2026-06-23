@@ -1,0 +1,41 @@
+<div class="periode-filtre">
+  <div class="pf-field">
+    <label class="field-label">Période</label>
+    <select class="field-select" [value]="periode()" (change)="setPeriode($any($event.target).value)">
+      @for (p of periodes; track p.value) {
+        <option [value]="p.value">{{ p.label }}</option>
+      }
+    </select>
+  </div>
+
+  @if (periode() === 'plage') {
+    <div class="pf-field">
+      <label class="field-label">Du</label>
+      <input
+        class="field-input"
+        type="date"
+        [value]="dateDebut()"
+        (change)="setDateDebut($any($event.target).value)"
+      />
+    </div>
+    <div class="pf-field">
+      <label class="field-label">Au</label>
+      <input
+        class="field-input"
+        type="date"
+        [value]="dateFin()"
+        (change)="setDateFin($any($event.target).value)"
+      />
+    </div>
+  } @else {
+    <div class="pf-field">
+      <label class="field-label">Date de référence</label>
+      <input
+        class="field-input"
+        type="date"
+        [value]="date()"
+        (change)="setDate($any($event.target).value)"
+      />
+    </div>
+  }
+</div>

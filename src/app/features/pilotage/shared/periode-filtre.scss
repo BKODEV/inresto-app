@@ -1,0 +1,29 @@
+.periode-filtre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-6);
+}
+
+.pf-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+
+  .field-label {
+    font-size: var(--text-xs);
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .field-select,
+  .field-input {
+    min-width: 180px;
+  }
+}

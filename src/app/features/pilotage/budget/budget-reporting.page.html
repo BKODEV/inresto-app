@@ -1,0 +1,104 @@
+<div class="param-page reporting-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Budget</h1>
+      <p class="page-subtitle">Consommation budgétaire et dépenses sur la période.</p>
+    </div>
+  </div>
+
+  @if (currentSite(); as site) {
+    <div class="toolbar">
+      Site : <strong>{{ site.nom }}</strong>
+      <span>— change le site depuis la barre du haut</span>
+    </div>
+  }
+
+  <app-periode-filtre (filterChange)="onFilter($event)" />
+
+  @if (loading()) {
+    <div class="loading-row"><div class="spinner"></div><span>Chargement…</span></div>
+  } @else if (error()) {
+    <div class="alert-error">{{ error() }}</div>
+  } @else {
+    <div class="section">
+      <h2 class="section-title">Consommation</h2>
+      @if (budgets().length === 0) {
+        <div class="empty-state"><span class="empty-message">Aucun budget sur la période.</span></div>
+      } @else {
+        <div class="budget-grid">
+          @for (b of budgets(); track b.id) {
+            <div class="budget-card card">
+              <div class="bc-head">
+                <div class="bc-mois">{{ formatMois(b.mois) }}</div>
+                <span class="badge" [class]="niveauBadge(b.niveau_alerte)">{{ niveauLabel(b.niveau_alerte) }}</span>
+              </div>
+              <div class="gauge">
+                <div class="gauge-fill" [class]="niveauBadge(b.niveau_alerte)" [style.width.%]="gaugePct(b.pourcentage_consomme)"></div>
+              </div>
+              <div class="gauge-legend">
+                <span>{{ fMontant(num(b.montant_consomme)) }} consommé</span>
+                <span>{{ b.pourcentage_consomme }} %</span>
+              </div>
+              <div class="bc-figures">
+                <div>
+                  <div class="bf-l">Alloué</div>
+                  <div class="bf-v">{{ fMontant(num(b.montant_alloue)) }}</div>
+                </div>
+                <div>
+                  <div class="bf-l">Restant</div>
+                  <div class="bf-v" [class.neg]="num(b.montant_restant) < 0">{{ fMontant(num(b.montant_restant)) }}</div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="section">
+      <h2 class="section-title">Dépenses détaillées</h2>
+      @if (depenses(); as d) {
+        @if (d.depenses.length === 0) {
+          <div class="empty-state"><span class="empty-message">Aucune dépense sur la période.</span></div>
+        } @else {
+          <div class="kpi-grid">
+            <div class="kpi card">
+              <div class="kpi-label">Achats fournisseur</div>
+              <div class="kpi-value">{{ fMontant(d.totaux_par_type.achat_fournisseur) }}</div>
+            </div>
+            <div class="kpi card">
+              <div class="kpi-label">Charges hors stock</div>
+              <div class="kpi-value">{{ fMontant(d.totaux_par_type.charge_hors_stock) }}</div>
+            </div>
+            <div class="kpi card">
+              <div class="kpi-label">Total</div>
+              <div class="kpi-value">{{ fMontant(d.total) }}</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Libellé</th>
+                  <th>Type</th>
+                  <th class="num">Montant</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (dep of d.depenses; track dep.id) {
+                  <tr>
+                    <td>{{ dep.date_depense }}</td>
+                    <td class="td-primary">{{ dep.libelle }}</td>
+                    <td>{{ typeLabel(dep.type) }}</td>
+                    <td class="num">{{ fMontant(dep.montant) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+    </div>
+  }
+</div>

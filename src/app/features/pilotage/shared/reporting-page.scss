@@ -1,0 +1,159 @@
+:host {
+  display: block;
+}
+
+.reporting-page {
+  max-width: 1200px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+
+  strong {
+    color: var(--text);
+  }
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-dim);
+  padding: var(--space-6) 0;
+}
+
+// Cartes KPI ------------------------------------------------------------------
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.kpi {
+  padding: var(--space-4);
+
+  .kpi-label {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+  }
+
+  .kpi-value {
+    margin-top: var(--space-2);
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--text);
+    font-family: var(--font-mono);
+  }
+
+  .kpi-sub {
+    margin-top: var(--space-1);
+    font-size: var(--text-xs);
+    color: var(--text-mute);
+  }
+}
+
+// Sections --------------------------------------------------------------------
+
+.section {
+  margin-bottom: var(--space-8);
+}
+
+.section-title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 var(--space-3);
+}
+
+.section-note {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  margin: 0 0 var(--space-3);
+}
+
+// Tableaux --------------------------------------------------------------------
+
+.num {
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+.pos {
+  color: var(--green);
+}
+
+.neg {
+  color: var(--red);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+
+  .section-title {
+    margin: 0;
+  }
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-8);
+}
+
+// Évolution (barres CSS) ------------------------------------------------------
+
+.evolution {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.evo-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 120px;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.evo-label {
+  font-size: var(--text-xs);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.evo-bar {
+  height: 14px;
+  background: var(--surface-2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.evo-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--amber-2), var(--amber));
+  border-radius: var(--radius-full);
+  transition: width var(--transition-slow);
+}
+
+.evo-value {
+  font-size: var(--text-sm);
+  color: var(--text);
+}
