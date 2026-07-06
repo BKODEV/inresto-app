@@ -25,146 +25,165 @@
         <div class="kpi-label">CA total</div>
         <div class="kpi-value">{{ fMontant(caTotal()) }}</div>
       </div>
-    </div>
-
-    <div class="section">
-      <h2 class="section-title">Évolution</h2>
-      @if (evolution().length === 0) {
-        <div class="empty-state"><span class="empty-message">Aucune vente.</span></div>
-      } @else {
-        <div class="evolution">
-          @for (point of evolution(); track point.label) {
-            <div class="evo-row">
-              <span class="evo-label">{{ point.label }}</span>
-              <span class="evo-bar"><span class="evo-fill" [style.width.%]="barWidth(point.ca)"></span></span>
-              <span class="evo-value num">{{ fMontant(point.ca) }}</span>
-            </div>
-          }
-        </div>
-      }
-    </div>
-
-    <div class="section">
-      <h2 class="section-title">Par point de vente</h2>
-      @if (parPdv().length === 0) {
-        <div class="empty-state"><span class="empty-message">Aucune donnée.</span></div>
-      } @else {
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Point de vente</th>
-                <th class="num">CA</th>
-                <th class="num">Commandes</th>
-                <th class="num">Panier moyen</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (p of parPdv(); track p.point_de_vente_id) {
-                <tr>
-                  <td class="td-primary">{{ p.point_de_vente }}</td>
-                  <td class="num">{{ fMontant(p.ca) }}</td>
-                  <td class="num">{{ p.nombre_commandes }}</td>
-                  <td class="num">{{ fMontant(p.panier_moyen) }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
-
-    <div class="section">
-      <div class="section-head">
-        <h2 class="section-title">Top produits</h2>
-        <select class="field-select" [value]="tri()" (change)="setTri($any($event.target).value)">
-          <option value="ca">Par CA</option>
-          <option value="quantite">Par quantité</option>
-        </select>
+      <div class="kpi card">
+        <div class="kpi-label">Commandes</div>
+        <div class="kpi-value">{{ nbCommandes() }}</div>
       </div>
-      @if (produits().length === 0) {
-        <div class="empty-state"><span class="empty-message">Aucune vente.</span></div>
-      } @else {
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Produit</th>
-                <th class="num">Qté vendue</th>
-                <th class="num">CA</th>
-                <th class="num">Part CA</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (p of produits(); track p.produit_id) {
-                <tr>
-                  <td class="td-primary">{{ p.produit }}</td>
-                  <td class="num">{{ fNombre(p.quantite_vendue) }}</td>
-                  <td class="num">{{ fMontant(p.ca) }}</td>
-                  <td class="num">{{ fPct(p.part_ca_pct) }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
+      <div class="kpi card">
+        <div class="kpi-label">Panier moyen</div>
+        <div class="kpi-value">{{ fMontant(panierMoyen()) }}</div>
+      </div>
+      <div class="kpi card">
+        <div class="kpi-label">Points de vente</div>
+        <div class="kpi-value">{{ nbPdv() }}</div>
+      </div>
     </div>
 
-    <div class="section two-col">
-      <div>
-        <h2 class="section-title">Modes de paiement</h2>
-        <p class="section-note">Vue trésorerie — flux réellement encaissés.</p>
-        @if (modesPaiement().length === 0) {
-          <div class="empty-state"><span class="empty-message">Aucun encaissement.</span></div>
+    <!-- Évolution : hero pleine largeur -->
+    <div class="report-grid">
+      <div class="panel card span-all">
+        <div class="panel-head"><h2 class="panel-title">Évolution du CA</h2></div>
+        @if (evolution().length === 0) {
+          <div class="empty-state"><span class="empty-message">Aucune vente.</span></div>
         } @else {
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Mode</th>
-                <th class="num">Montant</th>
-                <th class="num">Nb</th>
-                <th class="num">Part</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (m of modesPaiement(); track m.mode_de_paiement_id) {
+          <app-chart [options]="evolutionOptions()" [height]="300" />
+        }
+      </div>
+    </div>
+
+    <!-- Par PDV + Top produits -->
+    <div class="report-grid">
+      <div class="panel card">
+        <div class="panel-head"><h2 class="panel-title">Par point de vente</h2></div>
+        @if (parPdv().length === 0) {
+          <div class="empty-state"><span class="empty-message">Aucune donnée.</span></div>
+        } @else {
+          <app-chart [options]="pdvOptions()" [height]="280" />
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <td class="td-primary">{{ m.mode }}</td>
-                  <td class="num">{{ fMontant(m.montant_total) }}</td>
-                  <td class="num">{{ m.nombre_paiements }}</td>
-                  <td class="num">{{ fPct(m.part_pct) }}</td>
+                  <th>Point de vente</th>
+                  <th class="num">CA</th>
+                  <th class="num">Cmd</th>
+                  <th class="num">Panier</th>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (p of parPdv(); track p.point_de_vente_id) {
+                  <tr>
+                    <td class="td-primary">{{ p.point_de_vente }}</td>
+                    <td class="num">{{ fMontant(p.ca) }}</td>
+                    <td class="num">{{ p.nombre_commandes }}</td>
+                    <td class="num">{{ fMontant(p.panier_moyen) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         }
       </div>
 
-      <div>
-        <h2 class="section-title">Par serveur</h2>
+      <div class="panel card">
+        <div class="panel-head">
+          <h2 class="panel-title">Top produits</h2>
+          <select class="field-select" [value]="tri()" (change)="setTri($any($event.target).value)">
+            <option value="ca">Par CA</option>
+            <option value="quantite">Par quantité</option>
+          </select>
+        </div>
+        @if (produits().length === 0) {
+          <div class="empty-state"><span class="empty-message">Aucune vente.</span></div>
+        } @else {
+          <app-chart [options]="produitsOptions()" [height]="340" />
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Produit</th>
+                  <th class="num">Qté</th>
+                  <th class="num">CA</th>
+                  <th class="num">Part</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of produits(); track p.produit_id) {
+                  <tr>
+                    <td class="td-primary">{{ p.produit }}</td>
+                    <td class="num">{{ fNombre(p.quantite_vendue) }}</td>
+                    <td class="num">{{ fMontant(p.ca) }}</td>
+                    <td class="num">{{ fPct(p.part_ca_pct) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Modes de paiement + Serveurs -->
+    <div class="report-grid">
+      <div class="panel card">
+        <div class="panel-head"><h2 class="panel-title">Modes de paiement</h2></div>
+        <p class="panel-note">Vue trésorerie — flux réellement encaissés.</p>
+        @if (modesPaiement().length === 0) {
+          <div class="empty-state"><span class="empty-message">Aucun encaissement.</span></div>
+        } @else {
+          <app-chart [options]="modesOptions()" [height]="280" />
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Mode</th>
+                  <th class="num">Montant</th>
+                  <th class="num">Nb</th>
+                  <th class="num">Part</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of modesPaiement(); track m.mode_de_paiement_id) {
+                  <tr>
+                    <td class="td-primary">{{ m.mode }}</td>
+                    <td class="num">{{ fMontant(m.montant_total) }}</td>
+                    <td class="num">{{ m.nombre_paiements }}</td>
+                    <td class="num">{{ fPct(m.part_pct) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      <div class="panel card">
+        <div class="panel-head"><h2 class="panel-title">Par serveur</h2></div>
         @if (serveurs().length === 0) {
           <div class="empty-state"><span class="empty-message">Aucune donnée.</span></div>
         } @else {
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Serveur</th>
-                <th class="num">CA</th>
-                <th class="num">Cmd</th>
-                <th class="num">Panier</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (s of serveurs(); track s.user_id) {
+          <app-chart [options]="serveursOptions()" [height]="280" />
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <td class="td-primary">{{ s.serveur }}</td>
-                  <td class="num">{{ fMontant(s.ca) }}</td>
-                  <td class="num">{{ s.nombre_commandes }}</td>
-                  <td class="num">{{ fMontant(s.panier_moyen) }}</td>
+                  <th>Serveur</th>
+                  <th class="num">CA</th>
+                  <th class="num">Cmd</th>
+                  <th class="num">Panier</th>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (s of serveurs(); track s.user_id) {
+                  <tr>
+                    <td class="td-primary">{{ s.serveur }}</td>
+                    <td class="num">{{ fMontant(s.ca) }}</td>
+                    <td class="num">{{ s.nombre_commandes }}</td>
+                    <td class="num">{{ fMontant(s.panier_moyen) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         }
       </div>
     </div>

@@ -1,46 +1,140 @@
-<div class="page">
-
+<div class="page dashboard">
   <div class="page-header">
     <div>
       <h1 class="page-title">Tableau de bord</h1>
-      <p class="page-subtitle">Bienvenue, {{ user()?.prenom }} {{ user()?.nom }}</p>
+      <p class="page-subtitle">Vue de tête — chiffre d'affaires, marge, budget et alertes.</p>
     </div>
   </div>
 
-  <div class="stats-grid">
-    <div class="card stat-card">
-      <span class="stat-label">Rôles</span>
-      <strong class="stat-value">{{ (user()?.roles ?? []).join(', ') || '—' }}</strong>
+  @if (currentSite(); as site) {
+    <div class="toolbar">
+      Site : <strong>{{ site.nom }}</strong>
+      <span>— change le site depuis la barre du haut</span>
     </div>
-    <div class="card stat-card">
-      <span class="stat-label">Statut</span>
-      @if (user()?.statut === 'actif') {
-        <span class="badge badge-success">Actif</span>
+  }
+
+  @if (loading()) {
+    <div class="loading-row"><div class="spinner"></div><span>Chargement…</span></div>
+  } @else if (error()) {
+    <div class="alert-error">{{ error() }}</div>
+  } @else if (data(); as d) {
+    <!-- KPI ------------------------------------------------------------------ -->
+    <div class="kpi-grid">
+      <div class="card kpi">
+        <span class="kpi-label">CA du jour</span>
+        <strong class="kpi-value">{{ montantOuTiret(caJour()?.montant, (caJour()?.nb_commandes ?? 0) > 0) }}</strong>
+        <span class="kpi-sub">{{ caJour()?.nb_commandes ?? 0 }} commande(s)</span>
+      </div>
+
+      <div class="card kpi">
+        <span class="kpi-label">CA du mois</span>
+        <strong class="kpi-value">{{ montantOuTiret(caMois()?.montant, (caMois()?.nb_commandes ?? 0) > 0) }}</strong>
+        <span class="kpi-sub">{{ caMois()?.nb_commandes ?? 0 }} commande(s)</span>
+      </div>
+
+      <div class="card kpi">
+        <span class="kpi-label">Food cost réel</span>
+        @if (foodCost(); as fc) {
+          <strong class="kpi-value">{{ montantOuTiret(fc.reel_pct, fc.reel_pct > 0) }}</strong>
+          <span class="kpi-sub">
+            Théo. {{ pct(fc.theorique_pct) }}
+            @if (fc.ecart_points !== 0) {
+              <span class="ecart" [class.ecart-bad]="fc.ecart_points > 0" [class.ecart-good]="fc.ecart_points < 0">
+                {{ fc.ecart_points > 0 ? '▲' : '▼' }} {{ pct(fc.ecart_points > 0 ? fc.ecart_points : -fc.ecart_points) }}
+              </span>
+            }
+          </span>
+        } @else {
+          <strong class="kpi-value">—</strong>
+        }
+      </div>
+
+      <div class="card kpi">
+        <span class="kpi-label">Marge brute (mois)</span>
+        <strong class="kpi-value">{{ montantOuTiret(foodCost()?.marge_brute, (caMois()?.nb_commandes ?? 0) > 0) }}</strong>
+      </div>
+
+      <div class="card kpi">
+        <span class="kpi-label">Budget consommé</span>
+        @if (budget(); as b) {
+          @if (b.montant_alloue > 0) {
+            <strong class="kpi-value" [style.color]="budgetColor()">{{ pct(b.pourcentage_consomme) }}</strong>
+            <span class="kpi-sub">{{ montantOuTiret(b.montant_consomme, true) }} / {{ montantOuTiret(b.montant_alloue, true) }}</span>
+          } @else {
+            <strong class="kpi-value">—</strong>
+            <span class="kpi-sub">Aucun budget ce mois</span>
+          }
+        } @else {
+          <strong class="kpi-value">—</strong>
+        }
+      </div>
+    </div>
+
+    <!-- Évolution CA --------------------------------------------------------- -->
+    <div class="card chart-card">
+      <h2 class="section-title">Évolution du CA — 30 derniers jours</h2>
+      @if (hasEvolution()) {
+        <app-chart [options]="evolutionOptions()" [height]="300" />
       } @else {
-        <span class="badge badge-danger">Inactif</span>
+        <div class="empty-state"><span class="empty-message">Aucune vente sur les 30 derniers jours.</span></div>
       }
     </div>
-    <div class="card stat-card">
-      <span class="stat-label">Permissions</span>
-      <strong class="stat-value">{{ (user()?.permissions ?? []).length }}</strong>
-    </div>
-  </div>
 
-  <div class="empty-state" style="margin-top: 24px">
-    <div class="empty-icon">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" stroke-width="1.8"
-           stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="3" width="7" height="7" rx="1"/>
-        <rect x="14" y="3" width="7" height="7" rx="1"/>
-        <rect x="14" y="14" width="7" height="7" rx="1"/>
-        <rect x="3" y="14" width="7" height="7" rx="1"/>
-      </svg>
-    </div>
-    <span class="empty-title">Modules à venir</span>
-    <span class="empty-message">
-      Les modules Accueil, Carte, Plan des tables et rapports seront disponibles ici.
-    </span>
-  </div>
+    <!-- Modes de paiement + Top produits + Alertes --------------------------- -->
+    <div class="dash-grid">
+      <div class="card chart-card">
+        <h2 class="section-title">Modes de paiement (mois)</h2>
+        @if (hasModes()) {
+          <app-chart [options]="modesOptions()" [height]="300" />
+        } @else {
+          <div class="empty-state"><span class="empty-message">Aucun encaissement ce mois.</span></div>
+        }
+      </div>
 
+      <div class="card chart-card">
+        <h2 class="section-title">Top 5 produits (mois, par CA)</h2>
+        @if (hasTopProduits()) {
+          <app-chart [options]="topProduitsOptions()" [height]="300" />
+        } @else {
+          <div class="empty-state"><span class="empty-message">Aucune vente ce mois.</span></div>
+        }
+      </div>
+
+      <!-- Alertes stock -->
+      <div class="card chart-card">
+        <div class="section-head">
+          <h2 class="section-title">Alertes de stock</h2>
+          @if (alertes(); as a) {
+            @if (a.nombre > 0) {
+              <span class="badge badge-danger">{{ a.nombre }}</span>
+            }
+          }
+        </div>
+
+        @if (alertes(); as a) {
+          @if (a.nombre > 0) {
+            <ul class="alertes-list">
+            @for (item of a.items; track item.matiere_premiere_id) {
+              <li class="alerte-row" (click)="goToStock()" tabindex="0" (keyup.enter)="goToStock()">
+                <span class="alerte-matiere">{{ item.matiere }}</span>
+                <span class="alerte-site">{{ item.site }}</span>
+                <span class="alerte-stock num">
+                  {{ item.stock_courant }} / {{ item.seuil }} {{ item.unite ?? '' }}
+                </span>
+                <span class="alerte-go">→</span>
+              </li>
+            }
+          </ul>
+          @if (a.nombre > a.items.length) {
+            <p class="section-note">…et {{ a.nombre - a.items.length }} autre(s). Voir l'écran Stock.</p>
+          }
+        } @else {
+          <div class="empty-state empty-ok">
+            <span class="empty-message">Aucune alerte — tous les stocks sont au-dessus du seuil.</span>
+          </div>
+        }
+        }
+      </div>
+    </div>
+  }
 </div>

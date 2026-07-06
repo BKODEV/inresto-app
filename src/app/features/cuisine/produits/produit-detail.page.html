@@ -51,7 +51,7 @@
       <div class="econ-cell hl">
         <div class="econ-lbl">Coût matière (référence)</div>
         <div class="econ-val">
-          {{ formatMontant(fiche()?.cout_matiere) }}<span class="u">FCFA</span>
+          {{ formatMontant($safeNavigationMigration(fiche()?.cout_matiere)) }}<span class="u">FCFA</span>
         </div>
         <div class="econ-sub">meilleur prix catalogue</div>
       </div>
@@ -241,13 +241,9 @@
               />
             </div>
             <div>
-              <label class="ctl-l">Unité <span class="req">*</span></label>
-              <select class="field-select" formControlName="unite_id">
-                <option [ngValue]="null" disabled>Sélectionner…</option>
-                @for (u of unites(); track u.id) {
-                  <option [ngValue]="u.id">{{ u.libelle }} ({{ u.symbole }})</option>
-                }
-              </select>
+              <label class="ctl-l">Unité</label>
+              <!-- Unité imposée par la matière (unité de stockage) : lecture seule. -->
+              <input class="field-input" type="text" [value]="uniteStockageSymbole(group)" disabled />
             </div>
           </div>
         </div>

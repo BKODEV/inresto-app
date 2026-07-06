@@ -1,0 +1,195 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Rôles</h1>
+      <p class="page-subtitle">Définissez les rôles et leurs permissions par module.</p>
+    </div>
+    @if (isSuperAdmin()) {
+      <button class="btn btn-primary" type="button" (click)="openCreate()">+ Nouveau rôle</button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (roles().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun rôle</span>
+      <span class="empty-message">Aucun rôle n'est défini.</span>
+    </div>
+  } @else {
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Rôle</th>
+            <th>Description</th>
+            <th>Niveau</th>
+            <th>Utilisateurs</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (role of roles(); track role.id) {
+            <tr>
+              <td class="td-primary">
+                {{ role.name }}
+                @if (role.is_system) {
+                  <span class="badge badge-neutral" style="margin-left: 8px">système</span>
+                }
+              </td>
+              <td class="td-mute">{{ role.description ?? '—' }}</td>
+              <td class="td-mono">{{ role.niveau }}</td>
+              <td class="td-mono">{{ role.users_count ?? 0 }}</td>
+              <td class="td-actions">
+                @if (isSuperAdmin()) {
+                  <button class="btn-icon" type="button" title="Modifier" (click)="openEdit(role)">
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </button>
+                  @if (!role.is_system) {
+                    <button
+                      class="btn-icon btn-icon-danger"
+                      type="button"
+                      title="Supprimer"
+                      [disabled]="deletingId() === role.id"
+                      (click)="remove(role)"
+                    >
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                        <path d="M10 11v6M14 11v6" />
+                        <path d="M9 6V4h6v2" />
+                      </svg>
+                    </button>
+                  }
+                } @else {
+                  <span class="td-mute">—</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+@if (drawerOpen()) {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer drawer-wide" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">{{ editingRole() ? 'Modifier le rôle' : 'Nouveau rôle' }}</h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <form class="drawer-body" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+      @if (editingRole()?.is_system) {
+        <div class="alert-warning" style="margin-bottom: 16px">
+          Rôle système : ajustez ses permissions avec précaution, il est utilisé par l'application.
+        </div>
+      }
+
+      <label class="field-label">
+        <span class="field-text">Nom <span class="required">*</span></span>
+        <input
+          class="field-input"
+          type="text"
+          formControlName="name"
+          autocomplete="off"
+          placeholder="ex : maitre-hotel"
+        />
+      </label>
+
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Description</span>
+        <input class="field-input" type="text" formControlName="description" autocomplete="off" />
+      </label>
+
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Niveau de sécurité <span class="required">*</span></span>
+        <input class="field-input" type="number" formControlName="niveau" min="0" max="99" />
+        <span class="field-hint"
+          >Plus le niveau est élevé, plus le rôle est puissant (0 à 99).</span
+        >
+      </label>
+
+      <div class="section-block">
+        <span class="field-text">Permissions</span>
+        @for (module of modules(); track module.module) {
+          <div class="perm-module">
+            <label class="check-option perm-module-head">
+              <input
+                type="checkbox"
+                [checked]="isModuleAllSelected(module)"
+                (change)="toggleModule(module)"
+              />
+              <span>{{ module.module }}</span>
+            </label>
+            <div class="check-grid">
+              @for (perm of module.permissions; track perm.name) {
+                <label class="check-option">
+                  <input
+                    type="checkbox"
+                    [checked]="isSelected(perm.name)"
+                    (change)="togglePermission(perm.name)"
+                  />
+                  <span>{{ perm.libelle }}</span>
+                </label>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </form>
+
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="save()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        {{ editingRole() ? 'Enregistrer' : 'Créer' }}
+      </button>
+    </div>
+  </div>
+}

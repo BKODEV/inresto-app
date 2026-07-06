@@ -43,7 +43,7 @@ export interface CreateReceptionPayload {
 
 export interface LigneReceptionPayload {
   matiere_premiere_id: number;
-  unite_id: number;
+  // Pas d'unité : le serveur impose l'unité d'achat du catalogue.
   quantite_recue: number;
   prix_unitaire_reel: number;
 }

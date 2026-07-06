@@ -15,6 +15,13 @@ export const routes: Routes = [
     title: 'InnResto — Connexion',
   },
   {
+    // Page publique : consommation du lien de réinitialisation reçu par email.
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./features/auth/reset-password/reset-password.page').then((m) => m.ResetPasswordPage),
+    title: 'InnResto — Réinitialisation du mot de passe',
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./features/shell/shell.layout').then((m) => m.ShellLayout),
@@ -316,6 +323,20 @@ export const routes: Routes = [
                 (m) => m.ModesDePaiementPage,
               ),
             title: 'InnResto — Modes de paiement',
+          },
+          {
+            path: 'utilisateurs',
+            loadComponent: () =>
+              import('./features/parametres/utilisateurs/utilisateurs.page').then(
+                (m) => m.UtilisateursPage,
+              ),
+            title: 'InnResto — Utilisateurs',
+          },
+          {
+            path: 'roles',
+            loadComponent: () =>
+              import('./features/parametres/roles/roles.page').then((m) => m.RolesPage),
+            title: 'InnResto — Rôles',
           },
         ],
       },

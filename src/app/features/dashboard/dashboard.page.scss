@@ -3,34 +3,199 @@
   flex: 1;
 }
 
-.page {
-  max-width: 1100px;
+.dashboard {
+  // Pleine largeur : pas de plafond qui laisserait un vide à droite sur écran large.
+  width: 100%;
   padding: var(--page-pad);
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-4);
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+
+  strong {
+    color: var(--text);
+  }
 }
 
-.stat-card {
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-dim);
+  padding: var(--space-6) 0;
+}
+
+// KPI -------------------------------------------------------------------------
+
+.kpi-grid {
+  display: grid;
+  // `auto-fit` : les cartes s'étirent pour occuper toute la largeur.
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.kpi {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
+  transition: border-color var(--transition-base), transform var(--transition-base);
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--amber);
+    opacity: 0.85;
+  }
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-strong);
+  }
+
+  .kpi-label {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+  }
+
+  .kpi-value {
+    margin-top: var(--space-1);
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    font-family: var(--font-mono);
+  }
+
+  .kpi-sub {
+    font-size: var(--text-xs);
+    color: var(--text-mute);
+  }
 }
 
-.stat-label {
-  font-size: var(--text-xs);
+.ecart {
+  margin-left: var(--space-1);
   font-weight: 600;
-  color: var(--text-mute);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+
+  &.ecart-bad {
+    color: var(--red);
+  }
+  &.ecart-good {
+    color: var(--green);
+  }
 }
 
-.stat-value {
-  font-size: var(--text-2xl);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+// Cartes graphes --------------------------------------------------------------
+
+.chart-card {
+  padding: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+.section-title {
+  font-size: var(--text-md);
+  font-weight: 600;
   color: var(--text);
+  margin: 0 0 var(--space-4);
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+
+  .section-title {
+    margin: 0;
+  }
+}
+
+.section-note {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+  margin-bottom: var(--space-6);
+
+  .chart-card {
+    margin-bottom: 0;
+    height: 100%;
+  }
+}
+
+// Alertes ---------------------------------------------------------------------
+
+.alertes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.alerte-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto 16px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+
+  &:hover,
+  &:focus-visible {
+    background: var(--surface-2);
+    outline: none;
+  }
+}
+
+.alerte-matiere {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.alerte-site {
+  font-size: var(--text-xs);
+  color: var(--text-dim);
+}
+
+.alerte-stock {
+  font-size: var(--text-sm);
+  color: var(--red);
+}
+
+.num {
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+.alerte-go {
+  color: var(--text-mute);
+}
+
+.empty-ok .empty-message {
+  color: var(--text-dim);
 }

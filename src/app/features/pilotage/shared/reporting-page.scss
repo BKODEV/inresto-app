@@ -3,7 +3,10 @@
 }
 
 .reporting-page {
-  max-width: 1200px;
+  // Occupe toute la largeur disponible (les graphes profitent de l'espace) ;
+  // `.param-page` imposait un plafond qui laissait un vide à droite sur écran large.
+  max-width: none;
+  width: 100%;
 }
 
 .toolbar {
@@ -31,13 +34,29 @@
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  // `auto-fit` (et non `auto-fill`) : les cartes s'étirent pour remplir la
+  // largeur au lieu de laisser des colonnes vides à droite.
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: var(--space-4);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
 }
 
 .kpi {
-  padding: var(--space-4);
+  position: relative;
+  overflow: hidden;
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
+
+  // Liseré d'accent à gauche pour un rendu plus marqué.
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--amber);
+    opacity: 0.85;
+  }
 
   .kpi-label {
     font-size: var(--text-xs);
@@ -61,10 +80,52 @@
   }
 }
 
-// Sections --------------------------------------------------------------------
+// Disposition en panneaux (cartes-graphes multi-colonnes) ---------------------
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+  margin-bottom: var(--space-5);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+
+// Panneau pleine largeur (hero), traversant toute la grille.
+.panel.span-all {
+  grid-column: 1 / -1;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.panel-title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.panel-note {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  margin: 0;
+}
+
+// Sections (legacy, pour les écrans non encore en grille) ----------------------
 
 .section {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-6);
 }
 
 .section-title {
@@ -78,6 +139,24 @@
   font-size: var(--text-sm);
   color: var(--text-dim);
   margin: 0 0 var(--space-3);
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+
+  .section-title {
+    margin: 0;
+  }
+}
+
+.two-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-5);
 }
 
 // Tableaux --------------------------------------------------------------------
@@ -99,61 +178,35 @@
   overflow-x: auto;
 }
 
-.section-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+// Graphes ECharts -------------------------------------------------------------
+
+.chart-card {
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+// Jauges budgétaires ----------------------------------------------------------
+
+.gauge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--space-4);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
+}
 
-  .section-title {
-    margin: 0;
+.gauge-card {
+  padding: var(--space-4);
+  text-align: center;
+
+  .gauge-title {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: var(--space-1);
   }
-}
 
-.two-col {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: var(--space-8);
-}
-
-// Évolution (barres CSS) ------------------------------------------------------
-
-.evolution {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.evo-row {
-  display: grid;
-  grid-template-columns: 64px 1fr 120px;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.evo-label {
-  font-size: var(--text-xs);
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-}
-
-.evo-bar {
-  height: 14px;
-  background: var(--surface-2);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.evo-fill {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, var(--amber-2), var(--amber));
-  border-radius: var(--radius-full);
-  transition: width var(--transition-slow);
-}
-
-.evo-value {
-  font-size: var(--text-sm);
-  color: var(--text);
+  .gauge-sub {
+    font-size: var(--text-xs);
+    color: var(--text-dim);
+  }
 }

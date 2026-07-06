@@ -205,3 +205,69 @@ export interface DepensesReport {
   totaux_par_type: Record<DepenseType, number>;
   total: number;
 }
+
+// ── Tableau de bord (agrégat transversal) ────────────────────────────────────
+
+export type NiveauAlerteBudget = 'aucun' | 'seuil_75' | 'seuil_90' | 'depassement';
+
+export interface DashboardCaPeriode {
+  montant: number;
+  nb_commandes: number;
+}
+
+export interface DashboardFoodCost {
+  reel_pct: number;
+  theorique_pct: number;
+  ecart_points: number;
+  marge_brute: number;
+}
+
+export interface DashboardBudget {
+  montant_alloue: number;
+  montant_consomme: number;
+  pourcentage_consomme: number;
+  niveau_alerte: NiveauAlerteBudget;
+}
+
+export interface DashboardTopProduit {
+  produit: string;
+  quantite_vendue: number;
+  ca: number;
+}
+
+export interface DashboardEvolutionPoint {
+  label: string;
+  ca: number;
+}
+
+export interface DashboardAlerteStockItem {
+  matiere_premiere_id: number;
+  matiere: string;
+  stock_courant: number;
+  seuil: number;
+  unite: string | null;
+  site_id: number;
+  site: string;
+}
+
+export interface DashboardAlertesStock {
+  nombre: number;
+  items: DashboardAlerteStockItem[];
+}
+
+export interface DashboardModePaiement {
+  mode: string;
+  montant: number;
+  part_pct: number;
+}
+
+/** Réponse agrégée de `GET /reporting/dashboard` (un seul appel). */
+export interface DashboardData {
+  ca: { jour: DashboardCaPeriode; mois: DashboardCaPeriode };
+  food_cost: DashboardFoodCost;
+  budget: DashboardBudget;
+  top_produits: DashboardTopProduit[];
+  evolution_ca: DashboardEvolutionPoint[];
+  alertes_stock: DashboardAlertesStock;
+  modes_paiement: DashboardModePaiement[];
+}

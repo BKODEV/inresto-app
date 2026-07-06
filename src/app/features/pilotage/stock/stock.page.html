@@ -35,138 +35,154 @@
     }
 
     @if (alertes().length > 0) {
-      <div class="section">
-        <h2 class="section-title">Alertes de stock</h2>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Matière</th>
-                <th>Site</th>
-                <th class="num">Stock</th>
-                <th class="num">Seuil</th>
-                <th class="num">Manquant</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (a of alertes(); track a.matiere_premiere_id + '-' + a.site_id) {
+      <div class="report-grid">
+        <div class="panel card span-all">
+          <div class="panel-head">
+            <h2 class="panel-title">Alertes de stock</h2>
+            <span class="badge badge-danger">{{ alertes().length }}</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <td class="td-primary">{{ a.matiere }}</td>
-                  <td>{{ a.site }}</td>
-                  <td class="num">{{ fNombre(a.stock_courant) }} {{ a.unite }}</td>
-                  <td class="num">{{ fNombre(a.seuil) }}</td>
-                  <td class="num neg">{{ fNombre(a.manquant) }}</td>
+                  <th>Matière</th>
+                  <th>Site</th>
+                  <th class="num">Stock</th>
+                  <th class="num">Seuil</th>
+                  <th class="num">Manquant</th>
                 </tr>
-              }
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                @for (a of alertes(); track a.matiere_premiere_id + '-' + a.site_id) {
+                  <tr>
+                    <td class="td-primary">{{ a.matiere }}</td>
+                    <td>{{ a.site }}</td>
+                    <td class="num">{{ fNombre(a.stock_courant) }} {{ a.unite }}</td>
+                    <td class="num">{{ fNombre(a.seuil) }}</td>
+                    <td class="num neg">{{ fNombre(a.manquant) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     }
 
-    <div class="section">
-      <h2 class="section-title">Consommation matière (période)</h2>
-      @if (consommation().length === 0) {
-        <div class="empty-state"><span class="empty-message">Aucune sortie sur la période.</span></div>
-      } @else {
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Matière</th>
-                <th class="num">Qté sortie</th>
-                <th class="num">Valeur</th>
-                @for (t of typesSortie; track t.key) {
-                  <th class="num">{{ t.label }}</th>
-                }
-              </tr>
-            </thead>
-            <tbody>
-              @for (m of consommation(); track m.matiere_premiere_id) {
-                <tr>
-                  <td class="td-primary">{{ m.matiere }}</td>
-                  <td class="num">{{ fNombre(m.quantite_sortie) }} {{ m.unite }}</td>
-                  <td class="num">{{ fMontant(m.valeur_sortie) }}</td>
-                  @for (t of typesSortie; track t.key) {
-                    <td class="num">{{ fMontant(ventilationValeur(m, t.key)) }}</td>
-                  }
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
-
-    <div class="section">
-      <h2 class="section-title">Écarts d'inventaire (période)</h2>
-      @if (ecarts().length === 0) {
-        <div class="empty-state"><span class="empty-message">Aucun inventaire clôturé sur la période.</span></div>
-      } @else {
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Site</th>
-                <th class="num">Lignes</th>
-                <th class="num">Écart total</th>
-                <th class="num">Démarque</th>
-                <th class="num">Couverture</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (e of ecarts(); track e.inventaire_id) {
-                <tr>
-                  <td>{{ e.date }}</td>
-                  <td class="td-primary">{{ e.site }}</td>
-                  <td class="num">{{ e.nb_lignes }}</td>
-                  <td class="num" [class.neg]="e.ecart_total_valeur < 0" [class.pos]="e.ecart_total_valeur > 0">
-                    {{ fMontant(e.ecart_total_valeur) }}
-                  </td>
-                  <td class="num neg">{{ fMontant(e.demarque_valeur) }}</td>
-                  <td class="num">{{ fPct(e.taux_couverture) }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
-
-    <div class="section">
-      <h2 class="section-title">Valorisation du stock</h2>
-      @if (valorisation(); as v) {
-        @if (v.sites.length === 0) {
-          <div class="empty-state"><span class="empty-message">Aucun stock.</span></div>
+    <div class="report-grid">
+      <div class="panel card">
+        <div class="panel-head"><h2 class="panel-title">Consommation matière (période)</h2></div>
+        @if (consommation().length === 0) {
+          <div class="empty-state"><span class="empty-message">Aucune sortie sur la période.</span></div>
         } @else {
-          @for (s of v.sites; track s.site_id) {
-            <h3 class="section-note"><strong>{{ s.site }}</strong> — total {{ fMontant(s.total_valorise) }}</h3>
-            <div class="table-wrap">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Matière</th>
-                    <th class="num">Stock</th>
-                    <th class="num">PMP</th>
-                    <th class="num">Valeur</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (m of s.matieres; track m.matiere_premiere_id) {
-                    <tr>
-                      <td class="td-primary">{{ m.matiere }}</td>
-                      <td class="num">{{ fNombre(m.stock_courant) }} {{ m.unite }}</td>
-                      <td class="num">{{ fMontant(m.pmp) }}</td>
-                      <td class="num">{{ fMontant(m.valeur) }}</td>
-                    </tr>
+          <app-chart [options]="consommationChartOptions()" [height]="340" />
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Matière</th>
+                  <th class="num">Qté</th>
+                  <th class="num">Valeur</th>
+                  @for (t of typesSortie; track t.key) {
+                    <th class="num">{{ t.label }}</th>
                   }
-                </tbody>
-              </table>
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of consommation(); track m.matiere_premiere_id) {
+                  <tr>
+                    <td class="td-primary">{{ m.matiere }}</td>
+                    <td class="num">{{ fNombre(m.quantite_sortie) }} {{ m.unite }}</td>
+                    <td class="num">{{ fMontant(m.valeur_sortie) }}</td>
+                    @for (t of typesSortie; track t.key) {
+                      <td class="num">{{ fMontant(ventilationValeur(m, t.key)) }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      <div class="panel card">
+        <div class="panel-head"><h2 class="panel-title">Écarts d'inventaire (période)</h2></div>
+        @if (ecarts().length === 0) {
+          <div class="empty-state"><span class="empty-message">Aucun inventaire clôturé sur la période.</span></div>
+        } @else {
+          <app-chart [options]="ecartsChartOptions()" [height]="320" />
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Site</th>
+                  <th class="num">Lignes</th>
+                  <th class="num">Écart</th>
+                  <th class="num">Démarque</th>
+                  <th class="num">Couv.</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (e of ecarts(); track e.inventaire_id) {
+                  <tr>
+                    <td>{{ e.date }}</td>
+                    <td class="td-primary">{{ e.site }}</td>
+                    <td class="num">{{ e.nb_lignes }}</td>
+                    <td class="num" [class.neg]="e.ecart_total_valeur < 0" [class.pos]="e.ecart_total_valeur > 0">
+                      {{ fMontant(e.ecart_total_valeur) }}
+                    </td>
+                    <td class="num neg">{{ fMontant(e.demarque_valeur) }}</td>
+                    <td class="num">{{ fPct(e.taux_couverture) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="report-grid">
+      <div class="panel card span-all">
+        <div class="panel-head"><h2 class="panel-title">Valorisation du stock</h2></div>
+        @if (valorisation(); as v) {
+          @if (v.sites.length === 0) {
+            <div class="empty-state"><span class="empty-message">Aucun stock.</span></div>
+          } @else {
+            <app-chart [options]="valorisationChartOptions()" [height]="360" />
+            <div class="two-col">
+              @for (s of v.sites; track s.site_id) {
+                <div>
+                  <h3 class="panel-note"><strong>{{ s.site }}</strong> — total {{ fMontant(s.total_valorise) }}</h3>
+                  <div class="table-wrap">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th>Matière</th>
+                          <th class="num">Stock</th>
+                          <th class="num">PMP</th>
+                          <th class="num">Valeur</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (m of s.matieres; track m.matiere_premiere_id) {
+                          <tr>
+                            <td class="td-primary">{{ m.matiere }}</td>
+                            <td class="num">{{ fNombre(m.stock_courant) }} {{ m.unite }}</td>
+                            <td class="num">{{ fMontant(m.pmp) }}</td>
+                            <td class="num">{{ fMontant(m.valeur) }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
             </div>
           }
         }
-      }
+      </div>
     </div>
   }
 </div>

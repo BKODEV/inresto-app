@@ -1,0 +1,460 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Utilisateurs</h1>
+      <p class="page-subtitle">Gérez les comptes, leurs rôles et leur périmètre de sites.</p>
+    </div>
+    <button class="btn btn-primary" type="button" (click)="openCreate()">
+      + Nouvel utilisateur
+    </button>
+  </div>
+
+  <div class="filters">
+    <input
+      class="field-input filter-search"
+      type="search"
+      placeholder="Rechercher (nom, prénom, identifiant)…"
+      [value]="recherche()"
+      (input)="onRecherche($any($event.target).value)"
+    />
+    <select
+      class="field-select"
+      [value]="filtreSite() ?? ''"
+      (change)="onFiltreSite($any($event.target).value)"
+    >
+      <option value="">Tous les sites</option>
+      @for (site of sites(); track site.id) {
+        <option [value]="site.id">{{ site.nom }}</option>
+      }
+    </select>
+    <select
+      class="field-select"
+      [value]="filtreRole() ?? ''"
+      (change)="onFiltreRole($any($event.target).value)"
+    >
+      <option value="">Tous les rôles</option>
+      @for (role of roles(); track role.id) {
+        <option [value]="role.name">{{ role.name }}</option>
+      }
+    </select>
+    <select
+      class="field-select"
+      [value]="filtreStatut() ?? ''"
+      (change)="onFiltreStatut($any($event.target).value)"
+    >
+      <option value="">Tous les statuts</option>
+      <option value="actif">Actif</option>
+      <option value="inactif">Inactif</option>
+    </select>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (users().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun utilisateur</span>
+      <span class="empty-message">Créez votre premier utilisateur ou ajustez les filtres.</span>
+    </div>
+  } @else {
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Identifiant</th>
+            <th>Rôle(s)</th>
+            <th>Site(s)</th>
+            <th>Statut</th>
+            <th>Dernière connexion</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of users(); track user.id) {
+            <tr>
+              <td class="td-primary">{{ user.prenom }} {{ user.nom }}</td>
+              <td class="td-mono">{{ user.identifiant }}</td>
+              <td>{{ rolesLabel(user) }}</td>
+              <td class="td-mono">{{ sitesLabel(user) }}</td>
+              <td>
+                @if (user.statut === 'actif') {
+                  <span class="badge badge-success">Actif</span>
+                } @else {
+                  <span class="badge badge-neutral">Inactif</span>
+                }
+              </td>
+              <td class="td-mute">{{ formatDate(user.last_login_at) }}</td>
+              <td class="td-actions">
+                @if (peutGerer(user)) {
+                  <button class="btn-icon" type="button" title="Modifier" (click)="openEdit(user)">
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </button>
+                  <button
+                    class="btn-icon"
+                    type="button"
+                    title="Réinitialiser le mot de passe"
+                    (click)="openReset(user)"
+                  >
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0110 0v4" />
+                    </svg>
+                  </button>
+                  <button
+                    class="btn-icon"
+                    type="button"
+                    [title]="user.statut === 'actif' ? 'Désactiver' : 'Activer'"
+                    [disabled]="actionBusyId() === user.id"
+                    (click)="toggleActivation(user)"
+                  >
+                    @if (user.statut === 'actif') {
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="4.9" y1="4.9" x2="19.1" y2="19.1" />
+                      </svg>
+                    } @else {
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    }
+                  </button>
+                  <button
+                    class="btn-icon btn-icon-danger"
+                    type="button"
+                    title="Supprimer"
+                    [disabled]="actionBusyId() === user.id"
+                    (click)="remove(user)"
+                  >
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                      <path d="M10 11v6M14 11v6" />
+                      <path d="M9 6V4h6v2" />
+                    </svg>
+                  </button>
+                } @else {
+                  <span class="td-mute">—</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<!-- Drawer création / édition -->
+@if (drawerOpen()) {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer drawer-wide" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">
+        {{ editingUser() ? "Modifier l'utilisateur" : 'Nouvel utilisateur' }}
+      </h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <form class="drawer-body" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+
+      <div class="field-grid">
+        <label class="field-label">
+          <span class="field-text">Prénom <span class="required">*</span></span>
+          <input class="field-input" type="text" formControlName="prenom" autocomplete="off" />
+        </label>
+        <label class="field-label">
+          <span class="field-text">Nom <span class="required">*</span></span>
+          <input class="field-input" type="text" formControlName="nom" autocomplete="off" />
+        </label>
+      </div>
+
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Identifiant <span class="required">*</span></span>
+        <input class="field-input" type="text" formControlName="identifiant" autocomplete="off" />
+      </label>
+
+      <div class="field-grid" style="margin-top: 16px">
+        <label class="field-label">
+          <span class="field-text">Email</span>
+          <input class="field-input" type="email" formControlName="email" autocomplete="off" />
+        </label>
+        <label class="field-label">
+          <span class="field-text">Téléphone</span>
+          <input class="field-input" type="text" formControlName="telephone" autocomplete="off" />
+        </label>
+      </div>
+
+      <div class="field-grid" style="margin-top: 16px">
+        <label class="field-label">
+          <span class="field-text">Code PIN (tablette)</span>
+          <input
+            class="field-input"
+            type="text"
+            formControlName="pin_code"
+            autocomplete="off"
+            placeholder="Optionnel"
+          />
+        </label>
+        <label class="field-label">
+          <span class="field-text">Statut</span>
+          <select class="field-select" formControlName="statut">
+            <option value="actif">Actif</option>
+            <option value="inactif">Inactif</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- Mot de passe (création uniquement) -->
+      @if (!editingUser()) {
+        <div class="section-block">
+          <span class="field-text">Mot de passe</span>
+          <div class="radio-row">
+            <label class="radio-option">
+              <input
+                type="radio"
+                name="pwdmode"
+                [checked]="passwordMode() === 'saisir'"
+                (change)="setPasswordMode('saisir')"
+              />
+              <span>Définir un mot de passe</span>
+            </label>
+            <label class="radio-option">
+              <input
+                type="radio"
+                name="pwdmode"
+                [checked]="passwordMode() === 'email'"
+                (change)="setPasswordMode('email')"
+              />
+              <span>Envoyer par email</span>
+            </label>
+          </div>
+          @if (passwordMode() === 'saisir') {
+            <input
+              class="field-input"
+              type="text"
+              formControlName="password"
+              autocomplete="new-password"
+              placeholder="8 caractères minimum"
+            />
+          } @else {
+            <p class="field-hint">
+              Un mot de passe provisoire sera généré et envoyé à l'email ci-dessus.
+            </p>
+          }
+        </div>
+      }
+
+      <!-- Rôles -->
+      <div class="section-block">
+        <span class="field-text">Rôle(s)</span>
+        <div class="check-grid">
+          @for (role of rolesAssignables(); track role.id) {
+            <label class="check-option">
+              <input
+                type="checkbox"
+                [checked]="selectedRoles().includes(role.name)"
+                (change)="toggleRole(role.name)"
+              />
+              <span
+                >{{ role.name }} <em class="niveau">niv. {{ role.niveau }}</em></span
+              >
+            </label>
+          } @empty {
+            <p class="field-hint">Aucun rôle assignable à votre niveau.</p>
+          }
+        </div>
+      </div>
+
+      <!-- Sites -->
+      <div class="section-block">
+        <span class="field-text">Site(s) de rattachement</span>
+        <div class="check-grid">
+          @for (site of sites(); track site.id) {
+            <label class="check-option">
+              <input
+                type="checkbox"
+                [checked]="selectedSites().includes(site.id)"
+                (change)="toggleSite(site.id)"
+              />
+              <span>{{ site.nom }}</span>
+            </label>
+          }
+        </div>
+      </div>
+    </form>
+
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="save()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        {{ editingUser() ? 'Enregistrer' : 'Créer' }}
+      </button>
+    </div>
+  </div>
+}
+
+<!-- Drawer réinitialisation de mot de passe -->
+@if (resetDrawerOpen()) {
+  <div class="drawer-overlay" (click)="closeReset()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Réinitialiser le mot de passe</h2>
+      <button class="btn-icon" type="button" (click)="closeReset()">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="drawer-body">
+      <p class="field-hint" style="margin-bottom: 16px">
+        Utilisateur : <strong>{{ resetUser()?.prenom }} {{ resetUser()?.nom }}</strong> ({{
+          resetUser()?.identifiant
+        }})
+      </p>
+
+      @if (resetError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ resetError() }}</div>
+      }
+      @if (resetMessage()) {
+        <div class="alert-success" style="margin-bottom: 16px">{{ resetMessage() }}</div>
+      }
+
+      <div class="radio-row">
+        <label class="radio-option">
+          <input
+            type="radio"
+            name="resetmode"
+            [checked]="resetMode() === 'definir'"
+            (change)="setResetMode('definir')"
+          />
+          <span>Définir un nouveau mot de passe</span>
+        </label>
+        <label class="radio-option">
+          <input
+            type="radio"
+            name="resetmode"
+            [checked]="resetMode() === 'lien'"
+            (change)="setResetMode('lien')"
+          />
+          <span>Envoyer un lien par email</span>
+        </label>
+      </div>
+
+      @if (resetMode() === 'definir') {
+        <form [formGroup]="resetForm">
+          <label class="field-label" style="margin-top: 16px">
+            <span class="field-text">Nouveau mot de passe <span class="required">*</span></span>
+            <input
+              class="field-input"
+              type="text"
+              formControlName="new_password"
+              autocomplete="new-password"
+              placeholder="8 caractères minimum"
+            />
+          </label>
+        </form>
+      } @else {
+        <p class="field-hint" style="margin-top: 16px">
+          Un email contenant un lien de réinitialisation sera envoyé à l'utilisateur (un email doit
+          être renseigné sur son compte).
+        </p>
+      }
+    </div>
+
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeReset()">Fermer</button>
+      <button
+        class="btn btn-primary"
+        type="button"
+        [disabled]="resetBusy()"
+        (click)="submitReset()"
+      >
+        @if (resetBusy()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        {{ resetMode() === 'definir' ? 'Appliquer' : 'Envoyer le lien' }}
+      </button>
+    </div>
+  </div>
+}

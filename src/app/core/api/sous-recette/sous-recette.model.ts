@@ -29,7 +29,7 @@ export interface SousRecette {
 
 export interface LigneSousRecettePayload {
   matiere_premiere_id: number;
-  unite_id: number;
+  // Pas d'unité : le serveur impose l'unité de stockage de la matière.
   quantite: number;
 }
 

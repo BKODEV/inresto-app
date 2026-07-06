@@ -153,12 +153,33 @@ export class ProduitDetailPage implements OnInit {
   private matiereGroup(ligne?: LigneFicheTechnique): FormGroup {
     return this.fb.group({
       matiere_premiere_id: [ligne?.matiere_premiere_id ?? null, [Validators.required]],
-      unite_id: [ligne?.unite_id ?? null, [Validators.required]],
       quantite: [
         ligne ? Number(ligne.quantite) : null,
         [Validators.required, Validators.min(0.001)],
       ],
     });
+  }
+
+  /**
+   * Symbole de l'unité de STOCKAGE de la matière sélectionnée sur la ligne.
+   * L'unité d'une ligne de fiche n'est jamais choisie : elle est imposée par la
+   * matière (aucune conversion dimensionnelle côté serveur). Affichée en lecture
+   * seule pour guider la saisie de la quantité.
+   */
+  uniteStockageSymbole(group: FormGroup): string {
+    const matiereId = group.get('matiere_premiere_id')?.value as number | null;
+    if (matiereId === null) {
+      return '—';
+    }
+    const matiere = this.matieres().find((m) => m.id === matiereId);
+    if (!matiere) {
+      return '—';
+    }
+    return (
+      matiere.unite?.symbole ??
+      this.unites().find((u) => u.id === matiere.unite_de_mesure_id)?.symbole ??
+      '—'
+    );
   }
 
   private sousRecetteGroup(ligne?: LigneFicheTechniqueSousRecette): FormGroup {
@@ -229,7 +250,6 @@ export class ProduitDetailPage implements OnInit {
       produit_id: this.produitId,
       lignes_matieres: matieres.map((g) => ({
         matiere_premiere_id: g.value.matiere_premiere_id as number,
-        unite_id: g.value.unite_id as number,
         quantite: g.value.quantite as number,
       })),
       lignes_sous_recettes: sousRecettes.map((g) => ({

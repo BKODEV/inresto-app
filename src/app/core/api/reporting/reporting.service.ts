@@ -8,6 +8,7 @@ import { Budget } from '../budget/budget.model';
 import {
   AlerteStock,
   ConsommationMatiere,
+  DashboardData,
   DepensesReport,
   EcartInventaire,
   EvolutionPoint,
@@ -32,6 +33,13 @@ import {
 export class ReportingService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/reporting`;
+
+  // ── Tableau de bord ───────────────────────────────────────────────────────
+
+  /** Agrégat transversal du tableau de bord (un seul appel, périmètre site). */
+  dashboard(filter: ReportingFilter = {}): Observable<DashboardData> {
+    return this.get<DashboardData>('/dashboard', filter);
+  }
 
   // ── Food cost ───────────────────────────────────────────────────────────
 

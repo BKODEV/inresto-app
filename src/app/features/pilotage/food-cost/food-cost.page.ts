@@ -2,6 +2,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  computed,
   effect,
   inject,
   signal,
@@ -18,13 +19,18 @@ import {
   ReportingFilter,
 } from '../../../core/api/reporting/reporting.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { ChartComponent } from '../../../shared/chart/chart.component';
+import { foodCostGroupedBar } from '../../../shared/chart/chart-options';
 import { PeriodeFiltre } from '../shared/periode-filtre';
 import { formatMontant, formatNombre, formatPct } from '../shared/reporting-format';
+
+/** Nombre de produits affichés dans le graphe (les plus gros écarts d'abord). */
+const MAX_PRODUITS_CHART = 12;
 
 @Component({
   selector: 'app-food-cost-page',
   standalone: true,
-  imports: [PeriodeFiltre],
+  imports: [PeriodeFiltre, ChartComponent],
   templateUrl: './food-cost.page.html',
   styleUrl: '../shared/reporting-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,6 +50,26 @@ export class FoodCostPage {
   readonly produits = signal<FoodCostProduitLigne[]>([]);
   readonly pointsDeVente = signal<FoodCostPdvLigne[]>([]);
   readonly nonValorisees = signal<LignesNonValorisees | null>(null);
+
+  // ── Graphes réel vs théorique (rouge si réel > théorique) ──────────────────
+
+  readonly produitsChartOptions = computed(() =>
+    foodCostGroupedBar(
+      this.produits()
+        .slice(0, MAX_PRODUITS_CHART)
+        .map((p) => ({ name: p.produit, theorique: p.cout_theorique, reel: p.cout_reel })),
+    ),
+  );
+
+  readonly pdvChartOptions = computed(() =>
+    foodCostGroupedBar(
+      this.pointsDeVente().map((p) => ({
+        name: p.point_de_vente,
+        theorique: p.cout_theorique,
+        reel: p.cout_reel,
+      })),
+    ),
+  );
 
   readonly fMontant = formatMontant;
   readonly fNombre = formatNombre;

@@ -53,6 +53,19 @@ export class AuthService {
       .pipe(tap(() => this.clearSession()));
   }
 
+  /**
+   * Route publique : consomme le token reçu par email (lien déclenché par un
+   * administrateur) et applique le nouveau mot de passe choisi par l'utilisateur.
+   */
+  resetPassword(payload: {
+    email: string;
+    token: string;
+    password: string;
+    password_confirmation: string;
+  }): Observable<ApiMessage> {
+    return this.http.post<ApiMessage>(`${environment.apiUrl}/auth/reset-password`, payload);
+  }
+
   clearSession(): void {
     this._token.set(null);
     this._user.set(null);

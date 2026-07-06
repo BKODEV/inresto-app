@@ -55,7 +55,7 @@ export interface UpdateCommandeFournisseurPayload {
 
 export interface LigneCommandePayload {
   matiere_premiere_id: number;
-  unite_id: number;
+  // Pas d'unité : le serveur impose l'unité d'achat du catalogue.
   quantite_commandee: number;
   prix_unitaire_previsionnel: number;
 }

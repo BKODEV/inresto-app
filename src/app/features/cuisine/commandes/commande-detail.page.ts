@@ -114,7 +114,6 @@ export class CommandeDetailPage implements OnInit {
 
   readonly ligneForm = this.fb.nonNullable.group({
     matiere_premiere_id: [null as number | null, [Validators.required]],
-    unite_id: [null as number | null, [Validators.required]],
     quantite_commandee: [null as number | null, [Validators.required, Validators.min(0.001)]],
     prix_unitaire_previsionnel: [
       null as number | null,
@@ -160,18 +159,32 @@ export class CommandeDetailPage implements OnInit {
   }
 
   /**
-   * À la sélection d'une matière, préremplit l'unité d'achat et le prix négocié
-   * depuis le catalogue (l'utilisateur reste libre d'ajuster prix et quantité).
+   * À la sélection d'une matière, préremplit le prix négocié depuis le catalogue
+   * (l'utilisateur reste libre d'ajuster prix et quantité). L'unité n'est PAS
+   * choisie : elle est imposée par le catalogue (unité d'achat), affichée en
+   * lecture seule via {@see uniteAchatSelectionnee}.
    */
   onMatiereSelected(): void {
     const matiereId = this.ligneForm.controls.matiere_premiere_id.value;
     const entree = this.catalogue().find((c) => c.matiere_premiere_id === matiereId);
     if (entree) {
       this.ligneForm.patchValue({
-        unite_id: entree.unite_achat_id,
         prix_unitaire_previsionnel: Number(entree.prix_unitaire),
       });
     }
+  }
+
+  /**
+   * Symbole de l'unité d'achat (catalogue) de la matière sélectionnée dans le
+   * drawer ligne. Lecture seule : l'unité d'une ligne suit toujours le catalogue.
+   */
+  uniteAchatSelectionnee(): string {
+    const matiereId = this.ligneForm.controls.matiere_premiere_id.value;
+    const entree = this.catalogue().find((c) => c.matiere_premiere_id === matiereId);
+    if (!entree) {
+      return '—';
+    }
+    return this.unites().find((u) => u.id === entree.unite_achat_id)?.symbole ?? '—';
   }
 
   // ── Helpers d'affichage ─────────────────────────────────────────────────
@@ -282,7 +295,6 @@ export class CommandeDetailPage implements OnInit {
     this.editingLigne.set(null);
     this.ligneForm.reset({
       matiere_premiere_id: null,
-      unite_id: null,
       quantite_commandee: null,
       prix_unitaire_previsionnel: null,
     });
@@ -294,7 +306,6 @@ export class CommandeDetailPage implements OnInit {
     this.editingLigne.set(ligne);
     this.ligneForm.reset({
       matiere_premiere_id: ligne.matiere_premiere_id,
-      unite_id: ligne.unite_id,
       quantite_commandee: Number(ligne.quantite_commandee),
       prix_unitaire_previsionnel: Number(ligne.prix_unitaire_previsionnel),
     });
@@ -316,7 +327,6 @@ export class CommandeDetailPage implements OnInit {
     const raw = this.ligneForm.getRawValue();
     const payload = {
       matiere_premiere_id: raw.matiere_premiere_id!,
-      unite_id: raw.unite_id!,
       quantite_commandee: raw.quantite_commandee!,
       prix_unitaire_previsionnel: raw.prix_unitaire_previsionnel!,
     };
@@ -358,7 +368,9 @@ export class CommandeDetailPage implements OnInit {
     return this.fb.group({
       matiere_premiere_id: [ligne.matiere_premiere_id, [Validators.required]],
       matiere_libelle: [this.matiereLibelle(ligne)],
-      unite_id: [ligne.unite_id, [Validators.required]],
+      // Unité d'achat (catalogue) affichée en lecture seule : le serveur la
+      // ré-impose de toute façon. On ne l'envoie plus dans le payload.
+      unite_symbole: [this.uniteSymbole(ligne.unite_id, ligne)],
       quantite_recue: [
         Number(ligne.quantite_commandee),
         [Validators.required, Validators.min(0.001)],
@@ -416,7 +428,6 @@ export class CommandeDetailPage implements OnInit {
 
     const lignes = groups.map((g) => ({
       matiere_premiere_id: g.value.matiere_premiere_id as number,
-      unite_id: g.value.unite_id as number,
       quantite_recue: g.value.quantite_recue as number,
       prix_unitaire_reel: g.value.prix_unitaire_reel as number,
     }));

@@ -51,91 +51,94 @@
       </div>
     }
 
-    <div class="section">
-      <h2 class="section-title">Par produit</h2>
-      @if (produits().length === 0) {
-        <div class="empty-state"><span class="empty-message">Aucune vente valorisée sur la période.</span></div>
-      } @else {
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Produit</th>
-                <th class="num">Qté</th>
-                <th class="num">CA</th>
-                <th class="num">Coût théo.</th>
-                <th class="num">Coût réel</th>
-                <th class="num">FC réel</th>
-                <th class="num">Écart €</th>
-                <th class="num">Marge</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (p of produits(); track p.produit_id) {
+    <div class="report-grid">
+      <div class="panel card">
+        <div class="panel-head"><h2 class="panel-title">Par produit — réel vs théorique</h2></div>
+        @if (produits().length === 0) {
+          <div class="empty-state"><span class="empty-message">Aucune vente valorisée sur la période.</span></div>
+        } @else {
+          <app-chart [options]="produitsChartOptions()" [height]="320" />
+          @if (nonValorisees(); as nv) {
+            @if (nv.nombre_lignes > 0) {
+              <p class="panel-note">
+                ⚠ {{ nv.nombre_lignes }} ligne(s) non valorisée(s) — {{ fMontant(nv.ca_concerne) }} de CA
+                sans fiche figée (exclu des ratios).
+              </p>
+            }
+          }
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <td class="td-primary">{{ p.produit }}</td>
-                  <td class="num">{{ fNombre(p.quantite_vendue) }}</td>
-                  <td class="num">{{ fMontant(p.ca) }}</td>
-                  <td class="num">{{ fMontant(p.cout_theorique) }}</td>
-                  <td class="num">{{ fMontant(p.cout_reel) }}</td>
-                  <td class="num">{{ fPct(p.food_cost_reel_pct) }}</td>
-                  <td class="num" [class.neg]="p.ecart_food_cost_valeur > 0" [class.pos]="p.ecart_food_cost_valeur < 0">
-                    {{ fMontant(p.ecart_food_cost_valeur) }}
-                  </td>
-                  <td class="num">{{ fMontant(p.marge_brute_reelle) }}</td>
+                  <th>Produit</th>
+                  <th class="num">Qté</th>
+                  <th class="num">CA</th>
+                  <th class="num">Théo.</th>
+                  <th class="num">Réel</th>
+                  <th class="num">FC réel</th>
+                  <th class="num">Écart €</th>
+                  <th class="num">Marge</th>
                 </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-
-      @if (nonValorisees(); as nv) {
-        @if (nv.nombre_lignes > 0) {
-          <p class="section-note">
-            ⚠ {{ nv.nombre_lignes }} ligne(s) non valorisée(s) — {{ fMontant(nv.ca_concerne) }} de CA
-            sans fiche figée (exclu des ratios food cost).
-          </p>
+              </thead>
+              <tbody>
+                @for (p of produits(); track p.produit_id) {
+                  <tr>
+                    <td class="td-primary">{{ p.produit }}</td>
+                    <td class="num">{{ fNombre(p.quantite_vendue) }}</td>
+                    <td class="num">{{ fMontant(p.ca) }}</td>
+                    <td class="num">{{ fMontant(p.cout_theorique) }}</td>
+                    <td class="num">{{ fMontant(p.cout_reel) }}</td>
+                    <td class="num">{{ fPct(p.food_cost_reel_pct) }}</td>
+                    <td class="num" [class.neg]="p.ecart_food_cost_valeur > 0" [class.pos]="p.ecart_food_cost_valeur < 0">
+                      {{ fMontant(p.ecart_food_cost_valeur) }}
+                    </td>
+                    <td class="num">{{ fMontant(p.marge_brute_reelle) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
         }
-      }
-    </div>
+      </div>
 
-    <div class="section">
-      <h2 class="section-title">Par point de vente</h2>
-      @if (pointsDeVente().length === 0) {
-        <div class="empty-state"><span class="empty-message">Aucune donnée.</span></div>
-      } @else {
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Point de vente</th>
-                <th class="num">CA</th>
-                <th class="num">Coût théo.</th>
-                <th class="num">Coût réel</th>
-                <th class="num">FC réel</th>
-                <th class="num">Écart €</th>
-                <th class="num">Marge</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (p of pointsDeVente(); track p.point_de_vente_id) {
+      <div class="panel card">
+        <div class="panel-head"><h2 class="panel-title">Par point de vente — réel vs théorique</h2></div>
+        @if (pointsDeVente().length === 0) {
+          <div class="empty-state"><span class="empty-message">Aucune donnée.</span></div>
+        } @else {
+          <app-chart [options]="pdvChartOptions()" [height]="320" />
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <td class="td-primary">{{ p.point_de_vente }}</td>
-                  <td class="num">{{ fMontant(p.ca) }}</td>
-                  <td class="num">{{ fMontant(p.cout_theorique) }}</td>
-                  <td class="num">{{ fMontant(p.cout_reel) }}</td>
-                  <td class="num">{{ fPct(p.food_cost_reel_pct) }}</td>
-                  <td class="num" [class.neg]="p.ecart_food_cost_valeur > 0" [class.pos]="p.ecart_food_cost_valeur < 0">
-                    {{ fMontant(p.ecart_food_cost_valeur) }}
-                  </td>
-                  <td class="num">{{ fMontant(p.marge_brute_reelle) }}</td>
+                  <th>Point de vente</th>
+                  <th class="num">CA</th>
+                  <th class="num">Théo.</th>
+                  <th class="num">Réel</th>
+                  <th class="num">FC réel</th>
+                  <th class="num">Écart €</th>
+                  <th class="num">Marge</th>
                 </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
+              </thead>
+              <tbody>
+                @for (p of pointsDeVente(); track p.point_de_vente_id) {
+                  <tr>
+                    <td class="td-primary">{{ p.point_de_vente }}</td>
+                    <td class="num">{{ fMontant(p.ca) }}</td>
+                    <td class="num">{{ fMontant(p.cout_theorique) }}</td>
+                    <td class="num">{{ fMontant(p.cout_reel) }}</td>
+                    <td class="num">{{ fPct(p.food_cost_reel_pct) }}</td>
+                    <td class="num" [class.neg]="p.ecart_food_cost_valeur > 0" [class.pos]="p.ecart_food_cost_valeur < 0">
+                      {{ fMontant(p.ecart_food_cost_valeur) }}
+                    </td>
+                    <td class="num">{{ fMontant(p.marge_brute_reelle) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
     </div>
   }
 </div>

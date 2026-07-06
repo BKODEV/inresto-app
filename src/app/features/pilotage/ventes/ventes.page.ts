@@ -21,13 +21,21 @@ import {
   VenteServeur,
 } from '../../../core/api/reporting/reporting.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { ChartComponent } from '../../../shared/chart/chart.component';
+import {
+  caEvolutionLine,
+  chartFormat,
+  donutChart,
+  horizontalBar,
+  verticalBar,
+} from '../../../shared/chart/chart-options';
 import { PeriodeFiltre } from '../shared/periode-filtre';
 import { formatMontant, formatNombre, formatPct } from '../shared/reporting-format';
 
 @Component({
   selector: 'app-ventes-page',
   standalone: true,
-  imports: [PeriodeFiltre],
+  imports: [PeriodeFiltre, ChartComponent],
   templateUrl: './ventes.page.html',
   styleUrl: '../shared/reporting-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,8 +60,41 @@ export class VentesPage {
 
   /** CA total de la période (somme des PDV) pour la carte de tête. */
   readonly caTotal = computed(() => this.parPdv().reduce((acc, p) => acc + p.ca, 0));
-  /** Plus haut CA d'un point de la série, pour dimensionner les barres. */
-  readonly evolutionMax = computed(() => Math.max(1, ...this.evolution().map((p) => p.ca)));
+  readonly nbCommandes = computed(() =>
+    this.parPdv().reduce((acc, p) => acc + p.nombre_commandes, 0),
+  );
+  readonly panierMoyen = computed(() => {
+    const nb = this.nbCommandes();
+    return nb > 0 ? this.caTotal() / nb : 0;
+  });
+  readonly nbPdv = computed(() => this.parPdv().length);
+
+  // ── Options des graphes ECharts ────────────────────────────────────────────
+
+  readonly evolutionOptions = computed(() => caEvolutionLine(this.evolution()));
+
+  readonly pdvOptions = computed(() =>
+    verticalBar(this.parPdv().map((p) => ({ name: p.point_de_vente, value: p.ca }))),
+  );
+
+  readonly produitsOptions = computed(() => {
+    const parQuantite = this.tri() === 'quantite';
+    return horizontalBar(
+      this.produits().map((p) => ({
+        name: p.produit,
+        value: parQuantite ? p.quantite_vendue : p.ca,
+      })),
+      parQuantite ? { valueFormatter: chartFormat.nombre } : {},
+    );
+  });
+
+  readonly modesOptions = computed(() =>
+    donutChart(this.modesPaiement().map((m) => ({ name: m.mode, value: m.montant_total }))),
+  );
+
+  readonly serveursOptions = computed(() =>
+    horizontalBar(this.serveurs().map((s) => ({ name: s.serveur, value: s.ca }))),
+  );
 
   readonly fMontant = formatMontant;
   readonly fNombre = formatNombre;
@@ -76,10 +117,6 @@ export class VentesPage {
 
   setTri(value: string): void {
     this.tri.set(value as TriProduit);
-  }
-
-  barWidth(ca: number): number {
-    return Math.round((ca / this.evolutionMax()) * 100);
   }
 
   private load(filter: ReportingFilter, siteId: number | null, tri: TriProduit): void {

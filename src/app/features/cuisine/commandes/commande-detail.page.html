@@ -189,13 +189,9 @@
         }
       </label>
       <label class="field-label" style="margin-top: 16px">
-        <span class="field-text">Unité <span class="required">*</span></span>
-        <select class="field-select" formControlName="unite_id">
-          <option [ngValue]="null" disabled>Sélectionner…</option>
-          @for (u of unites(); track u.id) {
-            <option [ngValue]="u.id">{{ u.libelle }} ({{ u.symbole }})</option>
-          }
-        </select>
+        <span class="field-text">Unité d'achat</span>
+        <!-- Imposée par le catalogue (unité d'achat de la matière) : lecture seule. -->
+        <input class="field-input" type="text" [value]="uniteAchatSelectionnee()" disabled />
       </label>
       <label class="field-label" style="margin-top: 16px">
         <span class="field-text">Quantité commandée <span class="required">*</span></span>
@@ -279,6 +275,7 @@
           <div class="entry-top">
             <div class="entry-idx">
               <b>{{ group.value.matiere_libelle }}</b>
+              <span class="field-hint">Unité d'achat : {{ group.value.unite_symbole }}</span>
             </div>
             <button
               class="entry-rm"

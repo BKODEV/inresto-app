@@ -26,27 +26,25 @@
         <div class="empty-state"><span class="empty-message">Aucun budget sur la période.</span></div>
       } @else {
         <div class="budget-grid">
-          @for (b of budgets(); track b.id) {
+          @for (v of budgetViews(); track v.budget.id) {
             <div class="budget-card card">
               <div class="bc-head">
-                <div class="bc-mois">{{ formatMois(b.mois) }}</div>
-                <span class="badge" [class]="niveauBadge(b.niveau_alerte)">{{ niveauLabel(b.niveau_alerte) }}</span>
+                <div class="bc-mois">{{ formatMois(v.budget.mois) }}</div>
+                <span class="badge" [class]="niveauBadge(v.budget.niveau_alerte)">{{ niveauLabel(v.budget.niveau_alerte) }}</span>
               </div>
-              <div class="gauge">
-                <div class="gauge-fill" [class]="niveauBadge(b.niveau_alerte)" [style.width.%]="gaugePct(b.pourcentage_consomme)"></div>
-              </div>
+              <app-chart [options]="v.gaugeOptions" [height]="150" />
               <div class="gauge-legend">
-                <span>{{ fMontant(num(b.montant_consomme)) }} consommé</span>
-                <span>{{ b.pourcentage_consomme }} %</span>
+                <span>{{ fMontant(num(v.budget.montant_consomme)) }} consommé</span>
+                <span>{{ v.budget.pourcentage_consomme }} %</span>
               </div>
               <div class="bc-figures">
                 <div>
                   <div class="bf-l">Alloué</div>
-                  <div class="bf-v">{{ fMontant(num(b.montant_alloue)) }}</div>
+                  <div class="bf-v">{{ fMontant(num(v.budget.montant_alloue)) }}</div>
                 </div>
                 <div>
                   <div class="bf-l">Restant</div>
-                  <div class="bf-v" [class.neg]="num(b.montant_restant) < 0">{{ fMontant(num(b.montant_restant)) }}</div>
+                  <div class="bf-v" [class.neg]="num(v.budget.montant_restant) < 0">{{ fMontant(num(v.budget.montant_restant)) }}</div>
                 </div>
               </div>
             </div>
@@ -75,27 +73,36 @@
               <div class="kpi-value">{{ fMontant(d.total) }}</div>
             </div>
           </div>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Libellé</th>
-                  <th>Type</th>
-                  <th class="num">Montant</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (dep of d.depenses; track dep.id) {
-                  <tr>
-                    <td>{{ dep.date_depense }}</td>
-                    <td class="td-primary">{{ dep.libelle }}</td>
-                    <td>{{ typeLabel(dep.type) }}</td>
-                    <td class="num">{{ fMontant(dep.montant) }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
+          <div class="report-grid">
+            <div class="panel card">
+              <div class="panel-head"><h2 class="panel-title">Répartition par type</h2></div>
+              <app-chart [options]="depensesPieOptions()" [height]="300" />
+            </div>
+            <div class="panel card">
+              <div class="panel-head"><h2 class="panel-title">Détail des dépenses</h2></div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Libellé</th>
+                      <th>Type</th>
+                      <th class="num">Montant</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (dep of d.depenses; track dep.id) {
+                      <tr>
+                        <td>{{ dep.date_depense }}</td>
+                        <td class="td-primary">{{ dep.libelle }}</td>
+                        <td>{{ typeLabel(dep.type) }}</td>
+                        <td class="num">{{ fMontant(dep.montant) }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         }
       }
