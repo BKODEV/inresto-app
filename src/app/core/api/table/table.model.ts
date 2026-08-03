@@ -8,6 +8,10 @@ export interface TableSalle {
   numero: string;
   capacite: number;
   statut: StatutTable;
+  /** Jeton opaque encodé dans le QR de la table. Null pour les tables antérieures au backfill. */
+  public_token: string | null;
+  /** Lien public complet du menu (ce que le QR encode), construit par l'API selon l'instance. */
+  menu_url: string | null;
   point_de_vente?: PointDeVente;
 }
 

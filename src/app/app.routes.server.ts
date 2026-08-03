@@ -9,6 +9,19 @@ import { RenderMode, ServerRoute } from '@angular/ssr';
  */
 export const serverRoutes: ServerRoute[] = [
   {
+    /**
+     * Seule exception : le menu public. Aucune session à attendre, donc rendu
+     * côté serveur — la carte est lisible dès la première peinture (on arrive
+     * ici par un scan, souvent en 4G) et la page est indexable.
+     *
+     * Son contenu dépend du jeton de l'URL : rendu à la demande, jamais prérendu.
+     * Si l'API est injoignable depuis le serveur, la page part en état
+     * « indisponible » et le navigateur la rattrape en refaisant l'appel.
+     */
+    path: 'menu/:token',
+    renderMode: RenderMode.Server,
+  },
+  {
     path: '**',
     renderMode: RenderMode.Client,
   },

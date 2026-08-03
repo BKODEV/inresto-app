@@ -23,6 +23,14 @@
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
+            "allowedCommonJsDependencies": [
+              "qrcode"
+            ],
+            "security": {
+              "allowedHosts": [
+                "*"
+              ]
+            },
             "assets": [
               {
                 "glob": "**/*",

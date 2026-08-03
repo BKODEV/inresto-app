@@ -41,6 +41,16 @@ export class TableService {
       .pipe(map((r) => r.data));
   }
 
+  /**
+   * Remplace le jeton public de la table : le QR déjà imprimé cesse de
+   * fonctionner et doit être réimprimé.
+   */
+  regenererToken(id: number): Observable<TableSalle> {
+    return this.http
+      .post<ApiResponse<TableSalle>>(`${this.base}/${id}/regenerer-token`, {})
+      .pipe(map((r) => r.data));
+  }
+
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}`);
   }
