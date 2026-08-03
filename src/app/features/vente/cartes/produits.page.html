@@ -24,6 +24,9 @@
       <table class="data-table">
         <thead>
           <tr>
+            <!-- La vignette signale d'un coup d'œil les plats sans visuel :
+                 c'est exactement ce qui manque au client sur le menu public. -->
+            <th class="th-vignette"></th>
             <th>#</th>
             <th>Libellé</th>
             <th>Catégorie</th>
@@ -35,6 +38,13 @@
         <tbody>
           @for (item of items(); track item.id) {
             <tr class="row-clickable" (click)="open(item)">
+              <td class="td-vignette">
+                @if (item.photo_url) {
+                  <img class="vignette" [src]="item.photo_url" [alt]="item.libelle" />
+                } @else {
+                  <span class="vignette vignette-vide" title="Sans photo">—</span>
+                }
+              </td>
               <td class="td-mono">{{ item.id }}</td>
               <td class="td-primary">{{ item.libelle }}</td>
               <td>{{ item.categorie?.libelle ?? categorieLabel(item.categorie_id) }}</td>
@@ -207,6 +217,61 @@
         </select>
       </label>
     </form>
+
+    <!--
+      Photo du plat : c'est le seul visuel que voit le client sur le menu public.
+      Le bloc n'apparaît qu'en édition — un produit doit exister pour porter un
+      fichier, même contrat que le logo d'établissement.
+    -->
+    <div class="drawer-body photo-bloc">
+      <span class="field-text">Photo du plat</span>
+      @if (editingItem(); as produit) {
+        <p class="field-hint">
+          Affichée aux clients sur le menu public. L'image est automatiquement allégée avant
+          l'envoi.
+        </p>
+
+        <div class="photo-apercu">
+          @if (produit.photo_url) {
+            <img [src]="produit.photo_url" [alt]="produit.libelle" />
+          } @else {
+            <div class="photo-vide">Aucune photo</div>
+          }
+        </div>
+
+        <div class="photo-actions">
+          <label class="btn btn-secondary">
+            {{ produit.photo_url ? 'Remplacer' : 'Ajouter une photo' }}
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              hidden
+              [disabled]="photoBusy()"
+              (change)="onPhotoSelected($event)"
+            />
+          </label>
+          @if (produit.photo_url) {
+            <button
+              class="btn btn-danger"
+              type="button"
+              [disabled]="photoBusy()"
+              (click)="supprimerPhoto()"
+            >
+              Supprimer
+            </button>
+          }
+          @if (photoBusy()) {
+            <span class="spinner" style="width: 14px; height: 14px"></span>
+          }
+        </div>
+
+        @if (photoError()) {
+          <div class="field-error">{{ photoError() }}</div>
+        }
+      } @else {
+        <p class="field-hint">Enregistrez le produit pour pouvoir lui ajouter une photo.</p>
+      }
+    </div>
 
     <div class="drawer-footer">
       <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>

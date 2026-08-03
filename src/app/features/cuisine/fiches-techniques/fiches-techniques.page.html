@@ -56,9 +56,13 @@
                 <button
                   class="btn-icon"
                   type="button"
-                  [disabled]="pdfBusyId() === item.id"
+                  [disabled]="pdfBusyId() === item.id || estConsolide()"
                   (click)="imprimerPdf(item); $event.stopPropagation()"
-                  title="Imprimer (PDF)"
+                  [title]="
+                    estConsolide()
+                      ? 'Choisissez un site : son identité figure en en-tête de la fiche.'
+                      : 'Imprimer (PDF)'
+                  "
                 >
                   🖨
                 </button>

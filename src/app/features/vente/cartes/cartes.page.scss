@@ -73,3 +73,118 @@
   padding: 2px 8px;
   border-radius: var(--radius-full);
 }
+
+// ═══ Photo des produits ═════════════════════════════════════════════════════
+// La vignette en liste sert à repérer les plats sans visuel ; le bloc du tiroir
+// pilote le téléversement.
+
+.th-vignette {
+  width: 56px;
+}
+
+.td-vignette {
+  width: 56px;
+}
+
+.vignette {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  object-fit: cover;
+  background: var(--bg);
+}
+
+.vignette-vide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--border);
+  color: var(--text-mute);
+  font-size: var(--text-sm);
+}
+
+.photo-bloc {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-6);
+}
+
+.photo-apercu {
+  margin-top: var(--space-3);
+
+  img {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+}
+
+.photo-vide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 4 / 3;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  color: var(--text-mute);
+  font-size: var(--text-sm);
+}
+
+.photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+
+  // Le champ fichier est masqué : c'est le label qui porte l'apparence du bouton.
+  label {
+    cursor: pointer;
+  }
+}
+
+// ═══ Ajout en lot sur une carte ═════════════════════════════════════════════
+
+.head-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.lot-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.lot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.lot-compteur {
+  margin-left: auto;
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+}
+
+.th-case {
+  width: 36px;
+}
+
+// Le prix se saisit dans le tableau : une colonne étroite suffit et garde les
+// lignes lisibles.
+.field-input-prix {
+  width: 120px;
+  text-align: right;
+}

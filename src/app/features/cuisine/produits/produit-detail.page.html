@@ -37,7 +37,24 @@
         </div>
       </div>
       <div class="head-actions no-print">
-        <button class="btn btn-secondary" type="button" (click)="print()">Imprimer</button>
+        <button
+          class="btn btn-secondary"
+          type="button"
+          [disabled]="pdfBusy() || !fiche() || estConsolide()"
+          [title]="
+            estConsolide()
+              ? 'Choisissez un site : son identité figure en en-tête de la fiche.'
+              : fiche()
+                ? 'Fiche technique au format PDF (impression atelier)'
+                : 'Créez la fiche technique pour pouvoir l’imprimer.'
+          "
+          (click)="imprimerFiche()"
+        >
+          @if (pdfBusy()) {
+            <span class="spinner" style="width: 14px; height: 14px"></span>
+          }
+          Imprimer la fiche
+        </button>
         @if (canManage()) {
           <button class="btn btn-primary" type="button" (click)="openFicheDrawer()">
             {{ fiche() ? 'Modifier la fiche' : 'Créer la fiche technique' }}
@@ -46,12 +63,17 @@
       </div>
     </div>
 
+    @if (pdfError()) {
+      <div class="alert-error no-print" style="margin-bottom: 16px">{{ pdfError() }}</div>
+    }
+
     <!-- Bandeau économique -->
     <div class="econ">
       <div class="econ-cell hl">
         <div class="econ-lbl">Coût matière (référence)</div>
         <div class="econ-val">
-          {{ formatMontant($safeNavigationMigration(fiche()?.cout_matiere)) }}<span class="u">FCFA</span>
+          {{ formatMontant($safeNavigationMigration(fiche()?.cout_matiere))
+          }}<span class="u">FCFA</span>
         </div>
         <div class="econ-sub">meilleur prix catalogue</div>
       </div>
@@ -243,7 +265,12 @@
             <div>
               <label class="ctl-l">Unité</label>
               <!-- Unité imposée par la matière (unité de stockage) : lecture seule. -->
-              <input class="field-input" type="text" [value]="uniteStockageSymbole(group)" disabled />
+              <input
+                class="field-input"
+                type="text"
+                [value]="uniteStockageSymbole(group)"
+                disabled
+              />
             </div>
           </div>
         </div>

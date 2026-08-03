@@ -45,4 +45,23 @@ export class ProduitService {
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}`);
   }
+
+  /**
+   * Envoie/écrase la photo du produit — seule voie d'écriture du champ. Le
+   * fichier doit avoir été allégé au préalable (`redimensionnerImage`).
+   */
+  uploadPhoto(id: number, photo: File): Observable<Produit> {
+    const form = new FormData();
+    form.append('photo', photo);
+    return this.http
+      .post<ApiResponse<Produit>>(`${this.base}/${id}/photo`, form)
+      .pipe(map((r) => r.data));
+  }
+
+  /** Retire la photo (fichier effacé côté serveur, `photo` remis à null). */
+  deletePhoto(id: number): Observable<Produit> {
+    return this.http
+      .delete<ApiResponse<Produit>>(`${this.base}/${id}/photo`)
+      .pipe(map((r) => r.data));
+  }
 }

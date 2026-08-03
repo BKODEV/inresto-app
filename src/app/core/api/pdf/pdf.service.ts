@@ -42,8 +42,29 @@ export class PdfService {
     });
   }
 
-  ficheTechnique(ficheId: number): Observable<Blob> {
+  /**
+   * Une fiche technique ne porte aucun site : `siteId` désigne l'établissement
+   * dont l'identité figure en en-tête (à défaut, le site PRINCIPAL côté back).
+   */
+  ficheTechnique(ficheId: number, siteId?: number | null): Observable<Blob> {
+    let params = new HttpParams();
+    if (siteId != null) {
+      params = params.set('site_id', siteId);
+    }
     return this.http.get(`${this.base}/fiches-techniques/${ficheId}/pdf`, {
+      params,
+      responseType: 'blob',
+    });
+  }
+
+  /** Chevalet QR d'une table (A6), à poser sur la table. */
+  qrTable(tableId: number): Observable<Blob> {
+    return this.http.get(`${this.base}/tables/${tableId}/qr-pdf`, { responseType: 'blob' });
+  }
+
+  /** Planche A4 des QR de toutes les tables d'un point de vente (impression en lot). */
+  qrPlanchePointDeVente(pointDeVenteId: number): Observable<Blob> {
+    return this.http.get(`${this.base}/points-de-vente/${pointDeVenteId}/qr-planche-pdf`, {
       responseType: 'blob',
     });
   }

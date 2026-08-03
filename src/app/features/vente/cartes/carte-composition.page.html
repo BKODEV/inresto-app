@@ -20,14 +20,26 @@
       </h1>
       <p class="page-subtitle">Produits proposés sur cette carte et leur prix de vente.</p>
     </div>
-    <button
-      class="btn btn-primary"
-      type="button"
-      (click)="openAdd()"
-      [disabled]="produitsDisponibles().length === 0"
-    >
-      + Ajouter un produit
-    </button>
+    <div class="head-actions">
+      <!-- L'ajout unitaire reste : lui seul permet de choisir la position
+           dans la section. Le lot pose les produits en fin de section. -->
+      <button
+        class="btn btn-secondary"
+        type="button"
+        (click)="openAdd()"
+        [disabled]="produitsDisponibles().length === 0"
+      >
+        + Ajouter un produit
+      </button>
+      <button
+        class="btn btn-primary"
+        type="button"
+        (click)="openLot()"
+        [disabled]="produitsDisponibles().length === 0"
+      >
+        + Ajouter plusieurs
+      </button>
+    </div>
   </div>
 
   @if (loading()) {
@@ -203,6 +215,131 @@
           <span class="spinner" style="width: 14px; height: 14px"></span>
         }
         Ajouter
+      </button>
+    </div>
+  </div>
+}
+
+<!-- Drawer d'ajout en lot -->
+@if (lotDrawerOpen()) {
+  <div class="drawer-overlay" (click)="closeLotDrawer()"></div>
+  <div class="drawer drawer-wide" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Ajouter plusieurs produits</h2>
+      <button class="btn-icon" type="button" (click)="closeLotDrawer()">✕</button>
+    </div>
+
+    <div class="drawer-body">
+      @if (lotError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ lotError() }}</div>
+      }
+
+      <div class="lot-toolbar">
+        <label class="field-label inline">
+          <span class="field-text">Catégorie</span>
+          <select
+            class="field-select"
+            [value]="filtreCategorie()"
+            (change)="setFiltreCategorie($any($event.target).value)"
+          >
+            <option [value]="0">Toutes</option>
+            @for (c of categories(); track c.id) {
+              <option [value]="c.id">{{ c.libelle }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="field-label inline">
+          <span class="field-text">Prix à appliquer</span>
+          <input
+            class="field-input"
+            type="number"
+            min="0"
+            step="0.01"
+            [value]="lotPrixCommun()"
+            (input)="onPrixCommun($any($event.target).value)"
+          />
+        </label>
+
+        <button class="btn btn-secondary btn-sm" type="button" (click)="appliquerPrixATous()">
+          Appliquer à la sélection
+        </button>
+      </div>
+
+      <div class="lot-actions">
+        <button class="btn btn-secondary btn-sm" type="button" (click)="toutSelectionner()">
+          Tout sélectionner
+        </button>
+        <button class="btn btn-secondary btn-sm" type="button" (click)="toutDeselectionner()">
+          Tout désélectionner
+        </button>
+        <span class="lot-compteur">{{ lotCount() }} produit(s) sélectionné(s)</span>
+      </div>
+
+      @if (produitsFiltres().length === 0) {
+        <div class="empty-state">
+          <span class="empty-title">Aucun produit disponible</span>
+          <span class="empty-message">
+            Tous les produits de cette catégorie figurent déjà sur la carte.
+          </span>
+        </div>
+      } @else {
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="th-case"></th>
+              <th>Produit</th>
+              <th>Catégorie</th>
+              <th class="num">Prix de vente</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (produit of produitsFiltres(); track produit.id) {
+              <tr>
+                <td class="th-case">
+                  <input
+                    type="checkbox"
+                    [checked]="estSelectionne(produit.id)"
+                    (change)="toggleLot(produit.id)"
+                  />
+                </td>
+                <td class="td-primary">{{ produit.libelle }}</td>
+                <td>{{ produit.categorie?.libelle ?? '—' }}</td>
+                <td class="num">
+                  <input
+                    class="field-input field-input-prix"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    [disabled]="!estSelectionne(produit.id)"
+                    [value]="prixDe(produit.id)"
+                    (input)="setPrixLigne(produit.id, $any($event.target).value)"
+                  />
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeLotDrawer()">Annuler</button>
+      <button
+        class="btn btn-primary"
+        type="button"
+        [disabled]="!lotPretAEnvoyer() || lotSaving()"
+        [title]="
+          lotCount() === 0
+            ? 'Sélectionnez au moins un produit.'
+            : 'Chaque produit sélectionné doit avoir un prix supérieur à zéro.'
+        "
+        (click)="addLot()"
+      >
+        @if (lotSaving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Ajouter {{ lotCount() }} produit(s)
       </button>
     </div>
   </div>

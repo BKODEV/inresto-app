@@ -28,6 +28,8 @@ import { UniteDeMesureService } from '../../../core/api/unite-de-mesure/unite-de
 import { UniteDeMesure } from '../../../core/api/unite-de-mesure/unite-de-mesure.model';
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
+import { SelectedSiteService } from '../../../core/site/selected-site.service';
 
 /**
  * Détail d'un produit = point d'entrée unique de la recette : informations
@@ -52,6 +54,8 @@ export class ProduitDetailPage implements OnInit {
   private readonly uniteService = inject(UniteDeMesureService);
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
+  private readonly pdfService = inject(PdfService);
+  private readonly selectedSite = inject(SelectedSiteService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly produitId = Number(this.route.snapshot.paramMap.get('id'));
@@ -69,6 +73,12 @@ export class ProduitDetailPage implements OnInit {
   readonly formError = signal<string | null>(null);
   readonly lignesMatieres = signal<FormGroup[]>([]);
   readonly lignesSousRecettes = signal<FormGroup[]>([]);
+
+  // Impression de la fiche (PDF servi par le back)
+  readonly pdfBusy = signal(false);
+  readonly pdfError = signal<string | null>(null);
+  /** En vue consolidée il n'y a pas de site, donc pas d'en-tête à imprimer. */
+  readonly estConsolide = this.selectedSite.estConsolide;
 
   // Historique
   readonly historiqueOpen = signal(false);
@@ -144,8 +154,35 @@ export class ProduitDetailPage implements OnInit {
     return statut === 'active' ? 'badge-success' : 'badge-neutral';
   }
 
-  print(): void {
-    window.print();
+  /**
+   * Ouvre la fiche technique mise en page par le back (`fiches-techniques/{id}/pdf`).
+   *
+   * Cet écran appelait `window.print()`, qui imprimait la page de l'application
+   * — barre latérale et chrome compris — au lieu du document de production
+   * attendu en atelier. Le gabarit PDF existait déjà et sert la liste des
+   * fiches ; on emprunte le même chemin.
+   */
+  imprimerFiche(): void {
+    const fiche = this.fiche();
+    if (this.pdfBusy() || fiche === null) {
+      return;
+    }
+
+    this.pdfBusy.set(true);
+    this.pdfError.set(null);
+    this.pdfService
+      .ficheTechnique(fiche.id, this.selectedSite.selectedId())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (blob) => {
+          ouvrirPdfDansOnglet(blob, `fiche-technique-${fiche.id}.pdf`);
+          this.pdfBusy.set(false);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.pdfBusy.set(false);
+          this.pdfError.set(apiErrorMessage(err, 'Génération de la fiche PDF impossible.'));
+        },
+      });
   }
 
   // ── Drawer fiche ──────────────────────────────────────────────────────────

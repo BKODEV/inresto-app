@@ -16,6 +16,7 @@ import { FicheTechnique } from '../../../core/api/fiche-technique/fiche-techniqu
 import { AuthService } from '../../../core/auth/auth.service';
 import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { SelectedSiteService } from '../../../core/site/selected-site.service';
 
 /**
  * Liste des fiches techniques ACTIVES : consultation, impression et accès au
@@ -34,6 +35,10 @@ export class FichesTechniquesPage implements OnInit {
   private readonly service = inject(FicheTechniqueService);
   private readonly auth = inject(AuthService);
   private readonly pdfService = inject(PdfService);
+  private readonly selectedSite = inject(SelectedSiteService);
+
+  /** En vue consolidée il n'y a pas de site, donc pas d'en-tête à imprimer. */
+  readonly estConsolide = this.selectedSite.estConsolide;
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -96,7 +101,7 @@ export class FichesTechniquesPage implements OnInit {
     }
     this.pdfBusyId.set(fiche.id);
     this.pdfService
-      .ficheTechnique(fiche.id)
+      .ficheTechnique(fiche.id, this.selectedSite.selectedId())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (blob) => {

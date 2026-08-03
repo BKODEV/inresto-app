@@ -6,6 +6,7 @@ import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../api.types';
 import {
   CarteProduit,
+  CarteProduitLotLigne,
   CreateCarteProduitPayload,
   UpdateCarteProduitPayload,
 } from './carte-produit.model';
@@ -29,6 +30,16 @@ export class CarteProduitService {
   create(carteId: number, payload: CreateCarteProduitPayload): Observable<CarteProduit> {
     return this.http
       .post<ApiResponse<CarteProduit>>(`${this.base}/${carteId}/produits`, payload)
+      .pipe(map((r) => r.data));
+  }
+
+  /**
+   * Ajoute plusieurs produits en une requête (tout ou rien côté API : un seul
+   * produit en défaut fait échouer le lot entier).
+   */
+  createLot(carteId: number, lignes: CarteProduitLotLigne[]): Observable<CarteProduit[]> {
+    return this.http
+      .post<ApiResponse<CarteProduit[]>>(`${this.base}/${carteId}/produits/lot`, { lignes })
       .pipe(map((r) => r.data));
   }
 

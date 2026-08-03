@@ -8,7 +8,10 @@ export interface Produit {
   libelle: string;
   description: string | null;
   est_menu: boolean;
+  /** Chemin brut stocké. Préférer `photo_url` pour l'affichage. */
   photo: string | null;
+  /** URL directement affichable, ou null si le produit n'a pas de visuel. */
+  photo_url: string | null;
   allergenes: string | null;
   statut: Statut;
   categorie?: CategorieProduit;
@@ -24,7 +27,8 @@ export interface CreateProduitPayload {
   libelle: string;
   description?: string | null;
   est_menu?: boolean;
-  photo?: string | null;
+  // `photo` est absent : elle s'écrit par téléversement (uploadPhoto), l'API
+  // ignore le champ sur create/update.
   allergenes?: string | null;
   statut?: Statut;
 }

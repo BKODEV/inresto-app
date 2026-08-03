@@ -20,6 +20,13 @@ export interface CreateCarteProduitPayload {
   ordre?: number;
 }
 
+/** Une ligne d'un ajout en lot : pas d'`ordre`, le lot se pose en fin de section. */
+export interface CarteProduitLotLigne {
+  produit_id: number;
+  prix_vente: number;
+  statut?: Statut;
+}
+
 export interface UpdateCarteProduitPayload {
   prix_vente?: number;
   statut?: Statut;

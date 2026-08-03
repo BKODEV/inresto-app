@@ -55,6 +55,25 @@ export class CarteCompositionPage implements OnInit {
   /** Filtre catégorie du drawer d'ajout (0 = toutes). */
   readonly filtreCategorie = signal(0);
 
+  // ── Ajout en lot ──────────────────────────────────────────────────────────
+  // Composer une carte produit par produit est impraticable ; l'ajout unitaire
+  // reste disponible pour insérer un plat à une position précise.
+
+  readonly lotDrawerOpen = signal(false);
+  readonly lotSaving = signal(false);
+  readonly lotError = signal<string | null>(null);
+
+  /** Sélection du lot : produit_id → prix de vente saisi. */
+  readonly lotSelection = signal<Map<number, number>>(new Map());
+
+  /** Prix à recopier sur toute la sélection, pour éviter la saisie ligne à ligne. */
+  readonly lotPrixCommun = signal(0);
+
+  readonly lotCount = computed(() => this.lotSelection().size);
+  readonly lotPretAEnvoyer = computed(
+    () => this.lotCount() > 0 && [...this.lotSelection().values()].every((prix) => prix > 0),
+  );
+
   /** Produits actifs pas encore présents sur la carte. */
   readonly produitsDisponibles = computed(() => {
     const presents = new Set(this.lignes().map((l) => l.produit_id));
@@ -141,6 +160,111 @@ export class CarteCompositionPage implements OnInit {
 
   closeDrawer(): void {
     this.drawerOpen.set(false);
+  }
+
+  // ── Ajout en lot ──────────────────────────────────────────────────────────
+
+  openLot(): void {
+    this.filtreCategorie.set(0);
+    this.lotSelection.set(new Map());
+    this.lotPrixCommun.set(0);
+    this.lotError.set(null);
+    this.lotDrawerOpen.set(true);
+  }
+
+  closeLotDrawer(): void {
+    this.lotDrawerOpen.set(false);
+  }
+
+  estSelectionne(produitId: number): boolean {
+    return this.lotSelection().has(produitId);
+  }
+
+  prixDe(produitId: number): number {
+    return this.lotSelection().get(produitId) ?? 0;
+  }
+
+  toggleLot(produitId: number): void {
+    this.lotSelection.update((selection) => {
+      const copie = new Map(selection);
+      if (copie.has(produitId)) {
+        copie.delete(produitId);
+      } else {
+        // Le prix commun sert de valeur de départ quand il est déjà saisi.
+        copie.set(produitId, this.lotPrixCommun());
+      }
+      return copie;
+    });
+  }
+
+  setPrixLigne(produitId: number, valeur: string): void {
+    this.lotSelection.update((selection) => {
+      const copie = new Map(selection);
+      copie.set(produitId, Number(valeur));
+      return copie;
+    });
+  }
+
+  /** Sélectionne toute la catégorie affichée d'un coup — le cas d'usage courant. */
+  toutSelectionner(): void {
+    this.lotSelection.update((selection) => {
+      const copie = new Map(selection);
+      for (const produit of this.produitsFiltres()) {
+        if (!copie.has(produit.id)) {
+          copie.set(produit.id, this.lotPrixCommun());
+        }
+      }
+      return copie;
+    });
+  }
+
+  toutDeselectionner(): void {
+    this.lotSelection.set(new Map());
+  }
+
+  onPrixCommun(valeur: string): void {
+    this.lotPrixCommun.set(Number(valeur));
+  }
+
+  /** Recopie le prix commun sur toutes les lignes déjà sélectionnées. */
+  appliquerPrixATous(): void {
+    const prix = this.lotPrixCommun();
+    this.lotSelection.update((selection) => {
+      const copie = new Map<number, number>();
+      for (const id of selection.keys()) {
+        copie.set(id, prix);
+      }
+      return copie;
+    });
+  }
+
+  addLot(): void {
+    if (!this.lotPretAEnvoyer() || this.lotSaving()) {
+      return;
+    }
+
+    this.lotSaving.set(true);
+    this.lotError.set(null);
+
+    const lignes = [...this.lotSelection().entries()].map(([produit_id, prix_vente]) => ({
+      produit_id,
+      prix_vente,
+    }));
+
+    this.ligneService
+      .createLot(this.carteId, lignes)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (creees) => {
+          this.lignes.update((list) => [...creees, ...list]);
+          this.lotSaving.set(false);
+          this.lotDrawerOpen.set(false);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.lotSaving.set(false);
+          this.lotError.set(apiErrorMessage(err, 'Ajout en lot impossible.'));
+        },
+      });
   }
 
   add(): void {

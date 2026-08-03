@@ -18,6 +18,7 @@ import { ProduitService } from '../../../core/api/produit/produit.service';
 import { Produit } from '../../../core/api/produit/produit.model';
 import { CategorieProduitService } from '../../../core/api/categorie-produit/categorie-produit.service';
 import { CategorieProduit } from '../../../core/api/categorie-produit/categorie-produit.model';
+import { redimensionnerImage } from '../../../core/media/redimensionner-image';
 
 @Component({
   selector: 'app-produits-page',
@@ -42,6 +43,10 @@ export class ProduitsPage implements OnInit {
   readonly saving = signal(false);
   readonly formError = signal<string | null>(null);
   readonly deletingId = signal<number | null>(null);
+
+  // Photo du produit : le seul visuel que voit le client sur le menu public.
+  readonly photoBusy = signal(false);
+  readonly photoError = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({
     libelle: ['', [Validators.required, Validators.maxLength(255)]],
@@ -93,6 +98,7 @@ export class ProduitsPage implements OnInit {
   }
 
   openEdit(item: Produit): void {
+    this.photoError.set(null);
     this.editingItem.set(item);
     this.form.reset({
       libelle: item.libelle,
@@ -108,6 +114,67 @@ export class ProduitsPage implements OnInit {
 
   closeDrawer(): void {
     this.drawerOpen.set(false);
+  }
+
+  /**
+   * Téléverse la photo du produit en cours d'édition.
+   *
+   * L'image est réduite dans le navigateur avant l'envoi : le menu public est
+   * consulté au téléphone, souvent en réseau lent, et une photo d'appareil brute
+   * pèse plusieurs mégaoctets.
+   */
+  onPhotoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const fichier = input.files?.[0];
+    input.value = ''; // autorise le re-choix du même fichier
+    const produit = this.editingItem();
+
+    if (!fichier || produit === null) {
+      return;
+    }
+
+    this.photoBusy.set(true);
+    this.photoError.set(null);
+
+    redimensionnerImage(fichier).then((allege) => {
+      this.produitService
+        .uploadPhoto(produit.id, allege)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (saved) => this.appliquerPhoto(saved),
+          error: (err: HttpErrorResponse) => {
+            this.photoBusy.set(false);
+            this.photoError.set(apiErrorMessage(err, 'Téléversement de la photo impossible.'));
+          },
+        });
+    });
+  }
+
+  supprimerPhoto(): void {
+    const produit = this.editingItem();
+    if (this.photoBusy() || produit === null || !confirm('Supprimer la photo de ce produit ?')) {
+      return;
+    }
+
+    this.photoBusy.set(true);
+    this.photoError.set(null);
+    this.produitService
+      .deletePhoto(produit.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (saved) => this.appliquerPhoto(saved),
+        error: (err: HttpErrorResponse) => {
+          this.photoBusy.set(false);
+          this.photoError.set(apiErrorMessage(err, 'Suppression de la photo impossible.'));
+        },
+      });
+  }
+
+  /** Répercute le produit renvoyé par l'API dans le tiroir ET dans la liste. */
+  private appliquerPhoto(saved: Produit): void {
+    this.editingItem.set(saved);
+    this.items.update((list) => list.map((i) => (i.id === saved.id ? saved : i)));
+    this.photoBusy.set(false);
   }
 
   save(): void {
