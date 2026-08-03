@@ -67,7 +67,7 @@ export class BudgetReportingPage {
   private readonly selectedSite = inject(SelectedSiteService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly currentSite = this.selectedSite.selectedSite;
+  readonly perimetreLabel = this.selectedSite.perimetreLabel;
 
   readonly filter = signal<ReportingFilter | null>(null);
   readonly loading = signal(false);
@@ -80,7 +80,10 @@ export class BudgetReportingPage {
   readonly budgetViews = computed<BudgetView[]>(() =>
     this.budgets().map((b) => ({
       budget: b,
-      gaugeOptions: gaugeChart(this.gaugePct(b.pourcentage_consomme), NIVEAU_COLOR[b.niveau_alerte]),
+      gaugeOptions: gaugeChart(
+        this.gaugePct(b.pourcentage_consomme),
+        NIVEAU_COLOR[b.niveau_alerte],
+      ),
     })),
   );
 

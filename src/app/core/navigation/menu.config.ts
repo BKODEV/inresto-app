@@ -2,7 +2,8 @@ export interface MenuItem {
   label: string;
   icon: string;
   route: string;
-  permission?: string;
+  /** Une liste signifie « au moins une de ces permissions ». */
+  permission?: string | string[];
   enabled?: boolean;
 }
 
@@ -52,7 +53,8 @@ export const MENU: MenuSection[] = [
         label: 'Stock & inventaire',
         icon: 'boxes',
         route: '/cuisine/stock',
-        permission: 'inventaire.view',
+        // Deux écrans gardés séparément : l'un ou l'autre suffit à ouvrir la section.
+        permission: ['stock.view', 'inventaire.view'],
       },
       { label: 'Budget', icon: 'wallet', route: '/cuisine/budget', permission: 'budget.view' },
     ],

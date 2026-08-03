@@ -33,6 +33,25 @@ export class ShellLayout implements OnInit, OnDestroy {
   readonly sites = this.selectedSiteService.sites;
   readonly selectedSiteId = this.selectedSiteService.selectedId;
   readonly selectedSite = this.selectedSiteService.selectedSite;
+  readonly estConsolide = this.selectedSiteService.estConsolide;
+  readonly consolidationPossible = this.selectedSiteService.consolidationPossible;
+  /** Tant que la portée n'est pas choisie, le contenu reste masqué. */
+  readonly doitChoisirSite = this.selectedSiteService.doitChoisir;
+
+  /**
+   * Portée encore indéterminée et périmètre en cours de chargement : afficher
+   * les écrans maintenant reviendrait à les alimenter sans site.
+   */
+  readonly perimetreEnAttente = computed(
+    () => this.selectedSiteService.scopeInconnu() && this.selectedSiteService.loading(),
+  );
+
+  /** Valeur courante du `<select>` : id du site, ou `all` en consolidé. */
+  readonly siteSelectValue = computed(() =>
+    this.estConsolide() ? 'all' : (this.selectedSiteId()?.toString() ?? ''),
+  );
+
+  readonly perimetreLabel = this.selectedSiteService.perimetreLabel;
 
   /** Sections de navigation visibles : filtrées par `enabled` + permission, sections vides masquées. */
   readonly sections = computed<MenuSection[]>(() => {
@@ -40,7 +59,7 @@ export class ShellLayout implements OnInit, OnDestroy {
     return MENU.map((section) => ({
       ...section,
       items: section.items.filter(
-        (item) => item.enabled !== false && this.auth.hasPermission(item.permission),
+        (item) => item.enabled !== false && this.auth.hasAnyPermission(item.permission),
       ),
     })).filter((section) => section.items.length > 0);
   });
@@ -89,7 +108,16 @@ export class ShellLayout implements OnInit, OnDestroy {
   }
 
   onSiteChange(value: string): void {
-    this.selectedSiteService.set(value ? Number(value) : null);
+    this.selectedSiteService.applyFromSelect(value);
+  }
+
+  /** Choix initial depuis la surcouche bloquante. */
+  choisirSite(id: number): void {
+    this.selectedSiteService.selectSite(id);
+  }
+
+  choisirTousLesSites(): void {
+    this.selectedSiteService.selectTousLesSites();
   }
 
   toggleSidebar(): void {

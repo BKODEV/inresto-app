@@ -17,10 +17,20 @@
         </div>
       </div>
       <div class="actions">
+        <!--
+          L'en-tête du bon (raison sociale, logo, mentions légales) vient des
+          paramètres du SITE. En vue consolidée il n'y a pas de site : mieux vaut
+          le dire que d'éditer un document sous une identité arbitraire.
+        -->
         <button
           class="btn btn-secondary"
           type="button"
-          [disabled]="pdfBusy()"
+          [disabled]="pdfBusy() || estConsolide()"
+          [title]="
+            estConsolide()
+              ? 'Choisissez un site : son identité figure en en-tête du bon.'
+              : 'Bon de commande au format PDF'
+          "
           (click)="telechargerPdf()"
         >
           @if (pdfBusy()) {
@@ -92,7 +102,19 @@
         }
       </div>
       @if (isBrouillon() && canUpdate()) {
-        <button class="btn btn-primary" type="button" (click)="openCreateLigne()">
+        <!-- Un article ne peut figurer qu'une fois : plus rien à ajouter quand
+             tout le catalogue du fournisseur est déjà sur la commande. -->
+        <button
+          class="btn btn-primary"
+          type="button"
+          [disabled]="catalogueEntierementCommande()"
+          [title]="
+            catalogueEntierementCommande()
+              ? 'Tous les articles du catalogue de ce fournisseur sont déjà sur la commande.'
+              : ''
+          "
+          (click)="openCreateLigne()"
+        >
           + Ajouter une ligne
         </button>
       }
@@ -110,6 +132,11 @@
             <tr>
               <th>Matière première</th>
               <th class="num">Quantité</th>
+              <!-- Suivi des livraisons : masqué tant que rien n'a été réceptionné. -->
+              @if (!isBrouillon()) {
+                <th class="num">Déjà reçu</th>
+                <th class="num">Reste</th>
+              }
               <th>Unité</th>
               <th class="num">Prix unitaire</th>
               <th class="num">Sous-total</th>
@@ -123,6 +150,16 @@
               <tr>
                 <td class="td-primary">{{ matiereLibelle(ligne) }}</td>
                 <td class="num td-mono">{{ ligne.quantite_commandee }}</td>
+                @if (!isBrouillon()) {
+                  <td class="num td-mono">{{ dejaRecu(ligne) }}</td>
+                  <td
+                    class="num td-mono"
+                    [class.td-solde]="resteARecevoir(ligne) === 0"
+                    [class.td-attente]="resteARecevoir(ligne) > 0"
+                  >
+                    {{ resteARecevoir(ligne) === 0 ? 'Soldé' : resteARecevoir(ligne) }}
+                  </td>
+                }
                 <td>{{ uniteSymbole(ligne.unite_id, ligne) }}</td>
                 <td class="num td-mono">{{ formatMontant(ligne.prix_unitaire_previsionnel) }}</td>
                 <td class="num td-mono">{{ formatMontant(ligne.sous_total) }} FCFA</td>
@@ -146,6 +183,38 @@
                     </button>
                   </td>
                 }
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    <!-- Historique des livraisons : indispensable pour lire le « reste à recevoir ». -->
+    @if (receptions().length > 0) {
+      <div class="sec-head">
+        <div>
+          <h2>Réceptions de cette commande</h2>
+          <p>Une commande peut être livrée en plusieurs fois, et sur des sites différents.</p>
+        </div>
+      </div>
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Site de réception</th>
+              <th class="num">Montant réel</th>
+              <th>Observations</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (reception of receptions(); track reception.id) {
+              <tr>
+                <td class="td-primary">{{ formatDate(reception.date_reception) }}</td>
+                <td>{{ receptionSiteNom(reception) }}</td>
+                <td class="num td-mono">{{ formatMontant(reception.montant_reel) }} FCFA</td>
+                <td class="muted">{{ reception.observations ?? '—' }}</td>
               </tr>
             }
           </tbody>
@@ -181,10 +250,20 @@
             <option [ngValue]="m.id">{{ m.libelle }}</option>
           }
         </select>
-        @if (matieresCommandables().length === 0) {
+        @if (catalogueEntierementCommande()) {
+          <span class="field-hint">
+            Tous les articles du catalogue de ce fournisseur figurent déjà sur la commande. Pour en
+            commander davantage, modifiez la quantité de la ligne existante.
+          </span>
+        } @else if (matieresCommandables().length === 0) {
           <span class="field-hint">
             Aucune matière au catalogue de ce fournisseur. Ajoutez-en au catalogue avant de
             commander.
+          </span>
+        } @else if (!editingLigne()) {
+          <span class="field-hint">
+            Les articles déjà présents sur la commande ne sont pas proposés : modifiez la ligne
+            existante pour ajuster leur quantité.
           </span>
         }
       </label>
@@ -275,7 +354,13 @@
           <div class="entry-top">
             <div class="entry-idx">
               <b>{{ group.value.matiere_libelle }}</b>
-              <span class="field-hint">Unité d'achat : {{ group.value.unite_symbole }}</span>
+              <span class="field-hint">
+                Unité d'achat : {{ group.value.unite_symbole }} — commandé
+                {{ group.value.quantite_commandee }}
+                @if (group.value.deja_recu > 0) {
+                  , déjà reçu {{ group.value.deja_recu }}
+                }
+              </span>
             </div>
             <button
               class="entry-rm"
@@ -296,6 +381,8 @@
                 step="0.001"
                 formControlName="quantite_recue"
               />
+              <!-- Pré-rempli avec le reste à recevoir, pas la quantité commandée. -->
+              <span class="field-hint">Reste à recevoir proposé par défaut</span>
             </div>
             <div>
               <label class="ctl-l">Prix unitaire réel <span class="req">*</span></label>

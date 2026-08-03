@@ -3,11 +3,7 @@ import { MatierePremiere } from '../matiere-premiere/matiere-premiere.model';
 import { UniteDeMesure } from '../unite-de-mesure/unite-de-mesure.model';
 
 export type StatutCommandeFournisseur =
-  | 'brouillon'
-  | 'envoyee'
-  | 'partiellement_recue'
-  | 'cloturee'
-  | 'annulee';
+  'brouillon' | 'envoyee' | 'partiellement_recue' | 'cloturee' | 'annulee';
 
 export interface LigneCommandeFournisseur {
   id: number;
@@ -18,6 +14,12 @@ export interface LigneCommandeFournisseur {
   quantite_commandee: string;
   prix_unitaire_previsionnel: string;
   sous_total: string;
+  /**
+   * Dérivés des réceptions (en unité d'achat), calculés côté serveur.
+   * Absents des réponses qui n'exposent pas la commande complète.
+   */
+  quantite_recue?: number;
+  quantite_restante?: number;
   matiere_premiere?: MatierePremiere;
   unite?: UniteDeMesure;
   created_at: string;

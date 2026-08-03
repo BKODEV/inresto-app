@@ -21,13 +21,14 @@ import {
 import { MatierePremiereService } from '../../../core/api/matiere-premiere/matiere-premiere.service';
 import { MatierePremiere } from '../../../core/api/matiere-premiere/matiere-premiere.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 
 @Component({
   selector: 'app-inventaires-page',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, SiteRequisComponent],
   templateUrl: './inventaires.page.html',
   styleUrl: './inventaires.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,6 +46,7 @@ export class InventairesPage implements OnInit {
   readonly selectedSiteId = this.selectedSite.selectedId;
   readonly currentSite = this.selectedSite.selectedSite;
   readonly siteLoading = this.selectedSite.loading;
+  readonly estConsolide = this.selectedSite.estConsolide;
   readonly items = signal<Inventaire[]>([]);
   readonly matieres = signal<MatierePremiere[]>([]);
   readonly loading = signal(true);

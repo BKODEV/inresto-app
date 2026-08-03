@@ -34,6 +34,10 @@
       <div class="spinner"></div>
       <span>Chargement…</span>
     </div>
+  } @else if (estConsolide()) {
+    <app-site-requis
+      message="Un inventaire porte sur le stock d’un site. Choisissez celui à inventorier."
+    />
   } @else if (sites().length === 0) {
     <div class="empty-state">
       <span class="empty-title">Aucun site</span>

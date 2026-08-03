@@ -27,6 +27,7 @@ import { SessionCaisse } from '../../../core/api/session-caisse/session-caisse.m
 import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 
 const ACTIFS: StatutCommandeClient[] = ['ouverte', 'envoyee_en_cuisine', 'servie'];
@@ -34,7 +35,7 @@ const ACTIFS: StatutCommandeClient[] = ['ouverte', 'envoyee_en_cuisine', 'servie
 @Component({
   selector: 'app-commandes-vente-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, SiteRequisComponent],
   templateUrl: './commandes.page.html',
   styleUrl: './caisse.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -59,6 +60,7 @@ export class CommandesVentePage implements OnInit {
 
   private readonly allPdvs = signal<PointDeVente[]>([]);
   readonly currentSite = this.selectedSite.selectedSite;
+  readonly estConsolide = this.selectedSite.estConsolide;
   readonly pdvs = computed(() => {
     const siteId = this.selectedSite.selectedId();
     return siteId === null ? [] : this.allPdvs().filter((p) => p.site_id === siteId);
@@ -84,6 +86,13 @@ export class CommandesVentePage implements OnInit {
   });
 
   constructor() {
+    // Le contenu du tiroir appartient au site quitté : changer de périmètre le
+    // ferme plutôt que d'enregistrer une saisie sur le mauvais site.
+    effect(() => {
+      this.selectedSite.epoch();
+      this.drawerOpen.set(false);
+    });
+
     // Aligne le PDV sur le site global et recharge les données du PDV retenu.
     effect(() => {
       const list = this.pdvs();

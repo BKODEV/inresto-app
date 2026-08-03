@@ -110,8 +110,12 @@ export class UtilisateursPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((roles) => this.roles.set(roles));
 
+    // Périmètre et non `list()` : un non-super-admin ne peut rattacher un
+    // compte qu'à ses propres sites (UserService::assertSitesDansPerimetre).
+    // Lui proposer les autres ne produirait qu'un 422. Le super-admin, lui,
+    // reçoit déjà tous les sites actifs via `sitesPerimetre()`.
     this.siteService
-      .list()
+      .perimetre()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((sites) => this.sites.set(sites));
 
@@ -186,7 +190,10 @@ export class UtilisateursPage implements OnInit {
     });
     this.passwordMode.set('saisir');
     this.selectedRoles.set([]);
-    this.selectedSites.set([]);
+    // Un seul site sélectionnable : le rattachement est obligatoire, imposer
+    // un choix unique ne serait que de la friction.
+    const sites = this.sites();
+    this.selectedSites.set(sites.length === 1 ? [sites[0].id] : []);
     this.formError.set(null);
     this.drawerOpen.set(true);
   }
@@ -242,6 +249,14 @@ export class UtilisateursPage implements OnInit {
 
     const raw = this.form.getRawValue();
     const editing = this.editingUser();
+
+    // Le périmètre borne tout ce qui est rattaché à un site (stock, inventaire,
+    // réception, budget) : un compte sans site n'aurait accès à rien. La règle
+    // vaut aussi en modification, où vider la liste retirerait le périmètre.
+    if (this.selectedSites().length === 0) {
+      this.formError.set('Rattachez le compte à au moins un site.');
+      return;
+    }
 
     // Validation conditionnelle mot de passe / email à la création.
     if (!editing) {

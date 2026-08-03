@@ -6,17 +6,20 @@
     </div>
   </div>
 
-  @if (currentSite(); as site) {
+  @if (perimetreLabel()) {
     <div class="toolbar">
-      Site : <strong>{{ site.nom }}</strong>
-      <span>— change le site depuis la barre du haut</span>
+      Périmètre : <strong>{{ perimetreLabel() }}</strong>
+      <span>— change le périmètre depuis la barre du haut</span>
     </div>
   }
 
   <app-periode-filtre (filterChange)="onFilter($event)" />
 
   @if (loading()) {
-    <div class="loading-row"><div class="spinner"></div><span>Chargement…</span></div>
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
   } @else if (error()) {
     <div class="alert-error">{{ error() }}</div>
   } @else {

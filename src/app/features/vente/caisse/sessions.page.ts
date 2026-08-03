@@ -19,6 +19,7 @@ import { Caisse } from '../../../core/api/caisse/caisse.model';
 import { SessionCaisseService } from '../../../core/api/session-caisse/session-caisse.service';
 import { SessionCaisse } from '../../../core/api/session-caisse/session-caisse.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 
 type DrawerMode = 'ouvrir' | 'fermer';
@@ -26,7 +27,7 @@ type DrawerMode = 'ouvrir' | 'fermer';
 @Component({
   selector: 'app-sessions-page',
   standalone: true,
-  imports: [ReactiveFormsModule, DatePipe],
+  imports: [ReactiveFormsModule, DatePipe, SiteRequisComponent],
   templateUrl: './sessions.page.html',
   styleUrl: './caisse.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,6 +42,7 @@ export class SessionsPage implements OnInit {
   // Toutes les caisses chargées, puis restreintes au site global (via leur PDV).
   private readonly allCaisses = signal<Caisse[]>([]);
   readonly currentSite = this.selectedSite.selectedSite;
+  readonly estConsolide = this.selectedSite.estConsolide;
   readonly caisses = computed(() => {
     const siteId = this.selectedSite.selectedId();
     return siteId === null

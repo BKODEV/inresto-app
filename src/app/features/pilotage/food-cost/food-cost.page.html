@@ -2,21 +2,26 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Food cost & marge</h1>
-      <p class="page-subtitle">Coût matière réel vs théorique, sur les ventes (servies + encaissées).</p>
+      <p class="page-subtitle">
+        Coût matière réel vs théorique, sur les ventes (servies + encaissées).
+      </p>
     </div>
   </div>
 
-  @if (currentSite(); as site) {
+  @if (perimetreLabel()) {
     <div class="toolbar">
-      Site : <strong>{{ site.nom }}</strong>
-      <span>— change le site depuis la barre du haut</span>
+      Périmètre : <strong>{{ perimetreLabel() }}</strong>
+      <span>— change le périmètre depuis la barre du haut</span>
     </div>
   }
 
   <app-periode-filtre (filterChange)="onFilter($event)" />
 
   @if (loading()) {
-    <div class="loading-row"><div class="spinner"></div><span>Chargement…</span></div>
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
   } @else if (error()) {
     <div class="alert-error">{{ error() }}</div>
   } @else {
@@ -34,7 +39,11 @@
         </div>
         <div class="kpi card">
           <div class="kpi-label">Écart global</div>
-          <div class="kpi-value" [class.neg]="s.ecart_global_points > 0" [class.pos]="s.ecart_global_points < 0">
+          <div
+            class="kpi-value"
+            [class.neg]="s.ecart_global_points > 0"
+            [class.pos]="s.ecart_global_points < 0"
+          >
             {{ fPct(s.ecart_global_points) }}
           </div>
           <div class="kpi-sub">réel − théorique</div>
@@ -55,14 +64,16 @@
       <div class="panel card">
         <div class="panel-head"><h2 class="panel-title">Par produit — réel vs théorique</h2></div>
         @if (produits().length === 0) {
-          <div class="empty-state"><span class="empty-message">Aucune vente valorisée sur la période.</span></div>
+          <div class="empty-state">
+            <span class="empty-message">Aucune vente valorisée sur la période.</span>
+          </div>
         } @else {
           <app-chart [options]="produitsChartOptions()" [height]="320" />
           @if (nonValorisees(); as nv) {
             @if (nv.nombre_lignes > 0) {
               <p class="panel-note">
-                ⚠ {{ nv.nombre_lignes }} ligne(s) non valorisée(s) — {{ fMontant(nv.ca_concerne) }} de CA
-                sans fiche figée (exclu des ratios).
+                ⚠ {{ nv.nombre_lignes }} ligne(s) non valorisée(s) —
+                {{ fMontant(nv.ca_concerne) }} de CA sans fiche figée (exclu des ratios).
               </p>
             }
           }
@@ -89,7 +100,11 @@
                     <td class="num">{{ fMontant(p.cout_theorique) }}</td>
                     <td class="num">{{ fMontant(p.cout_reel) }}</td>
                     <td class="num">{{ fPct(p.food_cost_reel_pct) }}</td>
-                    <td class="num" [class.neg]="p.ecart_food_cost_valeur > 0" [class.pos]="p.ecart_food_cost_valeur < 0">
+                    <td
+                      class="num"
+                      [class.neg]="p.ecart_food_cost_valeur > 0"
+                      [class.pos]="p.ecart_food_cost_valeur < 0"
+                    >
                       {{ fMontant(p.ecart_food_cost_valeur) }}
                     </td>
                     <td class="num">{{ fMontant(p.marge_brute_reelle) }}</td>
@@ -102,7 +117,9 @@
       </div>
 
       <div class="panel card">
-        <div class="panel-head"><h2 class="panel-title">Par point de vente — réel vs théorique</h2></div>
+        <div class="panel-head">
+          <h2 class="panel-title">Par point de vente — réel vs théorique</h2>
+        </div>
         @if (pointsDeVente().length === 0) {
           <div class="empty-state"><span class="empty-message">Aucune donnée.</span></div>
         } @else {
@@ -128,7 +145,11 @@
                     <td class="num">{{ fMontant(p.cout_theorique) }}</td>
                     <td class="num">{{ fMontant(p.cout_reel) }}</td>
                     <td class="num">{{ fPct(p.food_cost_reel_pct) }}</td>
-                    <td class="num" [class.neg]="p.ecart_food_cost_valeur > 0" [class.pos]="p.ecart_food_cost_valeur < 0">
+                    <td
+                      class="num"
+                      [class.neg]="p.ecart_food_cost_valeur > 0"
+                      [class.pos]="p.ecart_food_cost_valeur < 0"
+                    >
                       {{ fMontant(p.ecart_food_cost_valeur) }}
                     </td>
                     <td class="num">{{ fMontant(p.marge_brute_reelle) }}</td>

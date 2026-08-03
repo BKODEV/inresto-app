@@ -19,6 +19,10 @@
       <div class="spinner"></div>
       <span>Chargement…</span>
     </div>
+  } @else if (estConsolide()) {
+    <app-site-requis
+      message="La prise de commande se fait sur un point de vente. Choisissez un site."
+    />
   } @else if (pdvs().length === 0) {
     <div class="empty-state">
       <span class="empty-title">Aucun point de vente</span>

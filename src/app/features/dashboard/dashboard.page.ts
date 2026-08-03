@@ -44,7 +44,7 @@ export class DashboardPage {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly currentSite = this.selectedSite.selectedSite;
+  readonly perimetreLabel = this.selectedSite.perimetreLabel;
 
   readonly data = signal<DashboardData | null>(null);
   readonly loading = signal(true);

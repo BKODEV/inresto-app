@@ -15,6 +15,7 @@ import { BudgetService } from '../../../core/api/budget/budget.service';
 import { Budget, NiveauAlerte } from '../../../core/api/budget/budget.model';
 import { DepenseService } from '../../../core/api/depense/depense.service';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 
@@ -35,7 +36,7 @@ const NIVEAU_BADGE: Record<NiveauAlerte, string> = {
 @Component({
   selector: 'app-budget-page',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, SiteRequisComponent],
   templateUrl: './budget.page.html',
   styleUrl: './budget.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -53,6 +54,7 @@ export class BudgetPage {
   readonly selectedSiteId = this.selectedSite.selectedId;
   readonly currentSite = this.selectedSite.selectedSite;
   readonly siteLoading = this.selectedSite.loading;
+  readonly estConsolide = this.selectedSite.estConsolide;
   readonly items = signal<Budget[]>([]);
   readonly loading = signal(true);
 
@@ -98,6 +100,13 @@ export class BudgetPage {
   });
 
   constructor() {
+    // Le contenu du tiroir appartient au site quitté : changer de périmètre le
+    // ferme plutôt que d'enregistrer une saisie sur le mauvais site.
+    effect(() => {
+      this.selectedSite.epoch();
+      this.drawerOpen.set(false);
+    });
+
     // Recharge les budgets dès que le site global change (ou au premier chargement).
     effect(() => {
       const site = this.selectedSite.selectedSite();

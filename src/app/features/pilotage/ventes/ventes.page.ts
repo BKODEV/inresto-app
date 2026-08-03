@@ -45,7 +45,7 @@ export class VentesPage {
   private readonly selectedSite = inject(SelectedSiteService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly currentSite = this.selectedSite.selectedSite;
+  readonly perimetreLabel = this.selectedSite.perimetreLabel;
 
   readonly filter = signal<ReportingFilter | null>(null);
   readonly tri = signal<TriProduit>('ca');

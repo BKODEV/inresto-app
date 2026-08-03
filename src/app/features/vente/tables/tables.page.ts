@@ -13,11 +13,15 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
+import { QrCodeComponent } from 'ng-qrcode';
+
 import { TableService } from '../../../core/api/table/table.service';
 import { StatutTable, TableSalle } from '../../../core/api/table/table.model';
 import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
+import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 
 const STATUTS: { value: StatutTable; label: string }[] = [
@@ -30,7 +34,7 @@ const STATUTS: { value: StatutTable; label: string }[] = [
 @Component({
   selector: 'app-tables-page',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, QrCodeComponent, SiteRequisComponent],
   templateUrl: './tables.page.html',
   styleUrl: './tables.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,6 +42,7 @@ const STATUTS: { value: StatutTable; label: string }[] = [
 export class TablesPage implements OnInit {
   private readonly tableService = inject(TableService);
   private readonly pdvService = inject(PointDeVenteService);
+  private readonly pdfService = inject(PdfService);
   private readonly selectedSite = inject(SelectedSiteService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
@@ -53,6 +58,7 @@ export class TablesPage implements OnInit {
   // Tous les PDV chargés, puis restreints au site global sélectionné.
   private readonly allPdvs = signal<PointDeVente[]>([]);
   readonly currentSite = this.selectedSite.selectedSite;
+  readonly estConsolide = this.selectedSite.estConsolide;
   readonly pdvs = computed(() => {
     const siteId = this.selectedSite.selectedId();
     return siteId === null ? [] : this.allPdvs().filter((p) => p.site_id === siteId);
@@ -68,6 +74,11 @@ export class TablesPage implements OnInit {
   readonly formError = signal<string | null>(null);
   readonly deleting = signal(false);
 
+  // QR du menu public (côté admin uniquement).
+  readonly qrBusy = signal(false);
+  readonly plancheBusy = signal(false);
+  readonly lienCopie = signal(false);
+
   readonly selectedPdv = computed(
     () => this.pdvs().find((p) => p.id === this.selectedPdvId()) ?? null,
   );
@@ -78,6 +89,13 @@ export class TablesPage implements OnInit {
   });
 
   constructor() {
+    // Le contenu du tiroir appartient au site quitté : changer de périmètre le
+    // ferme plutôt que d'enregistrer une saisie sur le mauvais site.
+    effect(() => {
+      this.selectedSite.epoch();
+      this.drawerOpen.set(false);
+    });
+
     // Aligne le PDV sélectionné sur le site global : conserve le choix s'il
     // appartient encore au site courant, sinon retient le premier PDV du site.
     effect(() => {
@@ -145,7 +163,93 @@ export class TablesPage implements OnInit {
     this.editingTable.set(table);
     this.form.reset({ numero: table.numero, capacite: table.capacite });
     this.formError.set(null);
+    this.lienCopie.set(false);
     this.drawerOpen.set(true);
+  }
+
+  // ─────────────────────────── QR du menu public ───────────────────────────
+
+  /** Chevalet A6 de la table, à poser dessus. */
+  telechargerQr(table: TableSalle): void {
+    if (this.qrBusy()) {
+      return;
+    }
+    this.qrBusy.set(true);
+    this.pdfService
+      .qrTable(table.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (blob) => {
+          ouvrirPdfDansOnglet(blob, `qr-table-${table.numero}.pdf`);
+          this.qrBusy.set(false);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.qrBusy.set(false);
+          alert(apiErrorMessage(err, 'Génération du QR impossible.'));
+        },
+      });
+  }
+
+  /** Planche A4 de toutes les tables du PDV, pour équiper la salle en une impression. */
+  imprimerPlanche(): void {
+    const pdv = this.selectedPdv();
+    if (!pdv || this.plancheBusy()) {
+      return;
+    }
+    this.plancheBusy.set(true);
+    this.pdfService
+      .qrPlanchePointDeVente(pdv.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (blob) => {
+          ouvrirPdfDansOnglet(blob, `qr-planche-${pdv.nom}.pdf`);
+          this.plancheBusy.set(false);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.plancheBusy.set(false);
+          alert(apiErrorMessage(err, 'Génération de la planche impossible.'));
+        },
+      });
+  }
+
+  /**
+   * Régénère le jeton : opération destructrice pour les QR déjà collés en
+   * salle, d'où la confirmation explicite.
+   */
+  regenererToken(table: TableSalle): void {
+    const confirme = confirm(
+      `Régénérer le QR de la table ${table.numero} ?\n\n` +
+        'Les QR déjà imprimés pour cette table cesseront de fonctionner et devront être remplacés.',
+    );
+    if (!confirme) {
+      return;
+    }
+
+    this.tableService
+      .regenererToken(table.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (updated) => {
+          this.tables.update((list) => list.map((t) => (t.id === updated.id ? updated : t)));
+          this.editingTable.set(updated);
+          this.lienCopie.set(false);
+        },
+        error: (err: HttpErrorResponse) => alert(apiErrorMessage(err, 'Régénération impossible.')),
+      });
+  }
+
+  copierLien(table: TableSalle): void {
+    const url = table.menu_url;
+    if (!url || typeof navigator === 'undefined' || !navigator.clipboard) {
+      return;
+    }
+    navigator.clipboard.writeText(url).then(
+      () => {
+        this.lienCopie.set(true);
+        setTimeout(() => this.lienCopie.set(false), 2000);
+      },
+      () => alert('Copie impossible. Sélectionnez le lien manuellement.'),
+    );
   }
 
   closeDrawer(): void {

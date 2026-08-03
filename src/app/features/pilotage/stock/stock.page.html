@@ -6,9 +6,9 @@
     </div>
   </div>
 
-  @if (currentSite(); as site) {
+  @if (perimetreLabel()) {
     <div class="toolbar">
-      Site : <strong>{{ site.nom }}</strong>
+      Périmètre : <strong>{{ perimetreLabel() }}</strong>
       <span>— valorisation et alertes en temps réel ; consommation et écarts sur la période</span>
     </div>
   }
@@ -16,7 +16,10 @@
   <app-periode-filtre (filterChange)="onFilter($event)" />
 
   @if (loading()) {
-    <div class="loading-row"><div class="spinner"></div><span>Chargement…</span></div>
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
   } @else if (error()) {
     <div class="alert-error">{{ error() }}</div>
   } @else {
@@ -73,7 +76,9 @@
       <div class="panel card">
         <div class="panel-head"><h2 class="panel-title">Consommation matière (période)</h2></div>
         @if (consommation().length === 0) {
-          <div class="empty-state"><span class="empty-message">Aucune sortie sur la période.</span></div>
+          <div class="empty-state">
+            <span class="empty-message">Aucune sortie sur la période.</span>
+          </div>
         } @else {
           <app-chart [options]="consommationChartOptions()" [height]="340" />
           <div class="table-wrap">
@@ -108,7 +113,9 @@
       <div class="panel card">
         <div class="panel-head"><h2 class="panel-title">Écarts d'inventaire (période)</h2></div>
         @if (ecarts().length === 0) {
-          <div class="empty-state"><span class="empty-message">Aucun inventaire clôturé sur la période.</span></div>
+          <div class="empty-state">
+            <span class="empty-message">Aucun inventaire clôturé sur la période.</span>
+          </div>
         } @else {
           <app-chart [options]="ecartsChartOptions()" [height]="320" />
           <div class="table-wrap">
@@ -129,7 +136,11 @@
                     <td>{{ e.date }}</td>
                     <td class="td-primary">{{ e.site }}</td>
                     <td class="num">{{ e.nb_lignes }}</td>
-                    <td class="num" [class.neg]="e.ecart_total_valeur < 0" [class.pos]="e.ecart_total_valeur > 0">
+                    <td
+                      class="num"
+                      [class.neg]="e.ecart_total_valeur < 0"
+                      [class.pos]="e.ecart_total_valeur > 0"
+                    >
                       {{ fMontant(e.ecart_total_valeur) }}
                     </td>
                     <td class="num neg">{{ fMontant(e.demarque_valeur) }}</td>
@@ -154,7 +165,9 @@
             <div class="two-col">
               @for (s of v.sites; track s.site_id) {
                 <div>
-                  <h3 class="panel-note"><strong>{{ s.site }}</strong> — total {{ fMontant(s.total_valorise) }}</h3>
+                  <h3 class="panel-note">
+                    <strong>{{ s.site }}</strong> — total {{ fMontant(s.total_valorise) }}
+                  </h3>
                   <div class="table-wrap">
                     <table class="data-table">
                       <thead>

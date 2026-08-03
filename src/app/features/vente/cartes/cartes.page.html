@@ -25,6 +25,10 @@
       <div class="spinner"></div>
       <span>Chargement…</span>
     </div>
+  } @else if (estConsolide()) {
+    <app-site-requis
+      message="Les cartes sont rattachées aux points de vente d’un site. Choisissez-en un."
+    />
   } @else if (items().length === 0) {
     <div class="empty-state">
       <div class="empty-icon">

@@ -19,6 +19,8 @@
       <div class="spinner"></div>
       <span>Chargement…</span>
     </div>
+  } @else if (estConsolide()) {
+    <app-site-requis message="Le plan de tables est propre à un site. Choisissez celui à ouvrir." />
   } @else if (pdvs().length === 0) {
     <div class="empty-state">
       <span class="empty-title">Aucun point de vente</span>
@@ -44,6 +46,18 @@
           }
         </select>
       </label>
+
+      <button
+        class="btn btn-secondary"
+        type="button"
+        [disabled]="plancheBusy() || tables().length === 0"
+        (click)="imprimerPlanche()"
+      >
+        @if (plancheBusy()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Imprimer la planche de QR
+      </button>
     </div>
 
     <div class="legend">
@@ -152,6 +166,50 @@
           }
         </label>
       </form>
+
+      <!-- QR du menu public. Rendu ici plutôt que sur les cartes du plan : le
+           plan de salle doit rester lisible d'un coup d'œil pendant le service. -->
+      @if (editingTable(); as table) {
+        <hr class="sep" />
+        <div class="qr-bloc">
+          <div class="field-text">QR du menu client</div>
+
+          @if (table.menu_url; as url) {
+            <div class="qr-vignette">
+              <qr-code [value]="url" [size]="150" errorCorrectionLevel="H" margin="1" />
+            </div>
+
+            <p class="qr-aide">Le client scanne et consulte la carte de ce point de vente.</p>
+
+            <div class="qr-lien" title="{{ url }}">{{ url }}</div>
+
+            <div class="qr-actions">
+              <button class="btn btn-secondary" type="button" (click)="copierLien(table)">
+                {{ lienCopie() ? 'Lien copié ✓' : 'Copier le lien' }}
+              </button>
+              <button
+                class="btn btn-secondary"
+                type="button"
+                [disabled]="qrBusy()"
+                (click)="telechargerQr(table)"
+              >
+                @if (qrBusy()) {
+                  <span class="spinner" style="width: 14px; height: 14px"></span>
+                }
+                Télécharger le QR (PDF)
+              </button>
+              <button class="btn btn-danger" type="button" (click)="regenererToken(table)">
+                Régénérer
+              </button>
+            </div>
+          } @else {
+            <p class="qr-aide">
+              Cette table n'a pas encore de QR. Lancez
+              <code>php artisan inresto:backfill-table-tokens</code> côté serveur.
+            </p>
+          }
+        </div>
+      }
     </div>
 
     <div class="drawer-footer">

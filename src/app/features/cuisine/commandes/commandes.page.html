@@ -14,7 +14,11 @@
   <div class="toolbar">
     <label class="field-label inline">
       <span class="field-text">Statut</span>
-      <select class="field-select" [value]="statutFilter()" (change)="onStatutFilter($any($event.target).value)">
+      <select
+        class="field-select"
+        [value]="statutFilter()"
+        (change)="onStatutFilter($any($event.target).value)"
+      >
         <option value="">Tous</option>
         @for (s of statuts; track s) {
           <option [value]="s">{{ statutLabel(s) }}</option>
@@ -50,7 +54,15 @@
           @for (item of items(); track item.id) {
             <tr>
               <td class="td-mono">
-                <a class="row-link" [routerLink]="[item.id]">{{ item.numero }}</a>
+                <!--
+                  Lien ABSOLU : cette liste vit sous l'onglet
+                  `/cuisine/commandes/liste`, alors que la fiche détail est une
+                  route sœur `/cuisine/commandes/:id`. Un lien relatif viserait
+                  `…/liste/:id`, qui ne matche rien et retombe sur le dashboard.
+                -->
+                <a class="row-link" [routerLink]="['/cuisine/commandes', item.id]">{{
+                  item.numero
+                }}</a>
               </td>
               <td class="td-primary">{{ fournisseurNom(item) }}</td>
               <td>{{ formatDate(item.date_commande) }}</td>
@@ -61,7 +73,9 @@
                 }}</span>
               </td>
               <td class="td-actions">
-                <a class="btn btn-secondary btn-sm" [routerLink]="[item.id]">Ouvrir</a>
+                <a class="btn btn-secondary btn-sm" [routerLink]="['/cuisine/commandes', item.id]"
+                  >Ouvrir</a
+                >
               </td>
             </tr>
           }

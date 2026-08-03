@@ -1,0 +1,13 @@
+<div class="tabs-shell">
+  <nav class="param-tabs" role="tablist">
+    @for (tab of tabs(); track tab.route) {
+      <a class="param-tab" role="tab" [routerLink]="tab.route" routerLinkActive="active">
+        {{ tab.label }}
+      </a>
+    }
+  </nav>
+
+  <div class="tabs-body">
+    <router-outlet />
+  </div>
+</div>

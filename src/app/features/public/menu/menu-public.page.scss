@@ -1,0 +1,271 @@
+// =============================================================================
+// Menu public — page CLIENT.
+//
+// Délibérément hors du design system sombre de l'administration : palette ivoire
+// chaude, typographie sérif, respiration large. Ses tokens sont locaux (portée
+// :host) pour ne rien fuiter dans l'app admin et ne rien lui emprunter.
+//
+// Mobile d'abord : tout est dimensionné pour un téléphone tenu à table, la
+// largeur max n'intervient qu'au-delà.
+// =============================================================================
+
+:host {
+  // Pile sérif système : élégante et surtout sans requête réseau — la page
+  // s'ouvre après un scan, chaque aller-retour se voit.
+  --menu-serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Times New Roman', serif;
+  --menu-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --menu-papier: #fbf8f3;
+  --menu-papier-2: #f4efe6;
+  --menu-encre: #23201c;
+  --menu-encre-douce: #6d655a;
+  --menu-filet: #ddd3c3;
+  --menu-accent: #a97612; // Ambre assombri : lisible sur fond clair (contraste AA).
+
+  display: block;
+  min-height: 100vh;
+  background: var(--menu-papier);
+  color: var(--menu-encre);
+  font-family: var(--menu-sans);
+  // Le fond ivoire doit couvrir tout l'écran, y compris sous le body sombre.
+  box-shadow: 0 0 0 100vmax var(--menu-papier);
+  clip-path: inset(0);
+}
+
+.menu {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+
+// ─────────────────────────── En-tête ───────────────────────────
+
+.entete {
+  text-align: center;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--menu-filet);
+}
+
+.logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  margin-bottom: 12px;
+}
+
+.etab-nom {
+  font-family: var(--menu-serif);
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.etab-slogan {
+  font-family: var(--menu-serif);
+  font-style: italic;
+  color: var(--menu-encre-douce);
+  font-size: 15px;
+  margin: 6px 0 0;
+}
+
+.pdv-nom {
+  margin: 14px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--menu-accent);
+}
+
+// ─────────────────────────── Catégories ───────────────────────────
+
+.categorie {
+  margin-top: 36px;
+}
+
+// Titre centré entre deux filets, sans largeur fixe : tient de « Entrées » à
+// « Suggestions du chef ».
+.categorie-titre {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 18px;
+  font-family: var(--menu-serif);
+  font-size: 19px;
+  font-weight: 700;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--menu-filet);
+  }
+
+  span {
+    white-space: nowrap;
+  }
+}
+
+// ─────────────────────────── Produits ───────────────────────────
+
+.produits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.produit {
+  display: flex;
+  gap: 14px;
+}
+
+.produit-photo {
+  width: 68px;
+  height: 68px;
+  flex: none;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--menu-papier-2);
+}
+
+.produit-corps {
+  flex: 1;
+  min-width: 0;
+}
+
+// Nom et prix reliés par un filet pointillé (codes de la carte imprimée), le
+// prix restant collé à droite quel que soit le nom.
+.produit-ligne {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.produit-nom {
+  font-family: var(--menu-serif);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.produit-filet {
+  flex: 1;
+  min-width: 12px;
+  border-bottom: 1px dotted var(--menu-filet);
+  transform: translateY(-4px);
+}
+
+.produit-prix {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--menu-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.produit-desc {
+  margin: 5px 0 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--menu-encre-douce);
+}
+
+.produit-allergenes {
+  margin: 8px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.allergenes-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--menu-encre-douce);
+}
+
+.allergene {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--menu-papier-2);
+  border: 1px solid var(--menu-filet);
+  color: var(--menu-encre-douce);
+}
+
+// ─────────────────────────── États & pied ───────────────────────────
+
+.etat {
+  text-align: center;
+  padding: 80px 20px;
+}
+
+.etat-icone {
+  font-size: 34px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.etat-titre {
+  font-family: var(--menu-serif);
+  font-size: 22px;
+  margin: 0 0 8px;
+}
+
+.etat-texte {
+  margin: 0;
+  color: var(--menu-encre-douce);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.etat-spinner {
+  width: 26px;
+  height: 26px;
+  margin: 0 auto 14px;
+  border: 2px solid var(--menu-filet);
+  border-top-color: var(--menu-accent);
+  border-radius: 50%;
+  animation: menu-spin 0.7s linear infinite;
+}
+
+@keyframes menu-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .etat-spinner {
+    animation-duration: 2s;
+  }
+}
+
+.pied {
+  margin-top: 44px;
+  text-align: center;
+  font-family: var(--menu-serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--menu-encre-douce);
+
+  p {
+    margin: 14px 0 0;
+  }
+}
+
+.pied-filet {
+  display: block;
+  width: 44px;
+  height: 1px;
+  margin: 0 auto;
+  background: var(--menu-filet);
+}

@@ -1,0 +1,102 @@
+<div class="tab-page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">État du stock</h2>
+      <p class="page-subtitle">
+        Quantité détenue, PMP et valeur par matière, sur le site sélectionné.
+      </p>
+    </div>
+  </div>
+
+  @if (currentSite(); as site) {
+    <div class="toolbar">
+      <span class="site-context">
+        Site : <strong>{{ site.nom }}</strong>
+        <span class="site-context-hint">— change le site depuis la barre du haut</span>
+      </span>
+      <!-- Le PMP est propre à chaque site : ces valeurs ne se comparent pas d'un site à l'autre. -->
+      <label class="check-inline">
+        <input type="checkbox" [checked]="sousSeuilOnly()" (change)="toggleSousSeuil()" />
+        <span>Sous seuil uniquement</span>
+      </label>
+    </div>
+  }
+
+  @if (listError()) {
+    <div class="alert-error" style="margin-bottom: 16px">{{ listError() }}</div>
+  }
+
+  @if (siteLoading() || loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (estConsolide()) {
+    <app-site-requis
+      message="Le stock est propre à chaque site. Choisissez celui dont vous voulez voir l’état."
+    />
+  } @else if (sites().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun site</span>
+      <span class="empty-message">Aucun site n'est disponible pour votre compte.</span>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">
+        {{ sousSeuilOnly() ? 'Aucune alerte' : 'Aucun stock' }}
+      </span>
+      <span class="empty-message">
+        {{
+          sousSeuilOnly()
+            ? 'Aucune matière de ce site n’est retombée sous son seuil d’alerte.'
+            : 'Aucun mouvement n’a encore alimenté le stock de ce site.'
+        }}
+      </span>
+    </div>
+  } @else {
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Matière</th>
+            <th class="num">Stock courant</th>
+            <th class="num">Seuil</th>
+            <th class="num">PMP</th>
+            <th class="num">Valeur</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track item.id) {
+            <tr [class.row-alerte]="item.sous_seuil">
+              <td class="td-primary">
+                {{ matiereLibelle(item) }}
+                @if (item.sous_seuil) {
+                  <span class="badge badge-warning">Sous seuil</span>
+                }
+              </td>
+              <td class="num td-mono">
+                {{ formatQuantite(item.stock_courant) }} {{ uniteSymbole(item) }}
+              </td>
+              <td class="num td-mono td-dim">
+                {{ formatQuantite(item.seuil_alerte_stock) }}
+              </td>
+              <td class="num td-mono">{{ formatMontant(item.pmp) }} FCFA</td>
+              <td class="num td-mono">{{ formatMontant(item.valeur) }} FCFA</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" class="td-total-label">
+              Total valorisé
+              @if (nbSousSeuil() > 0) {
+                <span class="td-dim">— {{ nbSousSeuil() }} matière(s) sous seuil</span>
+              }
+            </td>
+            <td class="num td-mono td-total">{{ formatMontant(totalValorise()) }} FCFA</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  }
+</div>

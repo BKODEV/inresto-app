@@ -4,6 +4,7 @@ import {
   DestroyRef,
   OnInit,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -18,12 +19,13 @@ import { Carte, CarteStatut } from '../../../core/api/carte/carte.model';
 import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 
 @Component({
   selector: 'app-cartes-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, SiteRequisComponent],
   templateUrl: './cartes.page.html',
   styleUrl: './cartes.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,6 +41,7 @@ export class CartesPage implements OnInit {
   private readonly allItems = signal<Carte[]>([]);
   private readonly allPdvs = signal<PointDeVente[]>([]);
   readonly currentSite = this.selectedSite.selectedSite;
+  readonly estConsolide = this.selectedSite.estConsolide;
   readonly items = computed(() => {
     const siteId = this.selectedSite.selectedId();
     return siteId === null
@@ -61,6 +64,15 @@ export class CartesPage implements OnInit {
     point_de_vente_id: [0, [Validators.required, Validators.min(1)]],
     statut: ['brouillon' as CarteStatut],
   });
+
+  constructor() {
+    // Le contenu du tiroir appartient au site quitté : changer de périmètre le
+    // ferme plutôt que d'enregistrer une saisie sur le mauvais site.
+    effect(() => {
+      this.selectedSite.epoch();
+      this.drawerOpen.set(false);
+    });
+  }
 
   ngOnInit(): void {
     this.loading.set(true);

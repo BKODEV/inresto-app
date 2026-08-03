@@ -335,7 +335,11 @@
 
       <!-- Sites -->
       <div class="section-block">
-        <span class="field-text">Site(s) de rattachement</span>
+        <span class="field-text">Site(s) de rattachement <span class="required">*</span></span>
+        <p class="field-hint">
+          Le périmètre borne le stock, les inventaires, les réceptions et les budgets accessibles au
+          compte.
+        </p>
         <div class="check-grid">
           @for (site of sites(); track site.id) {
             <label class="check-option">

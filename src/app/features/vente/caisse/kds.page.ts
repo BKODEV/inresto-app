@@ -17,12 +17,13 @@ import { CommandeClient } from '../../../core/api/commande-client/commande-clien
 import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 
 @Component({
   selector: 'app-kds-page',
   standalone: true,
-  imports: [],
+  imports: [SiteRequisComponent],
   templateUrl: './kds.page.html',
   styleUrl: './caisse.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,6 +36,7 @@ export class KdsPage implements OnInit {
 
   private readonly allPdvs = signal<PointDeVente[]>([]);
   readonly currentSite = this.selectedSite.selectedSite;
+  readonly estConsolide = this.selectedSite.estConsolide;
   readonly pdvs = computed(() => {
     const siteId = this.selectedSite.selectedId();
     return siteId === null ? [] : this.allPdvs().filter((p) => p.site_id === siteId);

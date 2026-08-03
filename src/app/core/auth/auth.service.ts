@@ -35,6 +35,21 @@ export class AuthService {
     return this._user()?.permissions.includes(permission) ?? false;
   }
 
+  /**
+   * Vrai si l'utilisateur détient AU MOINS UNE des permissions fournies.
+   * Utile pour une entrée de navigation qui ouvre plusieurs écrans gardés
+   * séparément (ex. « Stock & inventaire » = `stock.view` OU `inventaire.view`).
+   */
+  hasAnyPermission(permissions?: string | string[]): boolean {
+    if (!permissions || this.isSuperAdmin()) {
+      return true;
+    }
+    if (!Array.isArray(permissions)) {
+      return this.hasPermission(permissions);
+    }
+    return permissions.length === 0 || permissions.some((p) => this.hasPermission(p));
+  }
+
   login(payload: LoginRequest): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse>(`${environment.apiUrl}/auth/login`, payload)

@@ -6,31 +6,38 @@
     </div>
   </div>
 
-  @if (currentSite(); as site) {
+  @if (perimetreLabel()) {
     <div class="toolbar">
-      Site : <strong>{{ site.nom }}</strong>
-      <span>— change le site depuis la barre du haut</span>
+      Périmètre : <strong>{{ perimetreLabel() }}</strong>
+      <span>— change le périmètre depuis la barre du haut</span>
     </div>
   }
 
   <app-periode-filtre (filterChange)="onFilter($event)" />
 
   @if (loading()) {
-    <div class="loading-row"><div class="spinner"></div><span>Chargement…</span></div>
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
   } @else if (error()) {
     <div class="alert-error">{{ error() }}</div>
   } @else {
     <div class="section">
       <h2 class="section-title">Consommation</h2>
       @if (budgets().length === 0) {
-        <div class="empty-state"><span class="empty-message">Aucun budget sur la période.</span></div>
+        <div class="empty-state">
+          <span class="empty-message">Aucun budget sur la période.</span>
+        </div>
       } @else {
         <div class="budget-grid">
           @for (v of budgetViews(); track v.budget.id) {
             <div class="budget-card card">
               <div class="bc-head">
                 <div class="bc-mois">{{ formatMois(v.budget.mois) }}</div>
-                <span class="badge" [class]="niveauBadge(v.budget.niveau_alerte)">{{ niveauLabel(v.budget.niveau_alerte) }}</span>
+                <span class="badge" [class]="niveauBadge(v.budget.niveau_alerte)">{{
+                  niveauLabel(v.budget.niveau_alerte)
+                }}</span>
               </div>
               <app-chart [options]="v.gaugeOptions" [height]="150" />
               <div class="gauge-legend">
@@ -44,7 +51,9 @@
                 </div>
                 <div>
                   <div class="bf-l">Restant</div>
-                  <div class="bf-v" [class.neg]="num(v.budget.montant_restant) < 0">{{ fMontant(num(v.budget.montant_restant)) }}</div>
+                  <div class="bf-v" [class.neg]="num(v.budget.montant_restant) < 0">
+                    {{ fMontant(num(v.budget.montant_restant)) }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -57,7 +66,9 @@
       <h2 class="section-title">Dépenses détaillées</h2>
       @if (depenses(); as d) {
         @if (d.depenses.length === 0) {
-          <div class="empty-state"><span class="empty-message">Aucune dépense sur la période.</span></div>
+          <div class="empty-state">
+            <span class="empty-message">Aucune dépense sur la période.</span>
+          </div>
         } @else {
           <div class="kpi-grid">
             <div class="kpi card">

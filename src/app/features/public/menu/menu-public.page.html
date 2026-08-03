@@ -1,0 +1,82 @@
+<main class="menu">
+  @if (loading()) {
+    <div class="etat">
+      <div class="etat-spinner" aria-hidden="true"></div>
+      <p class="etat-texte">Chargement du menu…</p>
+    </div>
+  } @else if (indisponible()) {
+    <!-- Jeton inconnu comme carte absente : même message neutre, aucun détail
+         technique n'a de sens pour un client attablé. -->
+    <div class="etat">
+      <span class="etat-icone" aria-hidden="true">🍽️</span>
+      <h1 class="etat-titre">Menu indisponible</h1>
+      <p class="etat-texte">
+        La carte n'est pas consultable pour le moment. N'hésitez pas à demander à votre serveur.
+      </p>
+    </div>
+  } @else if (menu(); as m) {
+    <header class="entete">
+      @if (m.etablissement.logo_url) {
+        <img class="logo" [src]="m.etablissement.logo_url" alt="" />
+      }
+      @if (m.etablissement.nom) {
+        <h1 class="etab-nom">{{ m.etablissement.nom }}</h1>
+      }
+      @if (m.etablissement.slogan) {
+        <p class="etab-slogan">{{ m.etablissement.slogan }}</p>
+      }
+      <p class="pdv-nom">{{ m.point_de_vente.nom }}</p>
+    </header>
+
+    @for (categorie of m.categories; track categorie.libelle) {
+      <section class="categorie">
+        <h2 class="categorie-titre">
+          <span>{{ categorie.libelle }}</span>
+        </h2>
+
+        <ul class="produits">
+          @for (produit of categorie.produits; track produit.libelle) {
+            <li class="produit" [class.produit--avec-photo]="!!produit.photo_url">
+              @if (produit.photo_url) {
+                <img class="produit-photo" [src]="produit.photo_url" alt="" loading="lazy" />
+              }
+
+              <div class="produit-corps">
+                <div class="produit-ligne">
+                  <span class="produit-nom">{{ produit.libelle }}</span>
+                  <span class="produit-filet" aria-hidden="true"></span>
+                  <span class="produit-prix">{{ prix(produit.prix) }}</span>
+                </div>
+
+                @if (produit.description) {
+                  <p class="produit-desc">{{ produit.description }}</p>
+                }
+
+                @if (allergenes(produit.allergenes); as liste) {
+                  @if (liste.length) {
+                    <p class="produit-allergenes">
+                      <span class="allergenes-label">Allergènes</span>
+                      @for (a of liste; track a) {
+                        <span class="allergene">{{ a }}</span>
+                      }
+                    </p>
+                  }
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    } @empty {
+      <div class="etat">
+        <h2 class="etat-titre">Carte en préparation</h2>
+        <p class="etat-texte">Aucun plat n'est proposé pour le moment.</p>
+      </div>
+    }
+
+    <footer class="pied">
+      <span class="pied-filet" aria-hidden="true"></span>
+      <p>Bonne dégustation</p>
+    </footer>
+  }
+</main>

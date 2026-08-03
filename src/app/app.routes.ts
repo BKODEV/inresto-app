@@ -22,6 +22,15 @@ export const routes: Routes = [
     title: 'InnResto — Réinitialisation du mot de passe',
   },
   {
+    // Page publique : menu consulté par un client depuis le QR de sa table.
+    // Aucun guard — le client n'a pas de compte ; le jeton de l'URL est la clé.
+    // Déclarée hors du shell : ni barre latérale, ni sélecteur de site.
+    path: 'menu/:token',
+    loadComponent: () =>
+      import('./features/public/menu/menu-public.page').then((m) => m.MenuPublicPage),
+    title: 'Menu',
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./features/shell/shell.layout').then((m) => m.ShellLayout),
@@ -62,10 +71,31 @@ export const routes: Routes = [
           {
             path: 'commandes',
             loadComponent: () =>
-              import('./features/cuisine/commandes/commandes.page').then((m) => m.CommandesPage),
-            title: 'InnResto — Commandes & réceptions',
+              import('./features/cuisine/commandes/commandes.layout').then(
+                (m) => m.CommandesLayout,
+              ),
+            children: [
+              { path: '', pathMatch: 'full', redirectTo: 'liste' },
+              {
+                path: 'liste',
+                loadComponent: () =>
+                  import('./features/cuisine/commandes/commandes.page').then(
+                    (m) => m.CommandesPage,
+                  ),
+                title: 'InnResto — Commandes fournisseur',
+              },
+              {
+                path: 'receptions',
+                loadComponent: () =>
+                  import('./features/cuisine/commandes/receptions.page').then(
+                    (m) => m.ReceptionsPage,
+                  ),
+                title: 'InnResto — Réceptions',
+              },
+            ],
           },
           {
+            // Hors du layout à onglets : la fiche détail occupe toute la page.
             path: 'commandes/:id',
             loadComponent: () =>
               import('./features/cuisine/commandes/commande-detail.page').then(
@@ -118,20 +148,21 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/cuisine/stock/stock.layout').then((m) => m.StockLayout),
             children: [
-              { path: '', pathMatch: 'full', redirectTo: 'inventaires' },
+              // Premier onglet de `stock.layout`. Le maintenir aligné : viser un
+              // onglet plus loin dans la barre fait atterrir l'utilisateur
+              // ailleurs que là où le menu le laisse attendre.
+              { path: '', pathMatch: 'full', redirectTo: 'etat' },
               {
                 path: 'etat',
                 loadComponent: () =>
-                  import('./features/cuisine/stock/stock-placeholder.page').then(
-                    (m) => m.StockPlaceholderPage,
-                  ),
+                  import('./features/cuisine/stock/etat-stock.page').then((m) => m.EtatStockPage),
                 title: 'InnResto — État du stock',
               },
               {
                 path: 'mouvements',
                 loadComponent: () =>
-                  import('./features/cuisine/stock/stock-placeholder.page').then(
-                    (m) => m.StockPlaceholderPage,
+                  import('./features/cuisine/stock/mouvements-stock.page').then(
+                    (m) => m.MouvementsStockPage,
                   ),
                 title: 'InnResto — Mouvements de stock',
               },

@@ -1,9 +1,14 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+
+import { AuthService } from '../../../core/auth/auth.service';
+import { redirigerVersOngletAutorise } from '../../../core/navigation/onglet-autorise';
 
 interface StockTab {
   label: string;
   route: string;
+  /** Absente => onglet visible par tout utilisateur ayant accès à la section. */
+  permission?: string;
 }
 
 @Component({
@@ -15,9 +20,18 @@ interface StockTab {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StockLayout {
-  readonly tabs: StockTab[] = [
-    { label: 'État du stock', route: 'etat' },
-    { label: 'Mouvements de stock', route: 'mouvements' },
-    { label: 'Inventaires', route: 'inventaires' },
+  private readonly auth = inject(AuthService);
+
+  private readonly allTabs: StockTab[] = [
+    { label: 'État du stock', route: 'etat', permission: 'stock.view' },
+    { label: 'Mouvements de stock', route: 'mouvements', permission: 'stock.view' },
+    { label: 'Inventaires', route: 'inventaires', permission: 'inventaire.view' },
   ];
+
+  /** La section est accessible dès une permission ; on masque les onglets non autorisés. */
+  readonly tabs = computed(() => this.allTabs.filter((t) => this.auth.hasPermission(t.permission)));
+
+  constructor() {
+    redirigerVersOngletAutorise(this.tabs().map((t) => t.route));
+  }
 }

@@ -1,0 +1,148 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Réceptions</h1>
+      <p class="page-subtitle">
+        Livraisons réceptionnées sur ce site. Une réception confirmée est définitive.
+      </p>
+    </div>
+  </div>
+
+  @if (currentSite(); as site) {
+    <div class="toolbar">
+      <span class="site-context">
+        Site : <strong>{{ site.nom }}</strong>
+        <span class="site-context-hint">— change le site depuis la barre du haut</span>
+      </span>
+    </div>
+  }
+
+  @if (listError()) {
+    <div class="alert-error" style="margin-bottom: 16px">{{ listError() }}</div>
+  }
+
+  @if (siteLoading() || loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (estConsolide()) {
+    <app-site-requis
+      message="Une réception alimente le stock d’un site. Choisissez celui à consulter."
+    />
+  } @else if (sites().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun site</span>
+      <span class="empty-message">Aucun site n'est disponible pour votre compte.</span>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucune réception</span>
+      <span class="empty-message">
+        Les réceptions se créent depuis une commande fournisseur envoyée.
+      </span>
+    </div>
+  } @else {
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Commande</th>
+            <th class="num">Montant réel</th>
+            <th>Observations</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track item.id) {
+            <tr>
+              <td class="td-primary">{{ formatDate(item.date_reception) }}</td>
+              <td>
+                @if (canVoirCommande()) {
+                  <a
+                    class="link"
+                    [routerLink]="['/cuisine/commandes', item.commande_fournisseur_id]"
+                  >
+                    {{ numeroCommande(item) }}
+                  </a>
+                } @else {
+                  {{ numeroCommande(item) }}
+                }
+              </td>
+              <td class="num td-mono">{{ formatMontant(item.montant_reel) }} FCFA</td>
+              <td class="td-dim">{{ item.observations ?? '—' }}</td>
+              <td class="td-actions">
+                <button class="btn btn-secondary btn-sm" type="button" (click)="openDetail(item)">
+                  Voir
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<!-- DRAWER : lignes reçues -->
+@if (detailOpen()) {
+  <div class="drawer-overlay" (click)="closeDetail()"></div>
+  <div class="drawer drawer-wide" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <div>
+        <h2 class="drawer-title">
+          @if (detail(); as d) {
+            Réception du {{ formatDate(d.date_reception) }}
+          } @else {
+            Réception
+          }
+        </h2>
+        @if (detail(); as d) {
+          <p class="drawer-sub">
+            Commande {{ numeroCommande(d) }} — {{ formatMontant(d.montant_reel) }} FCFA
+          </p>
+        }
+      </div>
+      <button class="btn-icon" type="button" (click)="closeDetail()">✕</button>
+    </div>
+    <div class="drawer-body">
+      @if (detailLoading()) {
+        <div class="loading-row">
+          <div class="spinner"></div>
+          <span>Chargement…</span>
+        </div>
+      } @else if (detail(); as d) {
+        @if ((d.lignes?.length ?? 0) === 0) {
+          <div class="empty-state">
+            <span class="empty-message">Aucune ligne sur cette réception.</span>
+          </div>
+        } @else {
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Matière première</th>
+                <th class="num">Quantité reçue</th>
+                <th class="num">Prix unitaire réel</th>
+                <th class="num">Sous-total</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (ligne of d.lignes; track ligne.id) {
+                <tr>
+                  <td class="td-primary">{{ matiereLibelle(ligne) }}</td>
+                  <td class="num td-mono">{{ ligne.quantite_recue }} {{ uniteSymbole(ligne) }}</td>
+                  <td class="num td-mono">{{ formatMontant(ligne.prix_unitaire_reel) }}</td>
+                  <td class="num td-mono">{{ formatMontant(ligne.sous_total) }} FCFA</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          <!-- Les quantités sont en unité d'achat ; la conversion en unité de
+               stockage a été appliquée à la confirmation. -->
+          <p class="dr-hint">Quantités exprimées en unité d'achat du catalogue fournisseur.</p>
+        }
+      }
+    </div>
+  </div>
+}

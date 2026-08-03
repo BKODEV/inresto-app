@@ -1,0 +1,164 @@
+<div class="tab-page">
+  <div class="page-header">
+    <div>
+      <h2 class="page-title">Mouvements de stock</h2>
+      <p class="page-subtitle">
+        Journal des entrées, sorties et corrections, valorisées au PMP figé à l'instant du
+        mouvement.
+      </p>
+    </div>
+  </div>
+
+  @if (currentSite(); as site) {
+    <div class="site-line">
+      <span class="site-context">
+        Site : <strong>{{ site.nom }}</strong>
+        <span class="site-context-hint">— change le site depuis la barre du haut</span>
+      </span>
+    </div>
+  }
+
+  <div class="toolbar">
+    <label class="field-label inline">
+      <span class="field-text">Type</span>
+      <select
+        class="field-select"
+        [value]="typeFilter()"
+        (change)="onTypeFilter($any($event.target).value)"
+      >
+        <option value="">Tous</option>
+        @for (t of types; track t) {
+          <option [value]="t">{{ typeLabel(t) }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="field-label inline">
+      <span class="field-text">Matière</span>
+      <select
+        class="field-select"
+        [value]="matiereFilter()"
+        (change)="onMatiereFilter($any($event.target).value)"
+      >
+        <option value="">Toutes</option>
+        @for (m of matieres(); track m.id) {
+          <option [value]="m.id">{{ m.libelle }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="field-label inline narrow">
+      <span class="field-text">Du</span>
+      <input
+        class="field-input"
+        type="date"
+        [value]="dateDebut()"
+        (change)="onDateDebut($any($event.target).value)"
+      />
+    </label>
+
+    <label class="field-label inline narrow">
+      <span class="field-text">Au</span>
+      <input
+        class="field-input"
+        type="date"
+        [value]="dateFin()"
+        (change)="onDateFin($any($event.target).value)"
+      />
+    </label>
+
+    <button class="btn btn-secondary btn-sm" type="button" (click)="reinitialiserFiltres()">
+      Réinitialiser
+    </button>
+  </div>
+
+  @if (listError()) {
+    <div class="alert-error" style="margin-bottom: 16px">{{ listError() }}</div>
+  }
+
+  @if (siteLoading() || loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (estConsolide()) {
+    <app-site-requis
+      message="Les mouvements sont propres à chaque site. Choisissez celui dont vous voulez le journal."
+    />
+  } @else if (sites().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun site</span>
+      <span class="empty-message">Aucun site n'est disponible pour votre compte.</span>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun mouvement</span>
+      <span class="empty-message"> Aucun mouvement ne correspond à ces filtres sur ce site. </span>
+    </div>
+  } @else {
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Matière</th>
+            <th>Type</th>
+            <th class="num">Quantité</th>
+            <th class="num">PMP au moment</th>
+            <th class="num">Valeur</th>
+            <th>Origine</th>
+            <th>Auteur</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (m of items(); track m.id) {
+            <tr>
+              <td class="td-mono td-dim">{{ formatDate(m.date_mouvement) }}</td>
+              <td class="td-primary">{{ matiereLibelle(m) }}</td>
+              <td>
+                <span class="badge" [class]="typeBadge(m.type)">{{ typeLabel(m.type) }}</span>
+              </td>
+              <td
+                class="num td-mono"
+                [class.td-entree]="m.sens === 'entree'"
+                [class.td-sortie]="m.sens === 'sortie'"
+              >
+                {{ signe(m) }}{{ formatQuantite(m.quantite) }} {{ uniteSymbole(m) }}
+              </td>
+              <td class="num td-mono td-dim">{{ formatMontant(m.pmp_au_moment) }}</td>
+              <td class="num td-mono">{{ formatMontant(m.valeur) }} FCFA</td>
+              <td class="td-dim">{{ origineLabel(m) }}</td>
+              <td class="td-dim">{{ m.auteur ?? 'Automatique' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (pagination(); as p) {
+      <div class="pager">
+        <span class="pager-info">
+          {{ p.total }} mouvement(s) — page {{ p.page_courante }} / {{ p.derniere_page }}
+        </span>
+        <div class="pager-actions">
+          <button
+            class="btn btn-secondary btn-sm"
+            type="button"
+            [disabled]="!pagePrecedenteDisponible()"
+            (click)="pagePrecedente()"
+          >
+            ‹ Précédent
+          </button>
+          <button
+            class="btn btn-secondary btn-sm"
+            type="button"
+            [disabled]="!pageSuivanteDisponible()"
+            (click)="pageSuivante()"
+          >
+            Suivant ›
+          </button>
+        </div>
+      </div>
+    }
+  }
+</div>

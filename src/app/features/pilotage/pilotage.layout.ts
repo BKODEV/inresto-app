@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { redirigerVersOngletAutorise } from '../../core/navigation/onglet-autorise';
 
 interface PilotageTab {
   label: string;
@@ -29,4 +30,8 @@ export class PilotageLayout {
 
   /** Onglets visibles selon les permissions de l'utilisateur. */
   readonly tabs = computed(() => this.allTabs.filter((t) => this.auth.hasPermission(t.permission)));
+
+  constructor() {
+    redirigerVersOngletAutorise(this.tabs().map((t) => t.route));
+  }
 }

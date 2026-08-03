@@ -38,17 +38,23 @@
     </div>
 
     @if (sites().length > 0) {
-      <div class="site-switch" [title]="selectedSite()?.nom ?? ''">
+      <div class="site-switch" [class.consolide]="estConsolide()" [title]="perimetreLabel()">
         <span class="site-switch-dot"></span>
         <span class="site-switch-label">Site</span>
         <select
           class="site-switch-select"
-          aria-label="Site sélectionné"
-          [value]="selectedSiteId() ?? ''"
+          aria-label="Périmètre sélectionné"
+          [value]="siteSelectValue()"
           (change)="onSiteChange($any($event.target).value)"
         >
+          @if (doitChoisirSite()) {
+            <option value="" disabled>Choisir…</option>
+          }
           @for (s of sites(); track s.id) {
             <option [value]="s.id">{{ s.nom }}</option>
+          }
+          @if (consolidationPossible()) {
+            <option value="all">Tous mes sites ({{ sites().length }})</option>
           }
         </select>
       </div>
@@ -115,7 +121,56 @@
   </aside>
 
   <!-- ═══ MAIN ════════════════════════════════════════════════════════════════ -->
-  <main class="main">
-    <router-outlet />
-  </main>
+  <!--
+    Le périmètre conditionne toutes les données affichées : tant qu'il n'est pas
+    choisi, rien n'est chargé. On ne retient pas « le premier site venu » —
+    l'utilisateur opérerait sur un stock qu'il n'a pas désigné.
+  -->
+  @if (perimetreEnAttente()) {
+    <main class="main">
+      <div class="site-gate">
+        <div class="loading-row">
+          <div class="spinner"></div>
+          <span>Chargement du périmètre…</span>
+        </div>
+      </div>
+    </main>
+  } @else if (doitChoisirSite()) {
+    <main class="main">
+      <div class="site-gate">
+        <div class="site-gate-card">
+          <h1 class="site-gate-title">Sur quel site travaillez-vous ?</h1>
+          <p class="site-gate-hint">
+            Le stock, les inventaires, les réceptions et les budgets sont propres à chaque site.
+            Vous pourrez en changer à tout moment depuis la barre du haut.
+          </p>
+
+          <div class="site-gate-list">
+            @for (s of sites(); track s.id) {
+              <button class="site-gate-option" type="button" (click)="choisirSite(s.id)">
+                <span class="site-gate-option-name">{{ s.nom }}</span>
+                @if (s.code) {
+                  <span class="site-gate-option-code">{{ s.code }}</span>
+                }
+              </button>
+            }
+          </div>
+
+          @if (consolidationPossible()) {
+            <button class="site-gate-all" type="button" (click)="choisirTousLesSites()">
+              Vue consolidée · tous mes sites ({{ sites().length }})
+            </button>
+            <p class="site-gate-note">
+              La vue consolidée agrège le tableau de bord et le pilotage. Les écrans opérationnels
+              demandent un site précis.
+            </p>
+          }
+        </div>
+      </div>
+    </main>
+  } @else {
+    <main class="main">
+      <router-outlet />
+    </main>
+  }
 </div>
