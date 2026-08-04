@@ -109,7 +109,7 @@
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius, 8px);
-  background: var(--surface, #fff);
+  background: var(--surface);
   cursor: pointer;
   text-align: left;
   &:hover:not(:disabled) {
@@ -207,8 +207,8 @@
   padding: var(--space-4);
   border: 1px solid var(--border);
   border-left: 4px solid var(--amber);
-  border-radius: var(--radius-lg, 12px);
-  background: var(--surface, #fff);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
 }
 .kds-head {
   display: flex;
@@ -235,4 +235,129 @@
 }
 .kds-ligne .q {
   font-weight: 700;
+}
+
+// ═══ Écrans de service : cible tactile et signal d'urgence ══════════════════
+// Ces écrans s'utilisent debout, sur tablette, en plein service : les cibles
+// montent à 48 px (plancher tactile usuel) contre 40 px ailleurs.
+
+.btn-service {
+  min-height: 48px;
+  width: 100%;
+  font-size: var(--text-base);
+}
+
+.kds-attente {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.kds-ref {
+  font-size: var(--text-xs);
+  color: var(--text-mute);
+  margin-bottom: var(--space-2);
+}
+
+// L'escalade se lit à la couleur avant même le chiffre.
+.kds-card--attention {
+  border-color: var(--amber);
+
+  .kds-attente {
+    color: var(--amber);
+  }
+}
+
+.kds-card--retard {
+  border-color: var(--red);
+  box-shadow: 0 0 0 1px var(--red) inset;
+
+  .kds-attente {
+    color: var(--red);
+  }
+}
+
+// ═══ Plan de salle (prise de commande) ══════════════════════════════════════
+// Cartes larges plutôt qu'un tableau : le geste du service est de taper une
+// table. Minimum 96 px de côté, bien au-delà du plancher tactile.
+
+.salle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+
+.salle-table {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 110px;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-base),
+    transform var(--transition-base);
+
+  &:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.salle-num {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.salle-cap {
+  font-size: var(--text-xs);
+  color: var(--text-mute);
+}
+
+.salle-etat {
+  margin-top: auto;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.salle-etat--libre {
+  color: var(--text-mute);
+  font-weight: 500;
+}
+
+.salle-montant {
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+// La bande de gauche porte l'état : lisible en diagonale, de loin.
+.salle-table--ouverte {
+  border-left-color: var(--amber);
+}
+.salle-table--envoyee_en_cuisine {
+  border-left-color: var(--blue);
+}
+.salle-table--servie {
+  border-left-color: var(--green);
+}
+
+@media (max-width: 768px) {
+  .salle-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: var(--space-2);
+  }
 }

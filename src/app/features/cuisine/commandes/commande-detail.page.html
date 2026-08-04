@@ -330,14 +330,12 @@
       }
       <label class="field-label">
         <span class="field-text">Site de réception <span class="required">*</span></span>
-        <select
-          class="field-select"
-          [value]="receptionSiteId() ?? ''"
-          (change)="onReceptionSite($any($event.target).value)"
-        >
-          <option value="" disabled>Sélectionner…</option>
+        <!-- Sélection portée par les <option> : les sites arrivent après le
+             premier rendu, un [value] sur le <select> serait ignoré. -->
+        <select class="field-select" (change)="onReceptionSite($any($event.target).value)">
+          <option value="" disabled [selected]="receptionSiteId() === null">Sélectionner…</option>
           @for (s of sites(); track s.id) {
-            <option [value]="s.id">{{ s.nom }}</option>
+            <option [value]="s.id" [selected]="receptionSiteId() === s.id">{{ s.nom }}</option>
           }
         </select>
         @if (sites().length === 0) {

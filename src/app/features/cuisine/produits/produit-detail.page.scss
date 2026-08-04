@@ -57,7 +57,7 @@
   place-items: center;
   font-size: 28px;
   background: var(--amber-soft);
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  border: 1px solid rgba(var(--amber-rgb), 0.3);
 }
 .head-text {
   flex: 1;
@@ -237,8 +237,8 @@
 
   &:hover {
     color: var(--red);
-    background: rgba(239, 68, 68, 0.08);
-    border-color: rgba(239, 68, 68, 0.25);
+    background: rgba(var(--red-rgb), 0.08);
+    border-color: rgba(var(--red-rgb), 0.25);
   }
 }
 .ctl-l {

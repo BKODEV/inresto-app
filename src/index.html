@@ -12,6 +12,27 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <!--
+      Thème posé AVANT le premier rendu. Sans ce script, la page s'afficherait
+      en sombre le temps que l'application démarre, puis basculerait en clair
+      sous les yeux de l'utilisateur. Volontairement minimal et sans dépendance.
+    -->
+    <script>
+      (function () {
+        try {
+          var memorise = localStorage.getItem('inresto.theme');
+          var theme =
+            memorise === 'dark' || memorise === 'light'
+              ? memorise
+              : window.matchMedia('(prefers-color-scheme: light)').matches
+                ? 'light'
+                : 'dark';
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
   </head>
   <body>
     <app-root></app-root>

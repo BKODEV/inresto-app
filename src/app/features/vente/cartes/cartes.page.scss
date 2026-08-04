@@ -64,12 +64,12 @@
   margin: 0;
 }
 .section-count {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 600;
   color: var(--amber);
   background: var(--amber-soft);
-  border: 1px solid rgba(251, 191, 36, 0.25);
+  border: 1px solid rgba(var(--amber-rgb), 0.25);
   padding: 2px 8px;
   border-radius: var(--radius-full);
 }

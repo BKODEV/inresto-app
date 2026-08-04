@@ -130,11 +130,11 @@
 
 // Suivi des livraisons : ligne soldée vs reliquat en attente.
 .td-solde {
-  color: var(--green, #10b981);
+  color: var(--green);
   font-weight: 600;
 }
 .td-attente {
-  color: var(--amber, #f59e0b);
+  color: var(--amber);
   font-weight: 600;
 }
 
@@ -186,8 +186,8 @@
 
   &:hover {
     color: var(--red);
-    background: rgba(239, 68, 68, 0.08);
-    border-color: rgba(239, 68, 68, 0.25);
+    background: rgba(var(--red-rgb), 0.08);
+    border-color: rgba(var(--red-rgb), 0.25);
   }
 }
 .ctl-l {

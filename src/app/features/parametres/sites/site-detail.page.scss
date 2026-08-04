@@ -54,7 +54,7 @@
   border-radius: var(--radius-lg);
   flex-shrink: 0;
   background: var(--amber-soft);
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  border: 1px solid rgba(var(--amber-rgb), 0.3);
   display: grid;
   place-items: center;
   color: var(--amber);
@@ -120,12 +120,12 @@
   gap: 11px;
 }
 .sec-count {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-size: 13px;
   font-weight: 600;
   color: var(--amber);
   background: var(--amber-soft);
-  border: 1px solid rgba(251, 191, 36, 0.25);
+  border: 1px solid rgba(var(--amber-rgb), 0.25);
   padding: 3px 9px;
   border-radius: var(--radius-full);
 }
@@ -334,7 +334,9 @@
     width: 100%;
     max-width: 160px;
     border: 1px solid var(--border);
-    border-radius: var(--radius-sm, 8px);
+    border-radius: var(--radius-sm);
+    // Blanc volontaire, quel que soit le thème : un logo PNG transparent doit
+    // rester visible.
     background: #fff;
     object-fit: contain;
   }
@@ -346,7 +348,7 @@
   justify-content: center;
   height: 110px;
   border: 1px dashed var(--border);
-  border-radius: var(--radius-sm, 8px);
+  border-radius: var(--radius-sm);
   color: var(--text-dim);
   font-size: var(--text-sm);
 }

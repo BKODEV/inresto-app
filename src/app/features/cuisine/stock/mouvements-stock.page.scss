@@ -88,11 +88,11 @@
 }
 /* Le sens du mouvement se lit à la couleur autant qu'au signe. */
 .td-entree {
-  color: var(--green, #10b981);
+  color: var(--green);
   font-weight: 600;
 }
 .td-sortie {
-  color: var(--red, #ef4444);
+  color: var(--red);
   font-weight: 600;
 }
 

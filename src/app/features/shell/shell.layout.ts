@@ -13,6 +13,7 @@ import { MENU, MenuSection } from '../../core/navigation/menu.config';
 import { IconComponent } from '../../shared/icon/icon';
 import { AuthService } from '../../core/auth/auth.service';
 import { SelectedSiteService } from '../../core/site/selected-site.service';
+import { ThemeService } from '../../core/theme/theme.service';
 
 @Component({
   selector: 'app-shell',
@@ -26,8 +27,16 @@ export class ShellLayout implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly selectedSiteService = inject(SelectedSiteService);
+  private readonly themeService = inject(ThemeService);
 
   readonly user = this.auth.user;
+
+  /** Thème visuel — la bascule ne fait que changer un attribut sur `<html>`. */
+  readonly themeClair = this.themeService.estClair;
+
+  basculerTheme(): void {
+    this.themeService.basculer();
+  }
 
   /** Sélecteur de site global : pilote budget / inventaire / réception. */
   readonly sites = this.selectedSiteService.sites;
@@ -44,11 +53,6 @@ export class ShellLayout implements OnInit, OnDestroy {
    */
   readonly perimetreEnAttente = computed(
     () => this.selectedSiteService.scopeInconnu() && this.selectedSiteService.loading(),
-  );
-
-  /** Valeur courante du `<select>` : id du site, ou `all` en consolidé. */
-  readonly siteSelectValue = computed(() =>
-    this.estConsolide() ? 'all' : (this.selectedSiteId()?.toString() ?? ''),
   );
 
   readonly perimetreLabel = this.selectedSiteService.perimetreLabel;

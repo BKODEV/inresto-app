@@ -8,6 +8,14 @@
 // 1. TOKENS — Couleurs
 // -----------------------------------------------------------------------------
 :root {
+  // Indique au navigateur que la page est sombre. Sans cette ligne il suppose
+  // une page claire et rend ses contrôles natifs en conséquence : l'icône du
+  // sélecteur de date sort en gris foncé, quasi invisible sur un champ sombre,
+  // et le calendrier s'ouvre en blanc au milieu d'une application sombre.
+  // Vaut aussi pour les listes déroulantes, les compteurs numériques et
+  // l'autoremplissage. Une bascule de thème n'aura qu'à repasser à `light`.
+  color-scheme: dark;
+
   // Fonds
   --bg: #0b1220;
   --bg-2: #0e1626;
@@ -25,16 +33,42 @@
   --text: #e2e8f0;
   --text-dim: #94a3b8;
   --text-mute: #64748b;
+  --text-mute-rgb: 100, 116, 139;
+
+  // Flèche des listes déroulantes — voir .field-select.
+  --chevron-bas: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 
   // Accent amber (couleur primaire)
   --amber: #fbbf24;
   --amber-2: #f59e0b;
+  --amber-light: #fcd34d; // Haut du dégradé du bouton primaire.
+  --on-amber: #1a1207; // Texte posé SUR l'ambre : le seul brun sombre lisible dessus.
   --amber-soft: rgba(251, 191, 36, 0.12);
   --amber-glow: rgba(251, 191, 36, 0.45);
 
   // États sémantiques
   --green: #10b981;
   --red: #ef4444;
+  --red-soft: #fca5a5;
+  --green-soft: #6ee7b7; // Pendant clair de --green, pour le texte sur fond sombre.
+
+  // Canaux RVB — pour composer une opacité : rgba(var(--red-rgb), 0.08).
+  // Sans eux, chaque teinte translucide fige la couleur et ignore le thème.
+  --amber-rgb: 251, 191, 36;
+  --amber-2-rgb: 245, 158, 11;
+  --green-rgb: 16, 185, 129;
+  --red-rgb: 239, 68, 68;
+  --blue-rgb: 59, 130, 246;
+
+  // Voiles : éclaircir ou assombrir une surface. En thème clair, --voile-rgb
+  // passe au sombre — un voile blanc y serait invisible.
+  --voile-rgb: 255, 255, 255;
+
+  // Brillance : le liséré clair au sommet d'un bouton plein. Il reste BLANC
+  // dans les deux thèmes — il se pose sur un aplat saturé (l'ambre), où un
+  // liséré sombre se lirait comme une bordure sale.
+  --brillance-rgb: 255, 255, 255;
+  --ombre-rgb: 0, 0, 0; // Rouge clair : lisible en TEXTE sur fond sombre, là où --red passe mal.
   --blue: #3b82f6;
   --purple: #a855f7;
 
@@ -103,6 +137,77 @@
   --page-pad: var(--space-8);
 }
 
+// -----------------------------------------------------------------------------
+// 1 bis. THÈME CLAIR
+// -----------------------------------------------------------------------------
+// Seuls les JETONS sont redéfinis : aucun composant n'a de règle propre au
+// thème. Ce qui suit n'est donc pas une seconde feuille de style, mais la même
+// grammaire avec d'autres valeurs.
+//
+// Deux inversions méritent attention :
+//  - `--amber` sert 39 fois comme COULEUR DE TEXTE et 14 fois comme fond. L'or
+//    vif du thème sombre plafonne à ~1,7:1 sur blanc : illisible en texte. Il
+//    est donc assombri, tout en restant doré en aplat, avec `--on-amber` passé
+//    au blanc.
+//  - `--red-soft` / `--green-soft` sont des teintes CLAIRES lisibles sur fond
+//    sombre. Sur fond clair, il leur faut l'exact opposé.
+[data-theme='light'] {
+  color-scheme: light;
+
+  // Fonds
+  --bg: #f1f3f7;
+  --bg-2: #ffffff;
+
+  // Surfaces
+  --surface: #ffffff;
+  --surface-2: #f4f6fa;
+  --surface-3: #eaeef5;
+
+  // Bordures
+  --border: #dde3ec;
+  --border-strong: #c3ccda;
+
+  // Texte
+  --text: #0f172a;
+  --text-dim: #475569;
+  --text-mute: #64748b;
+  --text-mute-rgb: 100, 116, 139;
+  --chevron-bas: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+
+  // Ambre : assombri pour rester lisible en texte, doré en aplat.
+  --amber: #b45309;
+  --amber-2: #92400e;
+  --amber-light: #f59e0b;
+  --on-amber: #ffffff;
+  --amber-soft: rgba(180, 83, 9, 0.1);
+  --amber-glow: rgba(180, 83, 9, 0.25);
+  --amber-rgb: 180, 83, 9;
+  --amber-2-rgb: 146, 64, 14;
+
+  // États sémantiques — teintes soutenues, lisibles sur blanc.
+  --green: #059669;
+  --red: #dc2626;
+  --blue: #2563eb;
+  --purple: #7c3aed;
+  --green-rgb: 5, 150, 105;
+  --red-rgb: 220, 38, 38;
+  --blue-rgb: 37, 99, 235;
+
+  // Pendants inversés : ici le contraste se gagne en fonçant.
+  --red-soft: #b91c1c;
+  --green-soft: #047857;
+
+  // Un voile blanc serait invisible sur fond clair : il passe au sombre.
+  --voile-rgb: 15, 23, 42;
+  --ombre-rgb: 15, 23, 42;
+
+  // Ombres franchement atténuées : sur fond clair, une ombre dense salit.
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 20px 40px -10px rgba(15, 23, 42, 0.15);
+  --shadow-amber: 0 8px 24px -8px rgba(180, 83, 9, 0.35);
+}
+
 // Breakpoints (référence) : 1024px tablette · 768px mobile · 480px petit mobile.
 @media (max-width: 768px) {
   :root {
@@ -128,32 +233,32 @@
 .badge-success {
   @extend .badge;
   color: var(--green);
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: rgba(var(--green-rgb), 0.1);
+  border: 1px solid rgba(var(--green-rgb), 0.25);
 }
 .badge-danger {
   @extend .badge;
   color: var(--red);
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(var(--red-rgb), 0.1);
+  border: 1px solid rgba(var(--red-rgb), 0.25);
 }
 .badge-warning {
   @extend .badge;
   color: var(--amber);
   background: var(--amber-soft);
-  border: 1px solid rgba(251, 191, 36, 0.3);
+  border: 1px solid rgba(var(--amber-rgb), 0.3);
 }
 .badge-info {
   @extend .badge;
   color: var(--blue);
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  background: rgba(var(--blue-rgb), 0.1);
+  border: 1px solid rgba(var(--blue-rgb), 0.25);
 }
 .badge-neutral {
   @extend .badge;
   color: var(--text-mute);
-  background: rgba(100, 116, 139, 0.1);
-  border: 1px solid rgba(100, 116, 139, 0.2);
+  background: rgba(var(--text-mute-rgb), 0.1);
+  border: 1px solid rgba(var(--text-mute-rgb), 0.2);
 }
 
 // Rétrocompatibilité
@@ -179,8 +284,8 @@
   padding: 0 18px;
   border: 0;
   border-radius: var(--radius-md);
-  background: linear-gradient(180deg, #fcd34d 0%, var(--amber) 50%, var(--amber-2) 100%);
-  color: #1a1207;
+  background: linear-gradient(180deg, var(--amber-light) 0%, var(--amber) 50%, var(--amber-2) 100%);
+  color: var(--on-amber);
   font: inherit;
   font-size: var(--text-base);
   font-weight: 600;
@@ -189,7 +294,7 @@
   align-items: center;
   gap: var(--space-2);
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.4) inset,
+    0 1px 0 rgba(var(--brillance-rgb), 0.4) inset,
     var(--shadow-amber);
   transition:
     filter var(--transition-base),
@@ -244,10 +349,10 @@
 .btn-danger {
   height: 40px;
   padding: 0 16px;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  border: 1px solid rgba(var(--red-rgb), 0.3);
   border-radius: var(--radius-md);
-  background: rgba(239, 68, 68, 0.08);
-  color: #fca5a5;
+  background: rgba(var(--red-rgb), 0.08);
+  color: var(--red-soft);
   font: inherit;
   font-size: var(--text-base);
   font-weight: 500;
@@ -260,8 +365,8 @@
     border-color var(--transition-base);
 
   &:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.15);
-    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(var(--red-rgb), 0.15);
+    border-color: rgba(var(--red-rgb), 0.5);
   }
   &:disabled {
     opacity: 0.5;
@@ -277,7 +382,10 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: transparent;
-  color: var(--text-mute);
+  // `--text-mute` sur une surface sombre plafonnait à ~3,6:1, soit le minimum
+  // WCAG pour un élément graphique — trop juste pour une salle ou une cuisine
+  // aux éclairages variables. `--text-dim` monte à ~6,8:1.
+  color: var(--text-dim);
   cursor: pointer;
   display: inline-grid;
   place-items: center;
@@ -286,9 +394,12 @@
     color var(--transition-base),
     border-color var(--transition-base);
 
-  &:hover {
+  // L'ambre marque la cible visée, sans être l'état par défaut : il reste la
+  // couleur de l'action primaire, et la garde d'autant qu'il est rare.
+  &:hover,
+  &:focus-visible {
     background: var(--surface-2);
-    color: var(--text);
+    color: var(--amber);
     border-color: var(--border-strong);
   }
   &:disabled {
@@ -300,9 +411,9 @@
 .btn-icon-danger {
   @extend .btn-icon;
   &:hover {
-    background: rgba(239, 68, 68, 0.1);
+    background: rgba(var(--red-rgb), 0.1);
     color: var(--red);
-    border-color: rgba(239, 68, 68, 0.3);
+    border-color: rgba(var(--red-rgb), 0.3);
   }
 }
 
@@ -349,7 +460,7 @@
 
   &.ng-invalid.ng-touched {
     border-color: var(--red);
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    box-shadow: 0 0 0 3px rgba(var(--red-rgb), 0.1);
   }
 }
 
@@ -357,7 +468,12 @@
   @extend .field-input;
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  // La flèche est une data-URI, qui ne sait pas lire une variable CSS : sa
+  // couleur y est figée. C'est donc l'IMAGE ENTIÈRE qui est portée par un jeton,
+  // redéfini par le thème clair — sans quoi la flèche resterait gris clair, à
+  // ~2,6:1 sur blanc. (Un masque CSS serait plus élégant, mais il s'appliquerait
+  // à tout le <select>, et un `::after` n'est pas rendu sur un select.)
+  background-image: var(--chevron-bas);
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 38px;
@@ -373,7 +489,7 @@
 
 .field-error {
   font-size: var(--text-xs);
-  color: #fca5a5;
+  color: var(--red-soft);
   margin-top: 2px;
 }
 
@@ -480,9 +596,9 @@
 .alert-error {
   padding: 10px 14px;
   border-radius: var(--radius-md);
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #fca5a5;
+  background: rgba(var(--red-rgb), 0.08);
+  border: 1px solid rgba(var(--red-rgb), 0.3);
+  color: var(--red-soft);
   font-size: var(--text-sm);
   line-height: 1.5;
 }
@@ -490,9 +606,9 @@
 .alert-success {
   padding: 10px 14px;
   border-radius: var(--radius-md);
-  background: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #6ee7b7;
+  background: rgba(var(--green-rgb), 0.08);
+  border: 1px solid rgba(var(--green-rgb), 0.3);
+  color: var(--green-soft);
   font-size: var(--text-sm);
   line-height: 1.5;
 }
@@ -553,7 +669,7 @@
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(var(--ombre-rgb), 0.5);
   backdrop-filter: blur(2px);
   z-index: 40;
 }
@@ -569,7 +685,7 @@
   z-index: 41;
   display: flex;
   flex-direction: column;
-  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5);
+  box-shadow: -20px 0 60px rgba(var(--ombre-rgb), 0.5);
 
   .drawer-header {
     display: flex;
@@ -607,7 +723,7 @@
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1c2740;
+  background: var(--border-strong);
   border-radius: 8px;
 }
 ::-webkit-scrollbar-track {

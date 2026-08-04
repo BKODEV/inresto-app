@@ -65,7 +65,7 @@
   input {
     width: 16px;
     height: 16px;
-    accent-color: var(--amber, #f59e0b);
+    accent-color: var(--amber);
   }
 }
 
@@ -104,7 +104,7 @@
 .gauge {
   height: 10px;
   border-radius: var(--radius-full);
-  background: var(--surface-2, rgba(148, 163, 184, 0.18));
+  background: var(--surface-2);
   overflow: hidden;
 
   &.big {
@@ -115,17 +115,17 @@
 .gauge-fill {
   height: 100%;
   border-radius: var(--radius-full);
-  transition: width var(--transition-base, 0.25s ease);
-  background: var(--green, #10b981);
+  transition: width var(--transition-base);
+  background: var(--green);
 
   &.badge-success {
-    background: var(--green, #10b981);
+    background: var(--green);
   }
   &.badge-warning {
-    background: var(--amber, #f59e0b);
+    background: var(--amber);
   }
   &.badge-danger {
-    background: var(--red, #ef4444);
+    background: var(--red);
   }
 }
 .gauge-legend {
@@ -159,7 +159,7 @@
   margin-top: 4px;
 
   &.neg {
-    color: var(--red, #ef4444);
+    color: var(--red);
   }
 }
 .bc-actions {

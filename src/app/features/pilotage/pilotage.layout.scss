@@ -32,7 +32,9 @@
   white-space: nowrap;
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
-  transition: color var(--transition-base), border-color var(--transition-base);
+  transition:
+    color var(--transition-base),
+    border-color var(--transition-base);
 
   &:hover {
     color: var(--text);
