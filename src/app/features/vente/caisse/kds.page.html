@@ -56,11 +56,14 @@
     } @else {
       <div class="kds-grid">
         @for (c of commandes(); track c.id) {
-          <div class="kds-card">
+          <div class="kds-card" [class]="urgence(c)">
             <div class="kds-head">
               <span class="kds-table">Table {{ c.table?.numero ?? c.table_id }}</span>
-              <span class="kds-time">#{{ c.id }}</span>
+              <!-- Le temps d'attente prime sur le numéro : c'est lui qui dit
+                   quelle commande traîne. -->
+              <span class="kds-attente">{{ attente(c) }}</span>
             </div>
+            <div class="kds-ref">Commande #{{ c.id }}</div>
             <div class="kds-lignes">
               @for (l of lignesActives(c); track l.id) {
                 <div class="kds-ligne">
@@ -73,7 +76,7 @@
               }
             </div>
             <button
-              class="btn btn-primary"
+              class="btn btn-primary btn-service"
               type="button"
               [disabled]="servingId() === c.id"
               (click)="servir(c)"

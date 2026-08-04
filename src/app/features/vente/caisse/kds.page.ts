@@ -17,6 +17,7 @@ import { CommandeClient } from '../../../core/api/commande-client/commande-clien
 import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { rafraichissementAuto } from '../../../core/temps/rafraichissement-auto';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 
@@ -47,7 +48,30 @@ export class KdsPage implements OnInit {
   readonly refreshing = signal(false);
   readonly servingId = signal<number | null>(null);
 
+  /**
+   * Horloge d'affichage : les minutes écoulées sont recalculées à chaque tic.
+   * C'est le signal principal d'un écran de cuisine — sans lui, on ne sait pas
+   * quelle commande traîne.
+   */
+  private readonly maintenant = signal(Date.now());
+
+  /** Minutes au-delà desquelles la carte s'alarme. */
+  private readonly SEUIL_ATTENTION = 10;
+  private readonly SEUIL_RETARD = 20;
+
   constructor() {
+    // Un écran de cuisine reste affiché sans qu'on le touche : il doit se tenir
+    // à jour seul. En pause pendant qu'une commande part au service, pour ne
+    // pas la faire disparaître sous le doigt du cuisinier.
+    rafraichissementAuto(
+      15_000,
+      () => this.refresh(),
+      () => this.servingId() !== null,
+    );
+
+    // L'horloge n'interroge rien : elle fait juste vieillir l'affichage.
+    rafraichissementAuto(10_000, () => this.maintenant.set(Date.now()));
+
     // Aligne le PDV sur le site global et rafraîchit la file cuisine.
     effect(() => {
       const list = this.pdvs();
@@ -103,6 +127,32 @@ export class KdsPage implements OnInit {
         },
         error: () => this.refreshing.set(false),
       });
+  }
+
+  /** Minutes écoulées depuis l'ouverture de la commande. */
+  private minutesEcoulees(c: CommandeClient): number {
+    if (!c.date_heure) {
+      return 0;
+    }
+    return Math.max(0, Math.floor((this.maintenant() - new Date(c.date_heure).getTime()) / 60_000));
+  }
+
+  /** « 7 min » puis « 1 h 05 » au-delà de l'heure. */
+  attente(c: CommandeClient): string {
+    const minutes = this.minutesEcoulees(c);
+    if (minutes < 60) {
+      return `${minutes} min`;
+    }
+    return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')}`;
+  }
+
+  /** Classe d'escalade : la couleur porte l'urgence avant la lecture du chiffre. */
+  urgence(c: CommandeClient): string {
+    const minutes = this.minutesEcoulees(c);
+    if (minutes >= this.SEUIL_RETARD) {
+      return 'kds-card--retard';
+    }
+    return minutes >= this.SEUIL_ATTENTION ? 'kds-card--attention' : '';
   }
 
   lignesActives(c: CommandeClient) {

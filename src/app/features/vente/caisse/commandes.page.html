@@ -48,6 +48,10 @@
           }
         </select>
       </label>
+
+      <button class="btn btn-secondary" type="button" (click)="basculerVue()">
+        {{ vueListe() ? 'Vue plan de salle' : 'Vue liste' }}
+      </button>
     </div>
 
     @if (sessions().length === 0) {
@@ -62,12 +66,13 @@
         <div class="spinner"></div>
         <span>Chargement…</span>
       </div>
-    } @else if (commandes().length === 0) {
+    } @else if (plan().length === 0) {
       <div class="empty-state">
-        <span class="empty-title">Aucune commande en cours</span>
-        <span class="empty-message">Ouvrez une nouvelle commande sur une table libre.</span>
+        <span class="empty-title">Aucune table</span>
+        <span class="empty-message">Ajoutez des tables à ce point de vente.</span>
       </div>
-    } @else {
+    } @else if (vueListe()) {
+      <!-- Repli textuel : pratique pour retrouver une commande par son numéro. -->
       <div class="card">
         <table class="data-table">
           <thead>
@@ -75,8 +80,8 @@
               <th>#</th>
               <th>Table</th>
               <th>Statut</th>
-              <th>Montant dû</th>
-              <th>Reste</th>
+              <th class="num">Montant dû</th>
+              <th class="num">Reste</th>
               <th></th>
             </tr>
           </thead>
@@ -86,20 +91,10 @@
                 <td class="td-mono">{{ c.id }}</td>
                 <td class="td-primary">{{ tableLabel(c) }}</td>
                 <td>
-                  @switch (c.statut) {
-                    @case ('ouverte') {
-                      <span class="badge badge-neutral">Ouverte</span>
-                    }
-                    @case ('envoyee_en_cuisine') {
-                      <span class="badge badge-info">En cuisine</span>
-                    }
-                    @case ('servie') {
-                      <span class="badge badge-warning">Servie</span>
-                    }
-                  }
+                  <span class="badge">{{ statutLabel[c.statut] }}</span>
                 </td>
-                <td>{{ c.montant_du }}</td>
-                <td>{{ c.reste_a_payer }}</td>
+                <td class="num td-mono">{{ c.montant_du }}</td>
+                <td class="num td-mono">{{ c.reste_a_payer }}</td>
                 <td class="td-actions">
                   <a class="btn btn-secondary" [routerLink]="['/vente/caisse/commandes', c.id]">
                     Ouvrir
@@ -109,6 +104,32 @@
             }
           </tbody>
         </table>
+      </div>
+    } @else {
+      <!--
+        Plan de salle : le geste du service est de taper une table, pas de lire
+        une ligne puis de viser un bouton dans une colonne d'actions.
+      -->
+      <div class="salle-grid">
+        @for (entree of plan(); track entree.table.id) {
+          <button
+            type="button"
+            class="salle-table"
+            [class]="entree.commande ? 'salle-table--' + entree.commande.statut : ''"
+            [disabled]="entree.commande === null && sessions().length === 0"
+            (click)="ouvrirTable(entree)"
+          >
+            <span class="salle-num">{{ entree.table.numero }}</span>
+            <span class="salle-cap">{{ entree.table.capacite }} couverts</span>
+
+            @if (entree.commande; as c) {
+              <span class="salle-etat">{{ statutLabel[c.statut] }}</span>
+              <span class="salle-montant">{{ c.reste_a_payer }}</span>
+            } @else {
+              <span class="salle-etat salle-etat--libre">Libre</span>
+            }
+          </button>
+        }
       </div>
     }
   }

@@ -21,6 +21,7 @@ import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-v
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
 import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { rafraichissementAuto } from '../../../core/temps/rafraichissement-auto';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 
@@ -89,6 +90,14 @@ export class TablesPage implements OnInit {
   });
 
   constructor() {
+    // Les statuts de table changent au fil du service, y compris depuis un
+    // autre poste. En pause tiroir ouvert pour ne pas écraser une saisie.
+    rafraichissementAuto(
+      30_000,
+      () => this.rechargerTables(),
+      () => this.drawerOpen(),
+    );
+
     // Le contenu du tiroir appartient au site quitté : changer de périmètre le
     // ferme plutôt que d'enregistrer une saisie sur le mauvais site.
     effect(() => {
@@ -132,8 +141,18 @@ export class TablesPage implements OnInit {
     this.loadTables(id);
   }
 
-  private loadTables(id: number): void {
-    this.loadingTables.set(true);
+  /** Recharge silencieusement le PDV courant (pas d'état « chargement »). */
+  private rechargerTables(): void {
+    const pdvId = this.selectedPdvId();
+    if (pdvId !== null) {
+      this.loadTables(pdvId, { discret: true });
+    }
+  }
+
+  private loadTables(id: number, options: { discret?: boolean } = {}): void {
+    if (options.discret !== true) {
+      this.loadingTables.set(true);
+    }
     this.tableService
       .list(id)
       .pipe(takeUntilDestroyed(this.destroyRef))

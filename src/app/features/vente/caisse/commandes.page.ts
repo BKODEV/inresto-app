@@ -27,6 +27,7 @@ import { SessionCaisse } from '../../../core/api/session-caisse/session-caisse.m
 import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { rafraichissementAuto } from '../../../core/temps/rafraichissement-auto';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 
@@ -80,12 +81,44 @@ export class CommandesVentePage implements OnInit {
     this.tables().filter((t) => t.statut === 'libre' || t.statut === 'reservee'),
   );
 
+  /**
+   * Plan de salle : chaque table du point de vente avec la commande active qui
+   * l'occupe, s'il y en a une.
+   *
+   * C'est le point d'entrée du service. Un serveur debout, en plein coup de
+   * feu, tape une table — il ne lit pas un tableau et ne cherche pas un bouton
+   * « ouvrir » dans une colonne d'actions.
+   */
+  readonly plan = computed(() => {
+    const parTable = new Map<number, CommandeClient>();
+    for (const commande of this.commandes()) {
+      parTable.set(commande.table_id, commande);
+    }
+
+    return this.tables().map((table) => ({
+      table,
+      commande: parTable.get(table.id) ?? null,
+    }));
+  });
+
+  /** Bascule vers l'ancienne liste, utile pour retrouver une commande par son numéro. */
+  readonly vueListe = signal(false);
+
   readonly form = this.fb.nonNullable.group({
     table_id: [0, [Validators.required, Validators.min(1)]],
     session_caisse_id: [0, [Validators.required, Validators.min(1)]],
   });
 
   constructor() {
+    // La salle bouge pendant qu'on regarde l'écran : commandes ouvertes par un
+    // collègue, tables libérées. En pause tiroir ouvert, pour ne pas recharger
+    // sous une saisie en cours.
+    rafraichissementAuto(
+      20_000,
+      () => this.rafraichir(),
+      () => this.drawerOpen(),
+    );
+
     // Le contenu du tiroir appartient au site quitté : changer de périmètre le
     // ferme plutôt que d'enregistrer une saisie sur le mauvais site.
     effect(() => {
@@ -130,8 +163,10 @@ export class CommandesVentePage implements OnInit {
     this.loadData(id);
   }
 
-  private loadData(id: number): void {
-    this.loadingData.set(true);
+  private loadData(id: number, options: { discret?: boolean } = {}): void {
+    if (options.discret !== true) {
+      this.loadingData.set(true);
+    }
     forkJoin({
       commandes: this.commandeService.list(),
       tables: this.tableService.list(id),
@@ -159,6 +194,48 @@ export class CommandesVentePage implements OnInit {
 
   tableLabel(c: CommandeClient): string {
     return c.table ? `Table ${c.table.numero}` : `#${c.table_id}`;
+  }
+
+  /** Recharge sans faire clignoter l'écran (pas d'état « chargement »). */
+  private rafraichir(): void {
+    const pdvId = this.selectedPdvId();
+    if (pdvId !== null) {
+      this.loadData(pdvId, { discret: true });
+    }
+  }
+
+  basculerVue(): void {
+    this.vueListe.update((v) => !v);
+  }
+
+  /**
+   * Geste unique du service : taper une table. Elle est occupée → on ouvre sa
+   * commande ; elle est libre → on en crée une, sans étape intermédiaire dès
+   * qu'une seule session de caisse est ouverte.
+   */
+  ouvrirTable(entree: { table: TableSalle; commande: CommandeClient | null }): void {
+    if (entree.commande !== null) {
+      this.router.navigate(['/vente/caisse/commandes', entree.commande.id]);
+
+      return;
+    }
+
+    const sessions = this.sessions();
+    if (sessions.length === 0) {
+      return;
+    }
+
+    this.form.reset({ table_id: entree.table.id, session_caisse_id: sessions[0].id });
+    this.formError.set(null);
+
+    if (sessions.length === 1) {
+      this.create();
+
+      return;
+    }
+
+    // Plusieurs caisses ouvertes : il faut savoir sur laquelle imputer.
+    this.drawerOpen.set(true);
   }
 
   openCreate(): void {
