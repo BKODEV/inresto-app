@@ -393,11 +393,55 @@
 // ═══ Surcouche de choix du périmètre ════════════════════════════════════════
 // Affichée tant qu'aucun site n'est choisi : aucune donnée n'est chargée avant.
 
-.site-gate {
+// ─── Écran de choix du périmètre ────────────────────────────────────────────
+// Il remplace le shell : ni sidebar ni sélecteur de site, une seule décision à
+// prendre. La barre du haut ne garde que l'identité et la déconnexion.
+
+.gate-screen {
+  display: grid;
+  grid-template-rows: var(--topbar-height) 1fr;
+  height: 100vh;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.gate-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: 0 var(--space-6);
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.gate-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.gate-user-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.gate-body {
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: var(--space-8) var(--space-4);
+  overflow-y: auto;
+}
+
+.gate-body .loading-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-mute);
+  font-size: var(--text-sm);
+  padding: var(--space-8) 0;
 }
 
 .site-gate-card {

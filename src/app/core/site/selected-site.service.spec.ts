@@ -1,5 +1,8 @@
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
+
+import { AuthService } from '../auth/auth.service';
 
 import { SelectedSiteService } from './selected-site.service';
 import { SiteService } from '../api/site/site.service';
@@ -18,12 +21,14 @@ function site(id: number, nom: string): Site {
  */
 describe('SelectedSiteService', () => {
   let perimetre: Site[];
+  let authentifie: ReturnType<typeof signal<boolean>>;
 
   function creerService(): SelectedSiteService {
     TestBed.configureTestingModule({
       providers: [
         SelectedSiteService,
         { provide: SiteService, useValue: { perimetre: () => of(perimetre) } },
+        { provide: AuthService, useValue: { isAuthenticated: authentifie } },
       ],
     });
 
@@ -33,6 +38,7 @@ describe('SelectedSiteService', () => {
   beforeEach(() => {
     localStorage.removeItem(STORAGE_KEY);
     perimetre = [site(1, 'Plateau'), site(2, 'Riviera')];
+    authentifie = signal(true);
   });
 
   afterEach(() => {
@@ -126,6 +132,27 @@ describe('SelectedSiteService', () => {
 
     service.selectTousLesSites();
     expect(service.epoch()).toBe(depart + 2);
+  });
+
+  it('oublie le périmètre à la fin de la session', () => {
+    // Sur un poste partagé, garder le site du précédent connecté ferait opérer
+    // le suivant sur un stock qu'il n'a pas désigné, dès que ce site figure
+    // aussi dans son propre périmètre : `syncScope()` ne rattrape que les sites
+    // devenus interdits.
+    const service = creerService();
+    service.refresh();
+    service.selectSite(2);
+    TestBed.tick();
+
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('2');
+
+    authentifie.set(false); // déconnexion, ou 401 qui invalide le token
+    TestBed.tick();
+
+    expect(service.scope()).toBe('pending');
+    expect(service.sites()).toEqual([]);
+    expect(service.doitChoisir()).toBe(false);
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(null);
   });
 
   it('expose site_id en mono-site et rien en consolidé', () => {
