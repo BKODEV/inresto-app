@@ -4,12 +4,16 @@
       <h1 class="page-title">Cuisine — écran de production (KDS)</h1>
       <p class="page-subtitle">Commandes envoyées en cuisine à préparer puis marquer servies.</p>
     </div>
-    <button class="btn btn-secondary" type="button" [disabled]="refreshing()" (click)="refresh()">
-      @if (refreshing()) {
-        <span class="spinner" style="width: 14px; height: 14px"></span>
-      }
-      Rafraîchir
-    </button>
+    <div class="header-actions">
+      <button class="btn btn-secondary" type="button" [disabled]="refreshing()" (click)="refresh()">
+        @if (refreshing()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Rafraîchir
+      </button>
+      <!-- Seule sortie de l'écran : sans barre latérale, on serait enfermé. -->
+      <a class="btn btn-secondary" routerLink="/dashboard">Quitter</a>
+    </div>
   </div>
 
   @if (loading()) {
@@ -17,10 +21,6 @@
       <div class="spinner"></div>
       <span>Chargement…</span>
     </div>
-  } @else if (estConsolide()) {
-    <app-site-requis
-      message="L’écran cuisine suit les commandes d’un site. Choisissez celui à afficher."
-    />
   } @else if (pdvs().length === 0) {
     <div class="empty-state">
       <span class="empty-title">Aucun point de vente</span>
@@ -28,12 +28,30 @@
         @if (currentSite(); as site) {
           Le site « {{ site.nom }} » n'a pas de point de vente.
         } @else {
-          Sélectionnez un site dans la barre du haut.
+          Choisissez le site à afficher.
         }
       </span>
     </div>
   } @else {
     <div class="toolbar">
+      <!-- L'écran est autonome : le sélecteur de site du shell n'existe pas ici.
+           Masqué quand l'utilisateur n'a qu'un site — un choix unique n'en est
+           pas un, et l'écran doit rester le plus dépouillé possible. -->
+      @if (sites().length > 1) {
+        <label class="field-label">
+          <span class="field-text">Site</span>
+          <select
+            class="field-select"
+            [value]="selectedSiteId()"
+            (change)="onSiteChange($any($event.target).value)"
+          >
+            @for (site of sites(); track site.id) {
+              <option [value]="site.id">{{ site.nom }}</option>
+            }
+          </select>
+        </label>
+      }
+
       <label class="field-label">
         <span class="field-text">Point de vente</span>
         <select

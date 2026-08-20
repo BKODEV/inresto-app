@@ -16,6 +16,8 @@ import { SelectedSiteService } from '../../core/site/selected-site.service';
 import { ChartComponent } from '../../shared/chart/chart.component';
 import { caEvolutionLine, donutChart, horizontalBar } from '../../shared/chart/chart-options';
 import { CHART_PALETTE } from '../../shared/chart/echarts-theme';
+import { QuantitePipe } from '../../shared/format/nombre.pipes';
+import { formatMontant, formatPourcentage } from '../../shared/format/nombre.format';
 
 /** Couleur d'accent par niveau d'alerte budgétaire (vert → rouge). */
 const COULEUR_ALERTE: Record<NiveauAlerteBudget, string> = {
@@ -25,15 +27,10 @@ const COULEUR_ALERTE: Record<NiveauAlerteBudget, string> = {
   depassement: CHART_PALETTE.red,
 };
 
-const MONTANT = new Intl.NumberFormat('fr-FR', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [ChartComponent],
+  imports: [ChartComponent, QuantitePipe],
   templateUrl: './dashboard.page.html',
   styleUrl: './dashboard.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -92,13 +89,13 @@ export class DashboardPage {
     this.router.navigate(['/pilotage/stock']);
   }
 
-  /** Montant formaté, ou tiret si aucune activité (évite les « 0,00 » orphelins). */
+  /** Montant formaté, ou tiret si aucune activité (évite les « 0 » orphelins). */
   montantOuTiret(montant: number | undefined, actif: boolean): string {
-    return actif ? MONTANT.format(montant ?? 0) : '—';
+    return actif ? formatMontant(montant ?? 0) : '—';
   }
 
   pct(value: number | undefined): string {
-    return `${MONTANT.format(value ?? 0)} %`;
+    return formatPourcentage(value ?? 0);
   }
 
   private load(siteId: number | null): void {

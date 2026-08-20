@@ -27,16 +27,39 @@ export class CommandeClientService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/commandes-client`;
 
+  /**
+   * Index paginé et filtré EN BASE.
+   *
+   * Filtrer côté client reviendrait à retélécharger tout l'historique du
+   * restaurant — lignes et produits compris — à chaque rafraîchissement, pour
+   * n'en garder que les quelques commandes vivantes.
+   *
+   * `session_caisse_id` borne au service en cours : la journée d'un restaurant
+   * n'est pas une journée calendaire, un service qui dépasse minuit doit rester
+   * groupé.
+   */
   list(filters?: {
+    point_de_vente_id?: number;
     table_id?: number;
-    statut?: StatutCommandeClient;
+    session_caisse_id?: number;
+    statut?: StatutCommandeClient[];
+    per_page?: number;
   }): Observable<CommandeClient[]> {
     let params = new HttpParams();
+    if (filters?.point_de_vente_id) {
+      params = params.set('point_de_vente_id', filters.point_de_vente_id);
+    }
     if (filters?.table_id) {
       params = params.set('table_id', filters.table_id);
     }
-    if (filters?.statut) {
-      params = params.set('statut', filters.statut);
+    if (filters?.session_caisse_id) {
+      params = params.set('session_caisse_id', filters.session_caisse_id);
+    }
+    for (const statut of filters?.statut ?? []) {
+      params = params.append('statut[]', statut);
+    }
+    if (filters?.per_page) {
+      params = params.set('per_page', filters.per_page);
     }
     return this.http
       .get<ApiResponse<CommandeIndex>>(this.base, { params })

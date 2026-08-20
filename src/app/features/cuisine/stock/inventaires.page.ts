@@ -24,11 +24,12 @@ import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { QuantitePipe } from '../../../shared/format/nombre.pipes';
 
 @Component({
   selector: 'app-inventaires-page',
   standalone: true,
-  imports: [ReactiveFormsModule, SiteRequisComponent],
+  imports: [ReactiveFormsModule, SiteRequisComponent, QuantitePipe],
   templateUrl: './inventaires.page.html',
   styleUrl: './inventaires.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

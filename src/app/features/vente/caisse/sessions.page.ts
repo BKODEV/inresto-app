@@ -21,13 +21,14 @@ import { SessionCaisse } from '../../../core/api/session-caisse/session-caisse.m
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { MontantPipe } from '../../../shared/format/nombre.pipes';
 
 type DrawerMode = 'ouvrir' | 'fermer';
 
 @Component({
   selector: 'app-sessions-page',
   standalone: true,
-  imports: [ReactiveFormsModule, DatePipe, SiteRequisComponent],
+  imports: [ReactiveFormsModule, DatePipe, SiteRequisComponent, MontantPipe],
   templateUrl: './sessions.page.html',
   styleUrl: './caisse.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -62,9 +62,9 @@
               <td class="td-primary">{{ item.libelle }}</td>
               <td>{{ item.categorie?.libelle || '—' }}</td>
               <td>{{ item.unite?.symbole || '—' }}</td>
-              <td class="td-mono">{{ item.stock_courant }}</td>
-              <td class="td-mono">{{ item.seuil_alerte_stock }}</td>
-              <td class="td-mono">{{ item.pmp }}</td>
+              <td class="td-mono">{{ item.stock_courant | qte }}</td>
+              <td class="td-mono">{{ item.seuil_alerte_stock | qte }}</td>
+              <td class="td-mono">{{ item.pmp | coutUnitaire }}</td>
               <td>
                 @if (item.statut === 'actif') {
                   <span class="badge badge-success">Actif</span>

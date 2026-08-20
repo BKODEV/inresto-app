@@ -178,10 +178,10 @@
               @for (ligne of d.lignes; track ligne.id) {
                 <tr>
                   <td class="td-primary">{{ matiereLibelle(ligne) }}</td>
-                  <td class="num td-mono">{{ ligne.quantite_theorique }}</td>
-                  <td class="num td-mono">{{ ligne.quantite_physique }}</td>
+                  <td class="num td-mono">{{ ligne.quantite_theorique | qte }}</td>
+                  <td class="num td-mono">{{ ligne.quantite_physique | qte }}</td>
                   <td class="num td-mono" [class]="ecartClass(ligne.ecart)">
-                    {{ ligne.ecart ?? '—' }}
+                    {{ ligne.ecart | qte }}
                   </td>
                   @if (detailEnCours() && canUpdate()) {
                     <td class="td-actions">
@@ -270,10 +270,10 @@
               @for (ligne of r.lignes; track ligne.id) {
                 <tr>
                   <td class="td-primary">{{ matiereLibelle(ligne) }}</td>
-                  <td class="num td-mono">{{ ligne.quantite_theorique }}</td>
-                  <td class="num td-mono">{{ ligne.quantite_physique }}</td>
+                  <td class="num td-mono">{{ ligne.quantite_theorique | qte }}</td>
+                  <td class="num td-mono">{{ ligne.quantite_physique | qte }}</td>
                   <td class="num td-mono" [class]="ecartClass(ligne.ecart)">
-                    {{ ligne.ecart ?? '—' }}
+                    {{ ligne.ecart | qte }}
                   </td>
                 </tr>
               }

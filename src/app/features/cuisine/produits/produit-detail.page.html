@@ -127,7 +127,7 @@
                   @for (ligne of f.lignes_matieres; track ligne.id) {
                     <tr>
                       <td class="td-primary">{{ matiereLibelle(ligne) }}</td>
-                      <td class="num td-mono">{{ ligne.quantite }}</td>
+                      <td class="num td-mono">{{ ligne.quantite | qte }}</td>
                       <td>{{ uniteSymbole(ligne) }}</td>
                     </tr>
                   }
@@ -150,7 +150,7 @@
                   @for (ligne of f.lignes_sous_recettes; track ligne.id) {
                     <tr>
                       <td class="td-primary">{{ sousRecetteLibelle(ligne) }}</td>
-                      <td class="num td-mono">{{ ligne.quantite }}</td>
+                      <td class="num td-mono">{{ ligne.quantite | qte }}</td>
                     </tr>
                   }
                 </tbody>

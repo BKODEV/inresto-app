@@ -59,7 +59,7 @@
                     <span class="produit-nom">{{
                       cp.produit?.libelle ?? '#' + cp.produit_id
                     }}</span>
-                    <span class="produit-prix">{{ cp.prix_vente }}</span>
+                    <span class="produit-prix">{{ cp.prix_vente | montant }}</span>
                   </button>
                 }
               </div>
@@ -98,7 +98,7 @@
                     <span>{{
                       p.mode_de_paiement?.libelle ?? 'Mode #' + p.mode_de_paiement_id
                     }}</span>
-                    <span>{{ p.montant }}</span>
+                    <span>{{ p.montant | montant }}</span>
                   </div>
                 }
               </div>
@@ -120,7 +120,7 @@
                 <div class="ticket-ligne">
                   <span class="ticket-qte">{{ l.quantite }}×</span>
                   <span class="ticket-nom">{{ l.produit?.libelle ?? '#' + l.produit_id }}</span>
-                  <span class="ticket-prix">{{ l.prix_unitaire }}</span>
+                  <span class="ticket-prix">{{ l.prix_unitaire | montant }}</span>
                   @if (!estTerminee()) {
                     <button
                       class="btn-icon btn-icon-danger"
@@ -151,13 +151,13 @@
 
           <div class="sub-list">
             <div class="sub-row">
-              <span>Total lignes</span><span>{{ c.montant_total }}</span>
+              <span>Total lignes</span><span>{{ c.montant_total | montant }}</span>
             </div>
             <div class="sub-row">
-              <span>Montant dû</span><strong>{{ c.montant_du }}</strong>
+              <span>Montant dû</span><strong>{{ c.montant_du | montant }}</strong>
             </div>
             <div class="sub-row">
-              <span>Payé</span><span>{{ c.montant_paye }}</span>
+              <span>Payé</span><span>{{ c.montant_paye | montant }}</span>
             </div>
             <div class="sub-row">
               <span>Reste à payer</span>

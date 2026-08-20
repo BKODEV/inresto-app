@@ -45,6 +45,7 @@ export class ParametresLayout {
     { label: 'Modes de paiement', route: 'modes-de-paiement' },
     { label: 'Utilisateurs', route: 'utilisateurs', permission: 'utilisateur.view' },
     { label: 'Rôles', route: 'roles', permission: 'role.view' },
+    { label: "Journal d'activité", route: 'journal', permission: 'journal.view' },
   ];
 
   /** Onglets visibles selon les permissions de l'utilisateur connecté. */

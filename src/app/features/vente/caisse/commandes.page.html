@@ -93,7 +93,7 @@
                 <td>
                   <span class="badge">{{ statutLabel[c.statut] }}</span>
                 </td>
-                <td class="num td-mono">{{ c.montant_du }}</td>
+                <td class="num td-mono">{{ c.montant_du | montant }}</td>
                 <td class="num td-mono">{{ c.reste_a_payer }}</td>
                 <td class="td-actions">
                   <a class="btn btn-secondary" [routerLink]="['/vente/caisse/commandes', c.id]">

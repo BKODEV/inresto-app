@@ -361,3 +361,11 @@
     gap: var(--space-2);
   }
 }
+
+// Écran cuisine servi hors du shell : il porte lui-même ses actions de sortie
+// et son sélecteur de site, absents faute de barre latérale.
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}

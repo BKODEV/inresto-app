@@ -147,7 +147,7 @@
                   <span class="alerte-matiere">{{ item.matiere }}</span>
                   <span class="alerte-site">{{ item.site }}</span>
                   <span class="alerte-stock num">
-                    {{ item.stock_courant }} / {{ item.seuil }} {{ item.unite ?? '' }}
+                    {{ item.stock_courant | qte }} / {{ item.seuil | qte }} {{ item.unite ?? '' }}
                   </span>
                   <span class="alerte-go">→</span>
                 </li>

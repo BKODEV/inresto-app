@@ -30,13 +30,14 @@ import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { rafraichissementAuto } from '../../../core/temps/rafraichissement-auto';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { MontantPipe } from '../../../shared/format/nombre.pipes';
 
 const ACTIFS: StatutCommandeClient[] = ['ouverte', 'envoyee_en_cuisine', 'servie'];
 
 @Component({
   selector: 'app-commandes-vente-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, SiteRequisComponent],
+  imports: [ReactiveFormsModule, RouterLink, SiteRequisComponent, MontantPipe],
   templateUrl: './commandes.page.html',
   styleUrl: './caisse.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -95,10 +96,14 @@ export class CommandesVentePage implements OnInit {
       parTable.set(commande.table_id, commande);
     }
 
-    return this.tables().map((table) => ({
-      table,
-      commande: parTable.get(table.id) ?? null,
-    }));
+    // Tri naturel : l'API ordonne par `numero`, une colonne texte, qui place
+    // T10 avant T2. Le plan de salle doit se lire dans l'ordre de la salle.
+    return [...this.tables()]
+      .sort((a, b) => a.numero.localeCompare(b.numero, 'fr', { numeric: true }))
+      .map((table) => ({
+        table,
+        commande: parTable.get(table.id) ?? null,
+      }));
   });
 
   /** Bascule vers l'ancienne liste, utile pour retrouver une commande par son numéro. */
@@ -168,16 +173,16 @@ export class CommandesVentePage implements OnInit {
       this.loadingData.set(true);
     }
     forkJoin({
-      commandes: this.commandeService.list(),
+      // Filtré en base : l'écran ne charge que les commandes vivantes de SON
+      // point de vente, pas l'historique complet du restaurant.
+      commandes: this.commandeService.list({ point_de_vente_id: id, statut: ACTIFS }),
       tables: this.tableService.list(id),
       sessions: this.sessionService.list(),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: ({ commandes, tables, sessions }) => {
-          this.commandes.set(
-            commandes.filter((c) => ACTIFS.includes(c.statut) && c.table?.point_de_vente_id === id),
-          );
+          this.commandes.set(commandes);
           this.tables.set(tables);
           this.sessions.set(
             sessions.filter((s) => s.statut === 'ouverte' && s.caisse?.point_de_vente_id === id),

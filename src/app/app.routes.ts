@@ -12,14 +12,14 @@ export const routes: Routes = [
     path: 'login',
     canActivate: [guestGuard],
     loadComponent: () => import('./features/auth/login/login.page').then((m) => m.LoginPage),
-    title: 'InnResto — Connexion',
+    title: 'Connexion',
   },
   {
     // Page publique : consommation du lien de réinitialisation reçu par email.
     path: 'reset-password',
     loadComponent: () =>
       import('./features/auth/reset-password/reset-password.page').then((m) => m.ResetPasswordPage),
-    title: 'InnResto — Réinitialisation du mot de passe',
+    title: 'Réinitialisation du mot de passe',
   },
   {
     // Page publique : menu consulté par un client depuis le QR de sa table.
@@ -31,6 +31,16 @@ export const routes: Routes = [
     title: 'Menu',
   },
   {
+    // Écran de production cuisine : un afficheur vissé au mur, que personne ne
+    // pilote. Déclaré hors du shell — pas de barre latérale ni d'onglets frères
+    // à côté desquels un coup de coude enverrait la cuisine sur les fonds de
+    // caisse. Authentifié malgré tout : il expose les commandes du service.
+    path: 'kds',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/vente/caisse/kds.page').then((m) => m.KdsPage),
+    title: 'Écran cuisine',
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./features/shell/shell.layout').then((m) => m.ShellLayout),
@@ -39,7 +49,7 @@ export const routes: Routes = [
         path: 'dashboard',
         loadComponent: () =>
           import('./features/dashboard/dashboard.page').then((m) => m.DashboardPage),
-        title: 'InnResto — Tableau de bord',
+        title: 'Tableau de bord',
       },
       {
         path: 'cuisine',
@@ -50,7 +60,7 @@ export const routes: Routes = [
               import('./features/cuisine/fournisseurs/fournisseurs.page').then(
                 (m) => m.FournisseursPage,
               ),
-            title: 'InnResto — Fournisseurs',
+            title: 'Fournisseurs',
           },
           {
             path: 'fournisseurs/:id',
@@ -58,7 +68,7 @@ export const routes: Routes = [
               import('./features/cuisine/fournisseurs/fournisseur-detail.page').then(
                 (m) => m.FournisseurDetailPage,
               ),
-            title: 'InnResto — Fiche fournisseur',
+            title: 'Fiche fournisseur',
           },
           {
             path: 'matieres-premieres',
@@ -66,7 +76,7 @@ export const routes: Routes = [
               import('./features/cuisine/matieres-premieres/matieres-premieres.page').then(
                 (m) => m.MatieresPremieresPage,
               ),
-            title: 'InnResto — Matières premières',
+            title: 'Matières premières',
           },
           {
             path: 'commandes',
@@ -82,7 +92,7 @@ export const routes: Routes = [
                   import('./features/cuisine/commandes/commandes.page').then(
                     (m) => m.CommandesPage,
                   ),
-                title: 'InnResto — Commandes fournisseur',
+                title: 'Commandes fournisseur',
               },
               {
                 path: 'receptions',
@@ -90,7 +100,7 @@ export const routes: Routes = [
                   import('./features/cuisine/commandes/receptions.page').then(
                     (m) => m.ReceptionsPage,
                   ),
-                title: 'InnResto — Réceptions',
+                title: 'Réceptions',
               },
             ],
           },
@@ -101,7 +111,7 @@ export const routes: Routes = [
               import('./features/cuisine/commandes/commande-detail.page').then(
                 (m) => m.CommandeDetailPage,
               ),
-            title: 'InnResto — Commande fournisseur',
+            title: 'Commande fournisseur',
           },
           {
             path: 'fiches-techniques',
@@ -115,7 +125,7 @@ export const routes: Routes = [
                 path: 'produits',
                 loadComponent: () =>
                   import('./features/vente/cartes/produits.page').then((m) => m.ProduitsPage),
-                title: 'InnResto — Produits',
+                title: 'Produits',
               },
               {
                 path: 'fiches',
@@ -123,7 +133,7 @@ export const routes: Routes = [
                   import('./features/cuisine/fiches-techniques/fiches-techniques.page').then(
                     (m) => m.FichesTechniquesPage,
                   ),
-                title: 'InnResto — Fiches techniques',
+                title: 'Fiches techniques',
               },
               {
                 path: 'sous-recettes',
@@ -131,7 +141,7 @@ export const routes: Routes = [
                   import('./features/cuisine/fiches-techniques/sous-recettes.page').then(
                     (m) => m.SousRecettesPage,
                   ),
-                title: 'InnResto — Sous-recettes',
+                title: 'Sous-recettes',
               },
             ],
           },
@@ -141,7 +151,7 @@ export const routes: Routes = [
               import('./features/cuisine/produits/produit-detail.page').then(
                 (m) => m.ProduitDetailPage,
               ),
-            title: 'InnResto — Fiche produit',
+            title: 'Fiche produit',
           },
           {
             path: 'stock',
@@ -156,7 +166,7 @@ export const routes: Routes = [
                 path: 'etat',
                 loadComponent: () =>
                   import('./features/cuisine/stock/etat-stock.page').then((m) => m.EtatStockPage),
-                title: 'InnResto — État du stock',
+                title: 'État du stock',
               },
               {
                 path: 'mouvements',
@@ -164,7 +174,7 @@ export const routes: Routes = [
                   import('./features/cuisine/stock/mouvements-stock.page').then(
                     (m) => m.MouvementsStockPage,
                   ),
-                title: 'InnResto — Mouvements de stock',
+                title: 'Mouvements de stock',
               },
               {
                 path: 'inventaires',
@@ -172,7 +182,7 @@ export const routes: Routes = [
                   import('./features/cuisine/stock/inventaires.page').then(
                     (m) => m.InventairesPage,
                   ),
-                title: 'InnResto — Inventaires',
+                title: 'Inventaires',
               },
             ],
           },
@@ -180,7 +190,7 @@ export const routes: Routes = [
             path: 'budget',
             loadComponent: () =>
               import('./features/cuisine/budget/budget.page').then((m) => m.BudgetPage),
-            title: 'InnResto — Budget',
+            title: 'Budget',
           },
         ],
       },
@@ -197,13 +207,13 @@ export const routes: Routes = [
                 path: 'liste',
                 loadComponent: () =>
                   import('./features/vente/cartes/cartes.page').then((m) => m.CartesPage),
-                title: 'InnResto — Cartes',
+                title: 'Cartes',
               },
               {
                 path: 'produits',
                 loadComponent: () =>
                   import('./features/vente/cartes/produits.page').then((m) => m.ProduitsPage),
-                title: 'InnResto — Produits',
+                title: 'Produits',
               },
             ],
           },
@@ -213,13 +223,13 @@ export const routes: Routes = [
               import('./features/vente/cartes/carte-composition.page').then(
                 (m) => m.CarteCompositionPage,
               ),
-            title: 'InnResto — Composition de carte',
+            title: 'Composition de carte',
           },
           {
             path: 'tables',
             loadComponent: () =>
               import('./features/vente/tables/tables.page').then((m) => m.TablesPage),
-            title: 'InnResto — Plan de tables',
+            title: 'Plan de tables',
           },
           {
             path: 'caisse',
@@ -231,7 +241,7 @@ export const routes: Routes = [
                 path: 'sessions',
                 loadComponent: () =>
                   import('./features/vente/caisse/sessions.page').then((m) => m.SessionsPage),
-                title: 'InnResto — Sessions de caisse',
+                title: 'Sessions de caisse',
               },
               {
                 path: 'commandes',
@@ -239,7 +249,7 @@ export const routes: Routes = [
                   import('./features/vente/caisse/commandes.page').then(
                     (m) => m.CommandesVentePage,
                   ),
-                title: 'InnResto — Prise de commande',
+                title: 'Prise de commande',
               },
               {
                 path: 'commandes/:id',
@@ -247,13 +257,7 @@ export const routes: Routes = [
                   import('./features/vente/caisse/commande-detail.page').then(
                     (m) => m.CommandeVenteDetailPage,
                   ),
-                title: 'InnResto — Commande',
-              },
-              {
-                path: 'kds',
-                loadComponent: () =>
-                  import('./features/vente/caisse/kds.page').then((m) => m.KdsPage),
-                title: 'InnResto — Cuisine (KDS)',
+                title: 'Commande',
               },
             ],
           },
@@ -269,19 +273,19 @@ export const routes: Routes = [
             path: 'food-cost',
             loadComponent: () =>
               import('./features/pilotage/food-cost/food-cost.page').then((m) => m.FoodCostPage),
-            title: 'InnResto — Food cost',
+            title: 'Food cost',
           },
           {
             path: 'ventes',
             loadComponent: () =>
               import('./features/pilotage/ventes/ventes.page').then((m) => m.VentesPage),
-            title: 'InnResto — Ventes',
+            title: 'Ventes',
           },
           {
             path: 'stock',
             loadComponent: () =>
               import('./features/pilotage/stock/stock.page').then((m) => m.StockReportingPage),
-            title: 'InnResto — Stock (pilotage)',
+            title: 'Stock (pilotage)',
           },
           {
             path: 'budget',
@@ -289,7 +293,7 @@ export const routes: Routes = [
               import('./features/pilotage/budget/budget-reporting.page').then(
                 (m) => m.BudgetReportingPage,
               ),
-            title: 'InnResto — Budget (pilotage)',
+            title: 'Budget (pilotage)',
           },
         ],
       },
@@ -307,13 +311,13 @@ export const routes: Routes = [
             path: 'sites',
             loadComponent: () =>
               import('./features/parametres/sites/sites.page').then((m) => m.SitesPage),
-            title: 'InnResto — Sites',
+            title: 'Sites',
           },
           {
             path: 'sites/:id',
             loadComponent: () =>
               import('./features/parametres/sites/site-detail.page').then((m) => m.SiteDetailPage),
-            title: 'InnResto — Détail de site',
+            title: 'Détail de site',
           },
           {
             path: 'points-de-vente/:id',
@@ -321,7 +325,7 @@ export const routes: Routes = [
               import('./features/parametres/points-de-vente/point-de-vente-detail.page').then(
                 (m) => m.PointDeVenteDetailPage,
               ),
-            title: 'InnResto — Détail point de vente',
+            title: 'Détail point de vente',
           },
           {
             path: 'categories-produit',
@@ -329,7 +333,7 @@ export const routes: Routes = [
               import('./features/parametres/categories-produit/categories-produit.page').then(
                 (m) => m.CategoriesProduitPage,
               ),
-            title: 'InnResto — Catégories produit',
+            title: 'Catégories produit',
           },
           {
             path: 'categories-matiere-premiere',
@@ -337,7 +341,7 @@ export const routes: Routes = [
               import('./features/parametres/categories-matiere-premiere/categories-matiere-premiere.page').then(
                 (m) => m.CategoriesMatierePremierePage,
               ),
-            title: 'InnResto — Catégories matière première',
+            title: 'Catégories matière première',
           },
           {
             path: 'unites-de-mesure',
@@ -345,7 +349,7 @@ export const routes: Routes = [
               import('./features/parametres/unites-de-mesure/unites-de-mesure.page').then(
                 (m) => m.UnitesDeMesurePage,
               ),
-            title: 'InnResto — Unités de mesure',
+            title: 'Unités de mesure',
           },
           {
             path: 'modes-de-paiement',
@@ -353,7 +357,7 @@ export const routes: Routes = [
               import('./features/parametres/modes-de-paiement/modes-de-paiement.page').then(
                 (m) => m.ModesDePaiementPage,
               ),
-            title: 'InnResto — Modes de paiement',
+            title: 'Modes de paiement',
           },
           {
             path: 'utilisateurs',
@@ -361,13 +365,19 @@ export const routes: Routes = [
               import('./features/parametres/utilisateurs/utilisateurs.page').then(
                 (m) => m.UtilisateursPage,
               ),
-            title: 'InnResto — Utilisateurs',
+            title: 'Utilisateurs',
           },
           {
             path: 'roles',
             loadComponent: () =>
               import('./features/parametres/roles/roles.page').then((m) => m.RolesPage),
-            title: 'InnResto — Rôles',
+            title: 'Rôles',
+          },
+          {
+            path: 'journal',
+            loadComponent: () =>
+              import('./features/parametres/journal/journal.page').then((m) => m.JournalPage),
+            title: "Journal d'activité",
           },
         ],
       },

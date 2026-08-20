@@ -19,11 +19,12 @@ import { UniteDeMesureService } from '../../../core/api/unite-de-mesure/unite-de
 import { UniteDeMesure } from '../../../core/api/unite-de-mesure/unite-de-mesure.model';
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { QuantitePipe } from '../../../shared/format/nombre.pipes';
 
 @Component({
   selector: 'app-sous-recettes-page',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, QuantitePipe],
   templateUrl: './sous-recettes.page.html',
   styleUrl: './sous-recettes.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

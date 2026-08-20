@@ -131,7 +131,9 @@
               @for (ligne of d.lignes; track ligne.id) {
                 <tr>
                   <td class="td-primary">{{ matiereLibelle(ligne) }}</td>
-                  <td class="num td-mono">{{ ligne.quantite_recue }} {{ uniteSymbole(ligne) }}</td>
+                  <td class="num td-mono">
+                    {{ ligne.quantite_recue | qte }} {{ uniteSymbole(ligne) }}
+                  </td>
                   <td class="num td-mono">{{ formatMontant(ligne.prix_unitaire_reel) }}</td>
                   <td class="num td-mono">{{ formatMontant(ligne.sous_total) }} FCFA</td>
                 </tr>

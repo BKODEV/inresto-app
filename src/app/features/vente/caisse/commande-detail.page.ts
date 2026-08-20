@@ -28,13 +28,14 @@ import { ModeDePaiementService } from '../../../core/api/mode-de-paiement/mode-d
 import { ModeDePaiement } from '../../../core/api/mode-de-paiement/mode-de-paiement.model';
 import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { MontantPipe } from '../../../shared/format/nombre.pipes';
 
 type DrawerMode = 'paiement' | 'remise' | 'annuler-ligne' | null;
 
 @Component({
   selector: 'app-commande-vente-detail-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, MontantPipe],
   templateUrl: './commande-detail.page.html',
   styleUrl: './caisse.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -228,7 +229,10 @@ export class CommandeVenteDetailPage implements OnInit {
 
   /** Ouvre la facture (A4) dans un nouvel onglet. */
   imprimerFacture(): void {
-    this.ouvrirPdf(this.pdfService.factureClient(this.commandeId), `facture-${this.commandeId}.pdf`);
+    this.ouvrirPdf(
+      this.pdfService.factureClient(this.commandeId),
+      `facture-${this.commandeId}.pdf`,
+    );
   }
 
   /** Ouvre le reçu (ticket 80mm) dans un nouvel onglet. */

@@ -30,6 +30,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { QuantitePipe } from '../../../shared/format/nombre.pipes';
 
 /**
  * Détail d'un produit = point d'entrée unique de la recette : informations
@@ -40,7 +41,7 @@ import { SelectedSiteService } from '../../../core/site/selected-site.service';
 @Component({
   selector: 'app-produit-detail-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, QuantitePipe],
   templateUrl: './produit-detail.page.html',
   styleUrl: './produit-detail.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

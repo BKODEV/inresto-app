@@ -82,10 +82,31 @@ export const MENU: MenuSection[] = [
         enabled: false,
       },
       {
+        // L'écran le plus utilisé du service : une entrée à part entière plutôt
+        // qu'un onglet enfoui sous « Caisse », que le serveur ouvrirait
+        // cinquante fois par service en deux clics au lieu d'un.
+        label: 'Prise de commande',
+        icon: 'clipboard-list',
+        route: '/vente/caisse/commandes',
+        permission: 'commande_client.view',
+      },
+      {
+        // `create` et non `view` : cette entrée mène à l'ouverture/fermeture de
+        // caisse. Le serveur détient `view` pour rattacher sa commande à une
+        // session, ce qui ne fait pas de lui un responsable de caisse.
         label: 'Caisse',
         icon: 'receipt',
-        route: '/vente/caisse',
-        permission: 'session_caisse.view',
+        route: '/vente/caisse/sessions',
+        permission: 'session_caisse.create',
+      },
+      {
+        // Afficheur mural, servi hors du shell : pas de barre latérale à côté
+        // de laquelle un coup de coude renverrait la cuisine sur les fonds de
+        // caisse. L'entrée reste ici pour l'ouvrir la première fois.
+        label: 'Écran cuisine (KDS)',
+        icon: 'chef-hat',
+        route: '/kds',
+        permission: 'commande_client.view',
       },
     ],
   },
@@ -122,32 +143,6 @@ export const MENU: MenuSection[] = [
     title: 'PARAMÈTRES',
     items: [
       { label: 'Paramètres', icon: 'settings', route: '/parametres', permission: 'parametre.view' },
-    ],
-  },
-  {
-    title: 'ADMINISTRATION',
-    items: [
-      {
-        label: 'Utilisateurs',
-        icon: 'users',
-        route: '/admin/utilisateurs',
-        permission: 'utilisateur.view',
-        enabled: false,
-      },
-      {
-        label: 'Rôles & permissions',
-        icon: 'shield',
-        route: '/admin/roles',
-        permission: 'role.view',
-        enabled: false,
-      },
-      {
-        label: "Journal d'activité",
-        icon: 'history',
-        route: '/admin/journal',
-        permission: 'journal.view',
-        enabled: false,
-      },
     ],
   },
 ];

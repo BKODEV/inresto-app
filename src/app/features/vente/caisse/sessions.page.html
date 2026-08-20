@@ -62,7 +62,7 @@
         <div class="totaux" style="padding: 0">
           <div class="total-item">
             <span class="total-label">Fonds initial</span>
-            <span class="total-value">{{ open.fonds_initial }}</span>
+            <span class="total-value">{{ open.fonds_initial | montant }}</span>
           </div>
         </div>
         <div class="actions-row">
@@ -99,16 +99,16 @@
                 <td class="td-mono">{{ s.id }}</td>
                 <td>{{ s.ouvert_le | date: 'short' }}</td>
                 <td>{{ s.ferme_le ? (s.ferme_le | date: 'short') : '—' }}</td>
-                <td>{{ s.fonds_initial }}</td>
-                <td>{{ s.montant_theorique ?? '—' }}</td>
-                <td>{{ s.montant_reel ?? '—' }}</td>
+                <td>{{ s.fonds_initial | montant }}</td>
+                <td>{{ s.montant_theorique | montant }}</td>
+                <td>{{ s.montant_reel | montant }}</td>
                 <td>
                   @if (s.ecart !== null) {
                     <span
                       class="badge"
                       [class.badge-success]="+s.ecart === 0"
                       [class.badge-danger]="+s.ecart !== 0"
-                      >{{ s.ecart }}</span
+                      >{{ s.ecart | montant }}</span
                     >
                   } @else {
                     —

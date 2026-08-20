@@ -12,19 +12,20 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 
+import { RouterLink } from '@angular/router';
+
 import { CommandeClientService } from '../../../core/api/commande-client/commande-client.service';
 import { CommandeClient } from '../../../core/api/commande-client/commande-client.model';
 import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { rafraichissementAuto } from '../../../core/temps/rafraichissement-auto';
-import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 
 @Component({
   selector: 'app-kds-page',
   standalone: true,
-  imports: [SiteRequisComponent],
+  imports: [RouterLink],
   templateUrl: './kds.page.html',
   styleUrl: './caisse.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,7 +38,8 @@ export class KdsPage implements OnInit {
 
   private readonly allPdvs = signal<PointDeVente[]>([]);
   readonly currentSite = this.selectedSite.selectedSite;
-  readonly estConsolide = this.selectedSite.estConsolide;
+  readonly sites = this.selectedSite.sites;
+  readonly selectedSiteId = this.selectedSite.selectedId;
   readonly pdvs = computed(() => {
     const siteId = this.selectedSite.selectedId();
     return siteId === null ? [] : this.allPdvs().filter((p) => p.site_id === siteId);
@@ -90,6 +92,10 @@ export class KdsPage implements OnInit {
   }
 
   ngOnInit(): void {
+    // Hors du shell, personne d'autre ne charge le périmètre de l'utilisateur —
+    // et sans lui, `pdvs()` reste vide et l'écran n'affiche jamais rien.
+    this.selectedSite.refresh();
+
     this.pdvService
       .list()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -100,6 +106,10 @@ export class KdsPage implements OnInit {
         },
         error: () => this.loading.set(false),
       });
+  }
+
+  onSiteChange(value: string): void {
+    this.selectedSite.selectSite(Number(value));
   }
 
   selectPdv(id: number): void {

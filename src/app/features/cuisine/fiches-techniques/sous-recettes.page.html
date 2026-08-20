@@ -2,15 +2,22 @@
   <div class="page-header">
     <div>
       <h2 class="page-title">Sous-recettes</h2>
-      <p class="page-subtitle">Préparations intermédiaires réutilisées dans les fiches techniques.</p>
+      <p class="page-subtitle">
+        Préparations intermédiaires réutilisées dans les fiches techniques.
+      </p>
     </div>
     @if (canManage()) {
-      <button class="btn btn-primary" type="button" (click)="openCreate()">+ Nouvelle sous-recette</button>
+      <button class="btn btn-primary" type="button" (click)="openCreate()">
+        + Nouvelle sous-recette
+      </button>
     }
   </div>
 
   @if (loading()) {
-    <div class="loading-row"><div class="spinner"></div><span>Chargement…</span></div>
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
   } @else if (items().length === 0) {
     <div class="empty-state">
       <span class="empty-title">Aucune sous-recette</span>
@@ -32,12 +39,16 @@
           @for (item of items(); track item.id) {
             <tr>
               <td class="td-primary">{{ item.libelle }}</td>
-              <td class="num td-mono">{{ item.quantite_produite }} {{ uniteSymbole(item.unite_id) }}</td>
+              <td class="num td-mono">
+                {{ item.quantite_produite | qte }} {{ uniteSymbole(item.unite_id) }}
+              </td>
               <td class="num td-mono">{{ formatMontant(item.cout_matiere) }} FCFA</td>
               <td>{{ item.lignes?.length ?? 0 }} matière(s)</td>
               <td class="td-actions">
                 @if (canManage()) {
-                  <button class="btn-icon" type="button" (click)="openEdit(item)" title="Modifier">✎</button>
+                  <button class="btn-icon" type="button" (click)="openEdit(item)" title="Modifier">
+                    ✎
+                  </button>
                 }
                 @if (canDelete()) {
                   <button
@@ -75,12 +86,23 @@
       <form [formGroup]="form" novalidate>
         <label class="field-label">
           <span class="field-text">Libellé <span class="required">*</span></span>
-          <input class="field-input" type="text" formControlName="libelle" placeholder="Ex : Sauce tomate maison" />
+          <input
+            class="field-input"
+            type="text"
+            formControlName="libelle"
+            placeholder="Ex : Sauce tomate maison"
+          />
         </label>
         <div class="frow" style="margin-top: 16px">
           <div>
             <label class="ctl-l">Quantité produite <span class="req">*</span></label>
-            <input class="field-input" type="number" min="0" step="0.001" formControlName="quantite_produite" />
+            <input
+              class="field-input"
+              type="number"
+              min="0"
+              step="0.001"
+              formControlName="quantite_produite"
+            />
           </div>
           <div>
             <label class="ctl-l">Unité <span class="req">*</span></label>
@@ -99,7 +121,14 @@
         <div class="entry" [formGroup]="group">
           <div class="entry-top">
             <span class="entry-idx">Ligne {{ i + 1 }}</span>
-            <button class="entry-rm" type="button" [disabled]="lignes().length <= 1" (click)="removeLigne(group)">✕</button>
+            <button
+              class="entry-rm"
+              type="button"
+              [disabled]="lignes().length <= 1"
+              (click)="removeLigne(group)"
+            >
+              ✕
+            </button>
           </div>
           <label class="ctl-l">Matière première <span class="req">*</span></label>
           <select class="field-select" formControlName="matiere_premiere_id">
@@ -111,12 +140,23 @@
           <div class="frow" style="margin-top: 12px">
             <div>
               <label class="ctl-l">Quantité <span class="req">*</span></label>
-              <input class="field-input" type="number" min="0" step="0.001" formControlName="quantite" />
+              <input
+                class="field-input"
+                type="number"
+                min="0"
+                step="0.001"
+                formControlName="quantite"
+              />
             </div>
             <div>
               <label class="ctl-l">Unité</label>
               <!-- Unité imposée par la matière (unité de stockage) : lecture seule. -->
-              <input class="field-input" type="text" [value]="uniteStockageSymbole(group)" disabled />
+              <input
+                class="field-input"
+                type="text"
+                [value]="uniteStockageSymbole(group)"
+                disabled
+              />
             </div>
           </div>
         </div>
