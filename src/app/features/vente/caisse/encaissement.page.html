@@ -221,20 +221,26 @@
           />
         </label>
 
-        <!-- Le pourboire reste en tiroir mais n'appartient pas à
-             l'établissement : il compte dans le fond de caisse théorique et
-             jamais dans le chiffre d'affaires. Le bénéficiaire est le serveur
-             de la note. -->
+        <!-- Ne concerne QUE le pourboire qui atterrit dans le tiroir. Celui
+             que le serveur reçoit de la main à la main n'entre jamais ici : le
+             saisir gonflerait le fond de caisse théorique d'un argent que
+             personne ne retrouvera en comptant, donc un manquant exactement égal
+             au pourboire. C'est le faux signal que tout ce module cherche à
+             éliminer. -->
         <label class="field-label" style="margin-top: 16px">
-          <span class="field-text">Pourboire</span>
+          <span class="field-text">Pourboire reçu au comptoir</span>
           <input
             class="field-input"
             type="number"
             min="0"
             step="0.01"
-            placeholder="Laissé au serveur"
+            placeholder="0"
             formControlName="pourboire"
           />
+          <span class="field-hint">
+            Uniquement si l'argent est dans le tiroir. Un pourboire remis directement au serveur ne
+            se saisit pas : il créerait un manquant à la fermeture.
+          </span>
         </label>
 
         @if (recuInsuffisant()) {
