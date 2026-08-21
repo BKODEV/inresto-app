@@ -212,14 +212,14 @@
            inviterait à le recopier au lieu de compter, et le rapprochement ne
            vaudrait plus rien. Le verdict s'affiche après la fermeture. -->
       <p class="field-hint" style="margin-bottom: 12px">
-        Comptez chaque contenant et reportez ce que vous y trouvez. Laissez vide ce que vous ne
-        pouvez pas vérifier ce soir — un virement, par exemple.
+        Comptez chaque moyen de paiement et reportez ce que vous trouvez : les espèces du tiroir, le
+        total du terminal. Zéro est une réponse valide.
       </p>
 
       @for (mode of modes(); track mode.id) {
         <label class="field-label" style="margin-top: 12px">
           <span class="field-text">
-            {{ mode.libelle }}
+            {{ mode.libelle }} <span class="required">*</span>
             @if (!mode.compte_en_caisse) {
               <span class="mode-note">hors tiroir</span>
             }
@@ -229,7 +229,7 @@
             type="number"
             min="0"
             step="0.01"
-            placeholder="Non rapproché"
+            placeholder="À compter"
             [value]="constats()[mode.id] ?? ''"
             (input)="onConstat(mode.id, $any($event.target).value)"
           />
@@ -249,7 +249,14 @@
     </form>
     <div class="drawer-footer">
       <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
-      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="fermer()">
+      <!-- Désactivé tant qu'un contenant n'est pas compté : fermer sans avoir
+           tout contrôlé laisserait son écart invisible à jamais. -->
+      <button
+        class="btn btn-primary"
+        type="button"
+        [disabled]="saving() || contenantsNonComptes().length > 0"
+        (click)="fermer()"
+      >
         @if (saving()) {
           <span class="spinner" style="width: 14px; height: 14px"></span>
         }

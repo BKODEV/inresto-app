@@ -92,6 +92,22 @@ export class SessionsPage implements OnInit {
    */
   readonly constats = signal<Record<number, number | null>>({});
 
+  /**
+   * Tout moyen de paiement accepté est vérifiable le soir même : on compte le
+   * tiroir, on lit le ticket du terminal. Fermer sans compter reviendrait à
+   * clôturer sans avoir contrôlé — un mode qu'on ne saurait pas vérifier se
+   * désactive dans les paramètres.
+   *
+   * Zéro est un compte valide ; c'est l'absence de saisie qui manque.
+   */
+  readonly contenantsNonComptes = computed(() => {
+    const constats = this.constats();
+
+    return this.modes().filter(
+      (mode) => constats[mode.id] === null || constats[mode.id] === undefined,
+    );
+  });
+
   constructor() {
     // Aligne la caisse sélectionnée sur le site global et recharge ses sessions.
     effect(() => {
@@ -248,6 +264,16 @@ export class SessionsPage implements OnInit {
       this.fermerForm.markAllAsTouched();
       return;
     }
+    const manquants = this.contenantsNonComptes();
+    if (manquants.length > 0) {
+      this.formError.set(
+        `Comptez chaque moyen de paiement avant de fermer : ${manquants
+          .map((mode) => mode.libelle)
+          .join(', ')}.`,
+      );
+
+      return;
+    }
     this.saving.set(true);
     this.formError.set(null);
     const constats = this.constats();
@@ -255,15 +281,10 @@ export class SessionsPage implements OnInit {
     this.sessionService
       .fermer(session.id, {
         notes: this.fermerForm.getRawValue().notes,
-        // Seuls les contenants réellement déclarés sont transmis. Envoyer un
-        // zéro pour les autres ferait passer une case laissée vide pour un
-        // contrôle qui a eu lieu.
-        rapprochements: this.modes()
-          .filter((mode) => constats[mode.id] !== null && constats[mode.id] !== undefined)
-          .map((mode) => ({
-            mode_de_paiement_id: mode.id,
-            montant_constate: constats[mode.id],
-          })),
+        rapprochements: this.modes().map((mode) => ({
+          mode_de_paiement_id: mode.id,
+          montant_constate: constats[mode.id] ?? null,
+        })),
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

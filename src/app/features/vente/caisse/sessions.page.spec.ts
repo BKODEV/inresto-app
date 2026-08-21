@@ -114,49 +114,58 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
   });
 
   /**
-   * Une case vide est licite — un virement n'est pas vérifiable le soir même.
-   * L'envoyer à zéro ferait passer l'absence de contrôle pour un contrôle.
+   * Tout moyen de paiement accepté est vérifiable le soir même. Fermer sans
+   * compter reviendrait à clôturer sans avoir contrôlé, et l'écart de ce
+   * contenant ne se verrait jamais.
    */
-  it('ne transmet que les contenants réellement déclarés', () => {
+  it('refuse de fermer tant qu’un contenant n’est pas compté', () => {
+    const fermer = vi.fn().mockReturnValue(of({ id: 4, statut: 'fermee' }));
+    const { page } = creer({ fermer });
+    page.ngOnInit();
+
+    page.openFermer({ id: 4 } as never);
+    page.onConstat(5, '183500'); // les espèces seulement, la carte manque
+
+    expect(page.contenantsNonComptes().map((m) => m.libelle)).toEqual(['Carte']);
+
+    page.fermer();
+
+    expect(fermer).not.toHaveBeenCalled();
+    expect(page.formError()).toContain('Carte');
+  });
+
+  it('transmet tous les contenants une fois tous comptés', () => {
     const fermer = vi.fn().mockReturnValue(of({ id: 4, statut: 'fermee' }));
     const { page } = creer({ fermer });
     page.ngOnInit();
 
     page.openFermer({ id: 4 } as never);
     page.onConstat(5, '183500');
+    page.onConstat(9, '80000');
     page.fermer();
 
     expect(fermer).toHaveBeenCalledWith(4, {
       notes: '',
-      rapprochements: [{ mode_de_paiement_id: 5, montant_constate: 183500 }],
+      rapprochements: [
+        { mode_de_paiement_id: 5, montant_constate: 183500 },
+        { mode_de_paiement_id: 9, montant_constate: 80000 },
+      ],
     });
   });
 
-  it('rend un contenant à « non rapproché » quand on efface la case', () => {
+  it('tient zéro pour un compte, et une case effacée pour une absence', () => {
     const fermer = vi.fn().mockReturnValue(of({ id: 4, statut: 'fermee' }));
     const { page } = creer({ fermer });
     page.ngOnInit();
 
     page.openFermer({ id: 4 } as never);
-    page.onConstat(5, '183500');
-    page.onConstat(5, '');
-    page.fermer();
-
-    expect(fermer).toHaveBeenCalledWith(4, { notes: '', rapprochements: [] });
-  });
-
-  it('accepte un contenant compté à zéro, qui n’est pas une absence de compte', () => {
-    const fermer = vi.fn().mockReturnValue(of({ id: 4, statut: 'fermee' }));
-    const { page } = creer({ fermer });
-    page.ngOnInit();
-
-    page.openFermer({ id: 4 } as never);
+    page.onConstat(5, '0');
     page.onConstat(9, '0');
-    page.fermer();
 
-    expect(fermer).toHaveBeenCalledWith(4, {
-      notes: '',
-      rapprochements: [{ mode_de_paiement_id: 9, montant_constate: 0 }],
-    });
+    expect(page.contenantsNonComptes()).toEqual([]);
+
+    page.onConstat(9, '');
+
+    expect(page.contenantsNonComptes().map((m) => m.libelle)).toEqual(['Carte']);
   });
 });
