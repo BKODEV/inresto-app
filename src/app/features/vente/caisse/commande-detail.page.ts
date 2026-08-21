@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import type { WritableSignal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -31,6 +32,13 @@ import {
   modeParDefaut,
   modesProposables,
 } from '../../../core/api/mode-de-paiement/mode-de-paiement.util';
+import {
+  SaisieReglement,
+  monnaieARendre,
+  payloadPaiement,
+  pourboireApresAvoirGardeLaMonnaie,
+  recuInsuffisant,
+} from './reglement.util';
 import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -43,7 +51,7 @@ type DrawerMode = 'paiement' | 'remise' | 'annuler-ligne' | null;
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, MontantPipe],
   templateUrl: './commande-detail.page.html',
-  styleUrls: ['./caisse.page.scss', './modes-paiement.scss'],
+  styleUrls: ['./caisse.page.scss', './reglement.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CommandeVenteDetailPage implements OnInit {
@@ -157,7 +165,25 @@ export class CommandeVenteDetailPage implements OnInit {
   readonly paiementForm = this.fb.nonNullable.group({
     mode_de_paiement_id: [0, [Validators.required, Validators.min(1)]],
     montant: [0, [Validators.required, Validators.min(0.01)]],
+    montant_recu: [0],
+    pourboire: [0],
   });
+
+  // Mêmes trois montants qu'au poste de caisse : ce tiroir est celui du
+  // caissier qui vient d'une remise ou d'une vérification de lignes, pas une
+  // seconde façon d'encaisser.
+  private readonly montantSaisi = signal(0);
+  private readonly recuSaisi = signal(0);
+  private readonly pourboireSaisi = signal(0);
+
+  private readonly saisie = computed<SaisieReglement>(() => ({
+    montant: this.montantSaisi(),
+    pourboire: this.pourboireSaisi(),
+    recu: this.recuSaisi(),
+  }));
+
+  readonly monnaieSaisie = computed(() => monnaieARendre(this.saisie()));
+  readonly recuInsuffisant = computed(() => recuInsuffisant(this.saisie()));
   readonly remiseForm = this.fb.nonNullable.group({
     type: ['pourcentage' as TypeRemise, Validators.required],
     valeur: [0, [Validators.required, Validators.min(0.01)]],
@@ -167,6 +193,22 @@ export class CommandeVenteDetailPage implements OnInit {
     motif: ['', Validators.required],
     sort: ['remise_en_stock' as SortAnnulation],
   });
+
+  constructor() {
+    // Les trois montants suivent le formulaire : les calculs de monnaie sont
+    // des `computed`, ils ont besoin de signaux et non de valeurs de contrôle.
+    const suivre = (
+      controle: { valueChanges: Observable<number> },
+      cible: WritableSignal<number>,
+    ) =>
+      controle.valueChanges
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((valeur) => cible.set(Number(valeur) || 0));
+
+    suivre(this.paiementForm.controls.montant, this.montantSaisi);
+    suivre(this.paiementForm.controls.montant_recu, this.recuSaisi);
+    suivre(this.paiementForm.controls.pourboire, this.pourboireSaisi);
+  }
 
   ngOnInit(): void {
     this.modeService
@@ -517,9 +559,21 @@ export class CommandeVenteDetailPage implements OnInit {
     this.paiementForm.reset({
       mode_de_paiement_id: modeParDefaut(this.modes()),
       montant: Number(this.commande()?.reste_a_payer ?? 0),
+      montant_recu: 0,
+      pourboire: 0,
     });
     this.formError.set(null);
     this.drawerMode.set('paiement');
+  }
+
+  /** « Gardez la monnaie » : tout ce qui restait à rendre devient pourboire. */
+  garderLaMonnaie(): void {
+    if (this.monnaieSaisie() <= 0) {
+      return;
+    }
+    this.paiementForm.patchValue({
+      pourboire: pourboireApresAvoirGardeLaMonnaie(this.saisie()),
+    });
   }
 
   /** Sélection d'un mode par bouton, en lieu et place d'une liste déroulante. */
@@ -532,10 +586,18 @@ export class CommandeVenteDetailPage implements OnInit {
       this.paiementForm.markAllAsTouched();
       return;
     }
+    if (this.recuInsuffisant()) {
+      this.formError.set('Le montant reçu ne couvre pas le montant encaissé et le pourboire.');
+
+      return;
+    }
     this.busy.set(true);
     this.formError.set(null);
     this.commandeService
-      .ajouterPaiement(this.commandeId, this.paiementForm.getRawValue())
+      .ajouterPaiement(
+        this.commandeId,
+        payloadPaiement(this.paiementForm.getRawValue().mode_de_paiement_id, this.saisie()),
+      )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {

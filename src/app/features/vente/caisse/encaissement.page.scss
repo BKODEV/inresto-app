@@ -85,62 +85,6 @@
   }
 }
 
-.reglement-apres {
-  margin: var(--space-4) 0 0;
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  color: var(--text-dim);
-
-  strong {
-    font-variant-numeric: tabular-nums;
-    color: var(--text);
-  }
-
-  &.reglement-apres-solde {
-    color: var(--green-soft);
-  }
-}
-
-// La monnaie est le chiffre que le caissier lit pour ouvrir son tiroir : il ne
-// se cherche pas dans une liste de totaux.
-.monnaie-bloc {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-top: var(--space-4);
-  padding: var(--space-4);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-
-  strong {
-    font-size: var(--text-lg);
-    font-variant-numeric: tabular-nums;
-  }
-
-  &.monnaie-bloc-fort {
-    margin-top: 0;
-    border-color: var(--amber);
-    background: rgba(var(--amber-rgb), 0.1);
-
-    strong {
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--amber);
-    }
-  }
-}
-
-.reglement-apres-alerte {
-  color: var(--red-soft);
-}
-
-.btn-bloc {
-  width: 100%;
-  margin-top: var(--space-4);
-}
-
 // Ventilation par mode : la lecture qui prépare la fermeture de caisse.
 .ventilation {
   display: flex;

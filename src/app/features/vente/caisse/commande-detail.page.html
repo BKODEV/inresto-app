@@ -407,6 +407,54 @@
         <span class="field-text">Montant <span class="required">*</span></span>
         <input class="field-input" type="number" min="0.01" step="0.01" formControlName="montant" />
       </label>
+
+      <!-- Le billet posé sur le comptoir. Ne part pas en base tel quel : seul
+           le montant encaissé reste en tiroir. -->
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Reçu du client</span>
+        <input
+          class="field-input"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Espèces tendues, pour calculer la monnaie"
+          formControlName="montant_recu"
+        />
+      </label>
+
+      <!-- Ne concerne QUE le pourboire qui atterrit dans le tiroir. Celui que
+           le serveur reçoit de la main à la main n'entre jamais ici : le saisir
+           gonflerait le fond de caisse théorique d'un argent que personne ne
+           retrouvera en comptant, donc un manquant à la fermeture. -->
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Pourboire reçu au comptoir</span>
+        <input
+          class="field-input"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="0"
+          formControlName="pourboire"
+        />
+        <span class="field-hint">
+          Uniquement si l'argent est dans le tiroir. Un pourboire remis directement au serveur ne se
+          saisit pas.
+        </span>
+      </label>
+
+      @if (recuInsuffisant()) {
+        <p class="reglement-apres reglement-apres-alerte">
+          Le montant reçu ne couvre pas le montant encaissé et le pourboire.
+        </p>
+      } @else if (monnaieSaisie() > 0) {
+        <div class="monnaie-bloc">
+          <span class="field-text">Monnaie à rendre</span>
+          <strong>{{ monnaieSaisie() | montant }}</strong>
+        </div>
+        <button class="btn btn-secondary btn-bloc" type="button" (click)="garderLaMonnaie()">
+          Garder comme pourboire
+        </button>
+      }
     </form>
     <div class="drawer-footer">
       <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>

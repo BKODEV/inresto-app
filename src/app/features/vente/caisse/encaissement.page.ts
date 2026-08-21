@@ -27,6 +27,13 @@ import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-v
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
 import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import {
+  SaisieReglement,
+  monnaieARendre,
+  payloadPaiement,
+  pourboireApresAvoirGardeLaMonnaie,
+  recuInsuffisant,
+} from './reglement.util';
 import { AuthService } from '../../../core/auth/auth.service';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { rafraichissementAuto } from '../../../core/temps/rafraichissement-auto';
@@ -56,7 +63,7 @@ import { MontantPipe } from '../../../shared/format/nombre.pipes';
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, SiteRequisComponent, MontantPipe],
   templateUrl: './encaissement.page.html',
-  styleUrls: ['./caisse.page.scss', './encaissement.page.scss', './modes-paiement.scss'],
+  styleUrls: ['./caisse.page.scss', './encaissement.page.scss', './reglement.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EncaissementPage implements OnInit {
@@ -155,25 +162,17 @@ export class EncaissementPage implements OnInit {
    * d'affichage : c'est `montant` qui est enregistré, jamais le billet, sans
    * quoi le fond de caisse théorique compterait de l'argent déjà rendu.
    */
-  readonly monnaieSaisie = computed(() => {
-    const recu = this.recuSaisi();
-    if (recu <= 0) {
-      return 0;
-    }
-
-    // Le pourboire se retranche : le client l'a laissé, on ne le lui rend pas.
-    return Math.round((recu - this.montantSaisi() - this.pourboireSaisi()) * 100) / 100;
-  });
+  readonly monnaieSaisie = computed(() => monnaieARendre(this.saisie()));
 
   /** Saisie inversée : le billet doit couvrir la vente ET le pourboire. */
-  readonly recuInsuffisant = computed(() => {
-    const recu = this.recuSaisi();
+  readonly recuInsuffisant = computed(() => recuInsuffisant(this.saisie()));
 
-    return recu > 0 && recu < this.montantSaisi() + this.pourboireSaisi();
-  });
-
-  /** Le geste du comptoir : « gardez la monnaie ». */
-  readonly peutGarderLaMonnaie = computed(() => this.monnaieSaisie() > 0);
+  /** Les trois montants du comptoir, tels que l'arithmétique les attend. */
+  private readonly saisie = computed<SaisieReglement>(() => ({
+    montant: this.montantSaisi(),
+    pourboire: this.pourboireSaisi(),
+    recu: this.recuSaisi(),
+  }));
 
   /** Horloge d'affichage : l'ancienneté se recalcule à chaque tic. */
   private readonly maintenant = signal(Date.now());
@@ -277,12 +276,11 @@ export class EncaissementPage implements OnInit {
    * du comptoir, en un geste plutôt qu'un calcul mental puis une saisie.
    */
   garderLaMonnaie(): void {
-    const monnaie = this.monnaieSaisie();
-    if (monnaie <= 0) {
+    if (this.monnaieSaisie() <= 0) {
       return;
     }
     this.reglementForm.patchValue({
-      pourboire: Math.round((this.pourboireSaisi() + monnaie) * 100) / 100,
+      pourboire: pourboireApresAvoirGardeLaMonnaie(this.saisie()),
     });
   }
 
@@ -360,18 +358,11 @@ export class EncaissementPage implements OnInit {
     this.formError.set(null);
     this.info.set(null);
 
-    const saisie = this.reglementForm.getRawValue();
     const monnaie = this.monnaieSaisie();
-    const pourboire = this.pourboireSaisi();
-    const paiement = {
-      mode_de_paiement_id: saisie.mode_de_paiement_id,
-      montant: saisie.montant,
-      pourboire: pourboire > 0 ? pourboire : null,
-      // Transmis seulement quand il reste quelque chose à rendre : une carte,
-      // un compte juste ou une monnaie entièrement laissée en pourboire n'ont
-      // pas de billet à mémoriser.
-      montant_recu: monnaie > 0 ? saisie.montant_recu : null,
-    };
+    const paiement = payloadPaiement(
+      this.reglementForm.getRawValue().mode_de_paiement_id,
+      this.saisie(),
+    );
 
     this.commandeService
       .ajouterPaiement(commande.id, paiement)
