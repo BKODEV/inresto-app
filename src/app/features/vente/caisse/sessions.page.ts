@@ -88,7 +88,12 @@ export class SessionsPage implements OnInit {
     notes: [''],
   });
 
-  /** Un coffre ne signe pas de reçu ; une personne, si. */
+  /**
+   * « Personnel » n'y figure pas volontairement : un reversement de pourboires
+   * doit désigner de quel solde il se retire, et cela se fait depuis l'écran
+   * Pourboires où le bénéficiaire est la ligne cliquée. L'offrir ici obligerait
+   * à parcourir un sélecteur d'utilisateurs pour la même chose.
+   */
   readonly destinations: { valeur: DestinationVersement; libelle: string }[] = [
     { valeur: 'coffre', libelle: 'Coffre' },
     { valeur: 'banque', libelle: 'Banque' },

@@ -266,6 +266,12 @@ export const routes: Routes = [
                 title: 'Ventes du service',
               },
               {
+                path: 'pourboires',
+                loadComponent: () =>
+                  import('./features/vente/caisse/pourboires.page').then((m) => m.PourboiresPage),
+                title: 'Pourboires',
+              },
+              {
                 path: 'commandes/:id',
                 loadComponent: () =>
                   import('./features/vente/caisse/commande-detail.page').then(

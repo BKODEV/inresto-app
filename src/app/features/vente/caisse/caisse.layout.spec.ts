@@ -97,6 +97,29 @@ describe('CaisseLayout — onglets filtrés par permission', () => {
     expect(layout.tabs().map((t) => t.route)).toEqual(['ventes']);
   });
 
+  /**
+   * Lire ce qu'on doit au personnel relève du même geste que voir l'argent
+   * sortir du tiroir : c'est la permission des versements qui l'ouvre, pas
+   * celle des paiements.
+   */
+  it('ouvre les pourboires à qui suit les sorties de tiroir', async () => {
+    configurer(['versement.view']);
+    const harness = await RouterTestingHarness.create();
+
+    const layout = await harness.navigateByUrl('/vente/caisse/sessions', CaisseLayout);
+
+    expect(layout.tabs().map((t) => t.route)).toEqual(['pourboires']);
+  });
+
+  it('cache les pourboires au serveur', async () => {
+    configurer(['commande_client.view', 'session_caisse.view']);
+    const harness = await RouterTestingHarness.create();
+
+    const layout = await harness.navigateByUrl('/vente/caisse/commandes', CaisseLayout);
+
+    expect(layout.tabs().map((t) => t.route)).not.toContain('pourboires');
+  });
+
   it('montre les deux onglets au profil qui cumule les deux rôles', async () => {
     configurer(['session_caisse.create', 'commande_client.view']);
     const harness = await RouterTestingHarness.create();

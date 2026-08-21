@@ -2,7 +2,7 @@
  * Où part l'argent sorti du tiroir. Liste fermée côté API : un texte libre
  * donnerait « coffre », « Coffre » et « au coffre » au bout d'un mois.
  */
-export type DestinationVersement = 'coffre' | 'banque' | 'direction' | 'autre';
+export type DestinationVersement = 'coffre' | 'banque' | 'direction' | 'personnel' | 'autre';
 
 /**
  * Argent SORTI du tiroir — versement au coffre, à la banque, à la direction.
@@ -18,7 +18,13 @@ export interface Versement {
   montant: string;
   destination: DestinationVersement;
   destination_libelle: string;
-  /** À qui l'argent a été remis. Un coffre ne signe pas de reçu, une personne si. */
+  /**
+   * De quel SOLDE l'argent se retire. Renseigné pour un reversement de
+   * pourboires, nul partout ailleurs — un coffre ne doit rien à personne.
+   */
+  beneficiaire_id: string | null;
+  beneficiaire?: string | null;
+  /** Qui a EMPORTÉ l'argent : une société de collecte, un convoyeur. */
   remis_a: string | null;
   /** Bordereau de dépôt, pour un versement en banque. */
   reference: string | null;
@@ -31,6 +37,7 @@ export interface Versement {
 export interface CreateVersementPayload {
   montant: number;
   destination: DestinationVersement;
+  beneficiaire_id?: string | null;
   remis_a?: string | null;
   reference?: string | null;
   notes?: string | null;

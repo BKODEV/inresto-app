@@ -49,6 +49,10 @@ export class CaisseLayout {
     // entrée « Ventes », qui agrège le chiffre d'affaires sur une période. Ici
     // c'est le détail note par note d'UNE session de caisse.
     { label: 'Ventes du service', route: 'ventes', permission: 'paiement.view' },
+    // Ce qu'on doit au personnel sur les pourboires encaissés au comptoir. Même
+    // permission que les sorties de tiroir : lire ce qu'on doit relève du même
+    // geste que voir l'argent en sortir.
+    { label: 'Pourboires', route: 'pourboires', permission: 'versement.view' },
   ];
 
   readonly tabs = computed(() => this.allTabs.filter((t) => this.auth.hasPermission(t.permission)));
