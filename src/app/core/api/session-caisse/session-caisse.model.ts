@@ -8,7 +8,27 @@ export type StatutSessionCaisse = 'ouverte' | 'fermee';
  * un écart sous le seuil configuré pour le site — avec de la petite monnaie on
  * ne tombe jamais pile.
  */
-export type EcartSens = 'juste' | 'tolere' | 'excedent' | 'manquant';
+export type EcartSens = 'non_rapproche' | 'juste' | 'tolere' | 'excedent' | 'manquant';
+
+/**
+ * Un contenant et son verdict : ce que le système attendait, ce qu'on y a
+ * constaté, l'écart.
+ *
+ * Un mode de paiement désigne un endroit où l'argent s'accumule — le tiroir
+ * pour les espèces, le terminal pour la carte, la pochette pour les chèques.
+ * `montant_constate` est nul tant que personne ne l'a déclaré : tous les
+ * contenants ne sont pas vérifiables le soir même.
+ */
+export interface RapprochementCaisse {
+  id: number;
+  mode_de_paiement_id: number;
+  mode?: string;
+  compte_en_caisse?: boolean;
+  montant_theorique: string;
+  montant_constate: string | null;
+  ecart: string | null;
+  ecart_sens: EcartSens;
+}
 
 export interface SessionCaisse {
   id: number;
@@ -33,6 +53,8 @@ export interface SessionCaisse {
   montant_hors_caisse?: string;
   /** Qui a signé la fermeture — pas forcément qui a ouvert (relève d'équipe). */
   ferme_par?: string | null;
+  /** Un par mode de paiement actif, figé à la fermeture. */
+  rapprochements?: RapprochementCaisse[];
   statut: StatutSessionCaisse;
   notes: string | null;
   caisse?: Caisse;
@@ -44,7 +66,13 @@ export interface OuvrirSessionPayload {
   fonds_initial?: number;
 }
 
+/** Ce qu'on a constaté dans un contenant. Absent = non rapproché. */
+export interface ConstatParMode {
+  mode_de_paiement_id: number;
+  montant_constate: number | null;
+}
+
 export interface FermerSessionPayload {
-  montant_reel: number;
+  rapprochements: ConstatParMode[];
   notes?: string | null;
 }

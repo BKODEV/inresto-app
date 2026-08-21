@@ -22,6 +22,9 @@ import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
+import { ModeDePaiementService } from '../../../core/api/mode-de-paiement/mode-de-paiement.service';
+import { ModeDePaiement } from '../../../core/api/mode-de-paiement/mode-de-paiement.model';
+import { modesProposables } from '../../../core/api/mode-de-paiement/mode-de-paiement.util';
 import { MontantPipe, MontantSignePipe } from '../../../shared/format/nombre.pipes';
 
 type DrawerMode = 'ouvrir' | 'fermer';
@@ -41,6 +44,7 @@ export class SessionsPage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
   private readonly pdfService = inject(PdfService);
+  private readonly modeService = inject(ModeDePaiementService);
 
   // Toutes les caisses chargées, puis restreintes au site global (via leur PDV).
   private readonly allCaisses = signal<Caisse[]>([]);
@@ -71,9 +75,22 @@ export class SessionsPage implements OnInit {
     fonds_initial: [0, [Validators.min(0)]],
   });
   readonly fermerForm = this.fb.nonNullable.group({
-    montant_reel: [0, [Validators.required, Validators.min(0)]],
     notes: [''],
   });
+
+  /** Modes de paiement actifs : un contenant à rapprocher par mode. */
+  readonly modes = signal<ModeDePaiement[]>([]);
+
+  /**
+   * Ce que le caissier déclare, contenant par contenant. Une simple table
+   * plutôt qu'un formulaire réactif : les contrôles sont indexés par des
+   * identifiants de base qui changent d'un établissement à l'autre, et un
+   * `FormRecord` n'apporterait ici qu'une couche de plus.
+   *
+   * Absent de la table = non rapproché, ce qui est licite : un virement arrive
+   * à la banque quand il arrive.
+   */
+  readonly constats = signal<Record<number, number | null>>({});
 
   constructor() {
     // Aligne la caisse sélectionnée sur le site global et recharge ses sessions.
@@ -99,6 +116,9 @@ export class SessionsPage implements OnInit {
    * confondaient, alors qu'ils appellent des vérifications opposées.
    */
   readonly libelleEcart: Record<EcartSens, string> = {
+    // Personne n'a compté : on ne qualifie rien. Afficher « juste » laisserait
+    // croire à une vérification qui n'a pas eu lieu.
+    non_rapproche: 'Non rapproché',
     juste: 'Caisse juste',
     tolere: 'Écart toléré',
     excedent: 'Excédent',
@@ -106,6 +126,11 @@ export class SessionsPage implements OnInit {
   };
 
   ngOnInit(): void {
+    this.modeService
+      .list()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((modes) => this.modes.set(modesProposables(modes)));
+
     this.caisseService
       .list()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -149,9 +174,21 @@ export class SessionsPage implements OnInit {
 
   openFermer(session: SessionCaisse): void {
     this.closingSession.set(session);
-    this.fermerForm.reset({ montant_reel: 0, notes: '' });
+    this.fermerForm.reset({ notes: '' });
+    // Toutes les cases vides : le formulaire ne souffle AUCUN montant attendu,
+    // ni pour le tiroir ni pour le terminal. Le montrer inviterait à le
+    // recopier au lieu de compter, et le rapprochement ne vaudrait plus rien.
+    this.constats.set({});
     this.formError.set(null);
     this.drawerMode.set('fermer');
+  }
+
+  onConstat(modeId: number, valeur: string): void {
+    const nombre = valeur.trim() === '' ? null : Number(valeur);
+    this.constats.update((actuels) => ({
+      ...actuels,
+      [modeId]: nombre === null || Number.isNaN(nombre) ? null : nombre,
+    }));
   }
 
   closeDrawer(): void {
@@ -213,8 +250,21 @@ export class SessionsPage implements OnInit {
     }
     this.saving.set(true);
     this.formError.set(null);
+    const constats = this.constats();
+
     this.sessionService
-      .fermer(session.id, this.fermerForm.getRawValue())
+      .fermer(session.id, {
+        notes: this.fermerForm.getRawValue().notes,
+        // Seuls les contenants réellement déclarés sont transmis. Envoyer un
+        // zéro pour les autres ferait passer une case laissée vide pour un
+        // contrôle qui a eu lieu.
+        rapprochements: this.modes()
+          .filter((mode) => constats[mode.id] !== null && constats[mode.id] !== undefined)
+          .map((mode) => ({
+            mode_de_paiement_id: mode.id,
+            montant_constate: constats[mode.id],
+          })),
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {

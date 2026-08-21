@@ -6,6 +6,7 @@ import { EcartSens } from '../../../core/api/session-caisse/session-caisse.model
 import { SessionCaisseService } from '../../../core/api/session-caisse/session-caisse.service';
 import { CaisseService } from '../../../core/api/caisse/caisse.service';
 import { PdfService } from '../../../core/api/pdf/pdf.service';
+import { ModeDePaiementService } from '../../../core/api/mode-de-paiement/mode-de-paiement.service';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 
 /**
@@ -24,6 +25,16 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
           useValue: { list: () => of([]), fermer: options.fermer ?? vi.fn() },
         },
         { provide: PdfService, useValue: { rapportFermeture } },
+        {
+          provide: ModeDePaiementService,
+          useValue: {
+            list: () =>
+              of([
+                { id: 5, libelle: 'Espèces', compte_en_caisse: true, ordre: 1, statut: 'actif' },
+                { id: 9, libelle: 'Carte', compte_en_caisse: false, ordre: 2, statut: 'actif' },
+              ]),
+          },
+        },
         { provide: CaisseService, useValue: { list: () => of([]) } },
         {
           provide: SelectedSiteService,
@@ -41,6 +52,7 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
     const { page } = creer();
 
     expect(page.libelleEcart).toEqual({
+      non_rapproche: 'Non rapproché',
       juste: 'Caisse juste',
       tolere: 'Écart toléré',
       excedent: 'Excédent',
@@ -51,7 +63,7 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
   it('couvre chaque sens renvoyé par l’API', () => {
     // Un sens sans libellé afficherait une cellule vide sur un écran d'argent.
     const { page } = creer();
-    const sens: EcartSens[] = ['juste', 'tolere', 'excedent', 'manquant'];
+    const sens: EcartSens[] = ['non_rapproche', 'juste', 'tolere', 'excedent', 'manquant'];
 
     for (const s of sens) {
       expect(page.libelleEcart[s]).toBeTruthy();
@@ -67,7 +79,6 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
     const { page, rapportFermeture } = creer({ fermer: vi.fn().mockReturnValue(of(fermee)) });
 
     page.closingSession.set({ id: 4 } as never);
-    page.fermerForm.patchValue({ montant_reel: 1000 });
     page.fermer();
 
     expect(rapportFermeture).toHaveBeenCalledWith(4);
@@ -87,7 +98,7 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
    * caissier le recopierait au lieu de compter, et le rapprochement ne
    * vaudrait plus rien.
    */
-  it('ouvre la fermeture sur un montant à zéro, sans souffler le théorique', () => {
+  it('ouvre la fermeture sur des cases vides, sans souffler aucun théorique', () => {
     const { page } = creer();
 
     page.openFermer({
@@ -97,6 +108,55 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
       ouvert_le: '2026-08-21T08:00:00Z',
     } as never);
 
-    expect(page.fermerForm.getRawValue().montant_reel).toBe(0);
+    // Vaut pour le tiroir comme pour le terminal : afficher le montant attendu
+    // inviterait à le recopier au lieu de compter.
+    expect(page.constats()).toEqual({});
+  });
+
+  /**
+   * Une case vide est licite — un virement n'est pas vérifiable le soir même.
+   * L'envoyer à zéro ferait passer l'absence de contrôle pour un contrôle.
+   */
+  it('ne transmet que les contenants réellement déclarés', () => {
+    const fermer = vi.fn().mockReturnValue(of({ id: 4, statut: 'fermee' }));
+    const { page } = creer({ fermer });
+    page.ngOnInit();
+
+    page.openFermer({ id: 4 } as never);
+    page.onConstat(5, '183500');
+    page.fermer();
+
+    expect(fermer).toHaveBeenCalledWith(4, {
+      notes: '',
+      rapprochements: [{ mode_de_paiement_id: 5, montant_constate: 183500 }],
+    });
+  });
+
+  it('rend un contenant à « non rapproché » quand on efface la case', () => {
+    const fermer = vi.fn().mockReturnValue(of({ id: 4, statut: 'fermee' }));
+    const { page } = creer({ fermer });
+    page.ngOnInit();
+
+    page.openFermer({ id: 4 } as never);
+    page.onConstat(5, '183500');
+    page.onConstat(5, '');
+    page.fermer();
+
+    expect(fermer).toHaveBeenCalledWith(4, { notes: '', rapprochements: [] });
+  });
+
+  it('accepte un contenant compté à zéro, qui n’est pas une absence de compte', () => {
+    const fermer = vi.fn().mockReturnValue(of({ id: 4, statut: 'fermee' }));
+    const { page } = creer({ fermer });
+    page.ngOnInit();
+
+    page.openFermer({ id: 4 } as never);
+    page.onConstat(9, '0');
+    page.fermer();
+
+    expect(fermer).toHaveBeenCalledWith(4, {
+      notes: '',
+      rapprochements: [{ mode_de_paiement_id: 9, montant_constate: 0 }],
+    });
   });
 });

@@ -204,19 +204,39 @@
       @if (formError()) {
         <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
       }
-      <label class="field-label">
-        <span class="field-text">Montant réel compté <span class="required">*</span></span>
-        <input
-          class="field-input"
-          type="number"
-          min="0"
-          step="0.01"
-          formControlName="montant_reel"
-        />
-        @if (fermerForm.controls.montant_reel.touched && fermerForm.controls.montant_reel.invalid) {
-          <span class="field-error">Le montant réel est requis (0 accepté).</span>
-        }
-      </label>
+      <!-- Un contenant par mode de paiement : le tiroir pour les espèces, le
+           terminal pour la carte, la pochette pour les chèques. Chacun se
+           compare à ce qu'on y constate.
+
+           Aucun montant attendu n'est affiché ici, volontairement : le souffler
+           inviterait à le recopier au lieu de compter, et le rapprochement ne
+           vaudrait plus rien. Le verdict s'affiche après la fermeture. -->
+      <p class="field-hint" style="margin-bottom: 12px">
+        Comptez chaque contenant et reportez ce que vous y trouvez. Laissez vide ce que vous ne
+        pouvez pas vérifier ce soir — un virement, par exemple.
+      </p>
+
+      @for (mode of modes(); track mode.id) {
+        <label class="field-label" style="margin-top: 12px">
+          <span class="field-text">
+            {{ mode.libelle }}
+            @if (!mode.compte_en_caisse) {
+              <span class="mode-note">hors tiroir</span>
+            }
+          </span>
+          <input
+            class="field-input"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Non rapproché"
+            [value]="constats()[mode.id] ?? ''"
+            (input)="onConstat(mode.id, $any($event.target).value)"
+          />
+        </label>
+      } @empty {
+        <div class="alert-error">Aucun mode de paiement actif : rien à rapprocher.</div>
+      }
       <label class="field-label" style="margin-top: 16px">
         <span class="field-text">Notes</span>
         <textarea
