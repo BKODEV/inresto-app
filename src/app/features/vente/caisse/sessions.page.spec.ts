@@ -6,6 +6,8 @@ import { EcartSens } from '../../../core/api/session-caisse/session-caisse.model
 import { SessionCaisseService } from '../../../core/api/session-caisse/session-caisse.service';
 import { CaisseService } from '../../../core/api/caisse/caisse.service';
 import { PdfService } from '../../../core/api/pdf/pdf.service';
+import { VersementService } from '../../../core/api/versement/versement.service';
+import { AuthService } from '../../../core/auth/auth.service';
 import { ModeDePaiementService } from '../../../core/api/mode-de-paiement/mode-de-paiement.service';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 
@@ -15,8 +17,9 @@ import { SelectedSiteService } from '../../../core/site/selected-site.service';
  * ce que les chiffres prétendent dire.
  */
 describe('SessionsPage — lecture de l’écart de caisse', () => {
-  function creer(options: { fermer?: unknown } = {}) {
+  function creer(options: { fermer?: unknown; peutVerser?: boolean } = {}) {
     const rapportFermeture = vi.fn().mockReturnValue(of(new Blob()));
+    const creerVersement = vi.fn().mockReturnValue(of({ id: 1, montant: '100000.00' }));
 
     TestBed.configureTestingModule({
       providers: [
@@ -37,6 +40,14 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
         },
         { provide: CaisseService, useValue: { list: () => of([]) } },
         {
+          provide: VersementService,
+          useValue: { list: () => of([]), create: creerVersement },
+        },
+        {
+          provide: AuthService,
+          useValue: { hasPermission: () => options.peutVerser !== false },
+        },
+        {
           provide: SelectedSiteService,
           useValue: { selectedSite: () => null, estConsolide: () => false, selectedId: () => 1 },
         },
@@ -45,7 +56,7 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
 
     const page = TestBed.runInInjectionContext(() => new SessionsPage());
 
-    return { page, rapportFermeture };
+    return { page, rapportFermeture, creerVersement };
   }
 
   it('nomme les quatre sens de l’écart', () => {
@@ -167,5 +178,56 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
     page.onConstat(9, '');
 
     expect(page.contenantsNonComptes().map((m) => m.libelle)).toEqual(['Carte']);
+  });
+
+  // ───────────────────────── versements ─────────────────────────
+
+  /**
+   * Sortir de l'argent du tiroir est un geste distinct de l'encaissement : sans
+   * permission dédiée, tout caissier pourrait vider la caisse du seul fait
+   * qu'il sait y encaisser.
+   */
+  it('cache le versement à qui n’en a pas le droit', () => {
+    const { page } = creer({ peutVerser: false });
+
+    expect(page.peutVerser()).toBe(false);
+  });
+
+  it('n’envoie que les champs renseignés', () => {
+    const { page, creerVersement } = creer();
+    page.selectedCaisseId.set(3);
+
+    page.openVerser();
+    page.verserForm.patchValue({ montant: 100000, destination: 'coffre', remis_a: 'Aminata D.' });
+    page.verser();
+
+    expect(creerVersement).toHaveBeenCalledWith(3, {
+      montant: 100000,
+      destination: 'coffre',
+      remis_a: 'Aminata D.',
+      // Les champs laissés vides partent à null plutôt qu'en chaîne vide, qui
+      // se lirait comme une référence de bordereau existante mais illisible.
+      reference: null,
+      notes: null,
+    });
+  });
+
+  it('refuse un versement sans montant', () => {
+    const { page, creerVersement } = creer();
+    page.selectedCaisseId.set(3);
+
+    page.openVerser();
+    page.verser();
+
+    expect(creerVersement).not.toHaveBeenCalled();
+  });
+
+  it('ouvre le versement sur le coffre, destination la plus courante', () => {
+    const { page } = creer();
+
+    page.openVerser();
+
+    expect(page.verserForm.getRawValue().destination).toBe('coffre');
+    expect(page.verserForm.getRawValue().montant).toBe(0);
   });
 });

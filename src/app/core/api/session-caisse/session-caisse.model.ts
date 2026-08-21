@@ -41,6 +41,12 @@ export interface SessionCaisse {
   montant_reel: string | null;
   ecart: string | null;
   /**
+   * Ce qui manque entre le compte de la session précédente et l'ouverture de
+   * celle-ci, versements déduits. Zéro = transition conforme (passage de main à
+   * main, ou versement qui explique la différence). Null = rien à comparer.
+   */
+  ecart_ouverture: string | null;
+  /**
    * Sens de l'écart, calculé par l'API : il dépend de la tolérance du site, que
    * le front n'a pas sous la main. Absent tant que la session est ouverte.
    */

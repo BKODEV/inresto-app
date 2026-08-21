@@ -25,9 +25,12 @@ import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.servi
 import { ModeDePaiementService } from '../../../core/api/mode-de-paiement/mode-de-paiement.service';
 import { ModeDePaiement } from '../../../core/api/mode-de-paiement/mode-de-paiement.model';
 import { modesProposables } from '../../../core/api/mode-de-paiement/mode-de-paiement.util';
+import { VersementService } from '../../../core/api/versement/versement.service';
+import { DestinationVersement, Versement } from '../../../core/api/versement/versement.model';
+import { AuthService } from '../../../core/auth/auth.service';
 import { MontantPipe, MontantSignePipe } from '../../../shared/format/nombre.pipes';
 
-type DrawerMode = 'ouvrir' | 'fermer';
+type DrawerMode = 'ouvrir' | 'fermer' | 'verser';
 
 @Component({
   selector: 'app-sessions-page',
@@ -45,6 +48,8 @@ export class SessionsPage implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly pdfService = inject(PdfService);
   private readonly modeService = inject(ModeDePaiementService);
+  private readonly versementService = inject(VersementService);
+  private readonly auth = inject(AuthService);
 
   // Toutes les caisses chargées, puis restreintes au site global (via leur PDV).
   private readonly allCaisses = signal<Caisse[]>([]);
@@ -66,6 +71,30 @@ export class SessionsPage implements OnInit {
   readonly formError = signal<string | null>(null);
   readonly closingSession = signal<SessionCaisse | null>(null);
   readonly pdfBusy = signal(false);
+
+  /**
+   * Sortir de l'argent du tiroir est un geste distinct de l'encaissement : il
+   * a sa propre permission, sans quoi tout caissier pourrait vider la caisse du
+   * seul fait qu'il sait y encaisser.
+   */
+  readonly peutVerser = computed(() => this.auth.hasPermission('versement.create'));
+  readonly versements = signal<Versement[]>([]);
+
+  readonly verserForm = this.fb.nonNullable.group({
+    montant: [0, [Validators.required, Validators.min(0.01)]],
+    destination: ['coffre' as DestinationVersement, Validators.required],
+    remis_a: [''],
+    reference: [''],
+    notes: [''],
+  });
+
+  /** Un coffre ne signe pas de reçu ; une personne, si. */
+  readonly destinations: { valeur: DestinationVersement; libelle: string }[] = [
+    { valeur: 'coffre', libelle: 'Coffre' },
+    { valeur: 'banque', libelle: 'Banque' },
+    { valeur: 'direction', libelle: 'Direction' },
+    { valeur: 'autre', libelle: 'Autre' },
+  ];
 
   readonly sessionOuverte = computed(
     () => this.sessions().find((s) => s.statut === 'ouverte') ?? null,
@@ -176,6 +205,16 @@ export class SessionsPage implements OnInit {
         },
         error: () => this.loadingSessions.set(false),
       });
+
+    if (this.peutVerser()) {
+      this.versementService
+        .list(id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (versements) => this.versements.set(versements),
+          error: () => this.versements.set([]),
+        });
+    }
   }
 
   onCaisseChange(value: string): void {
@@ -186,6 +225,53 @@ export class SessionsPage implements OnInit {
     this.ouvrirForm.reset({ fonds_initial: 0 });
     this.formError.set(null);
     this.drawerMode.set('ouvrir');
+  }
+
+  openVerser(): void {
+    this.verserForm.reset({
+      montant: 0,
+      destination: 'coffre',
+      remis_a: '',
+      reference: '',
+      notes: '',
+    });
+    this.formError.set(null);
+    this.drawerMode.set('verser');
+  }
+
+  verser(): void {
+    const caisseId = this.selectedCaisseId();
+    if (this.verserForm.invalid || this.saving() || caisseId === null) {
+      this.verserForm.markAllAsTouched();
+
+      return;
+    }
+    this.saving.set(true);
+    this.formError.set(null);
+
+    const raw = this.verserForm.getRawValue();
+    this.versementService
+      .create(caisseId, {
+        montant: raw.montant,
+        destination: raw.destination,
+        remis_a: raw.remis_a || null,
+        reference: raw.reference || null,
+        notes: raw.notes || null,
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (versement) => {
+          this.versements.update((list) => [versement, ...list]);
+          this.saving.set(false);
+          this.drawerMode.set(null);
+          // Le théorique de la session ouverte vient de baisser d'autant.
+          this.loadSessions(caisseId);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.saving.set(false);
+          this.formError.set(apiErrorMessage(err, 'Versement impossible.'));
+        },
+      });
   }
 
   openFermer(session: SessionCaisse): void {
