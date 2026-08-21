@@ -74,6 +74,29 @@ describe('CaisseLayout — onglets filtrés par permission', () => {
     expect(TestBed.inject(Router).url).toBe('/vente/caisse/sessions');
   });
 
+  it('cache les ventes au serveur, qui n’a aucun droit sur l’argent', async () => {
+    configurer(['commande_client.view', 'session_caisse.view']);
+    const harness = await RouterTestingHarness.create();
+
+    const layout = await harness.navigateByUrl('/vente/caisse/commandes', CaisseLayout);
+
+    expect(layout.tabs().map((t) => t.route)).not.toContain('ventes');
+  });
+
+  /**
+   * Relire un service encaissé n'est pas encaisser : `paiement.view` suffit,
+   * `paiement.create` n'est pas requis. Un responsable qui ne tient pas la
+   * caisse doit pouvoir contrôler sans pouvoir saisir.
+   */
+  it('ouvre les ventes à qui peut voir l’argent sans le saisir', async () => {
+    configurer(['paiement.view']);
+    const harness = await RouterTestingHarness.create();
+
+    const layout = await harness.navigateByUrl('/vente/caisse/sessions', CaisseLayout);
+
+    expect(layout.tabs().map((t) => t.route)).toEqual(['ventes']);
+  });
+
   it('montre les deux onglets au profil qui cumule les deux rôles', async () => {
     configurer(['session_caisse.create', 'commande_client.view']);
     const harness = await RouterTestingHarness.create();

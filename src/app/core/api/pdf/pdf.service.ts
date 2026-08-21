@@ -36,6 +36,17 @@ export class PdfService {
     });
   }
 
+  /**
+   * Addition : le détail et le TOTAL À PAYER, présentés au client avant qu'il
+   * ne règle. Même gabarit 80mm que le reçu, sans rien affirmer sur l'argent.
+   */
+  additionClient(commandeId: number): Observable<Blob> {
+    return this.http.get(`${this.base}/commandes-client/${commandeId}/addition`, {
+      responseType: 'blob',
+    });
+  }
+
+  /** Reçu : la preuve du paiement, monnaie rendue comprise. */
   recuClient(commandeId: number): Observable<Blob> {
     return this.http.get(`${this.base}/commandes-client/${commandeId}/recu`, {
       responseType: 'blob',

@@ -91,11 +91,24 @@ export const MENU: MenuSection[] = [
         permission: 'commande_client.view',
       },
       {
-        // `create` et non `view` : cette entrée mène à l'ouverture/fermeture de
-        // caisse. Le serveur détient `view` pour rattacher sa commande à une
-        // session, ce qui ne fait pas de lui un responsable de caisse.
-        label: 'Caisse',
+        // Le poste de caisse : la file des notes à régler. Gardé par
+        // `paiement.create` — sans le droit de saisir un paiement, cette file
+        // n'est qu'une liste inerte.
+        label: 'Encaissement',
         icon: 'receipt',
+        route: '/vente/caisse/encaissement',
+        permission: 'paiement.create',
+      },
+      {
+        // Nommée sans ambiguïté : cette entrée ne contient QUE l'ouverture et la
+        // fermeture de caisse. « Caisse » laissait croire qu'on y encaissait.
+        //
+        // `session_caisse.create` et non `.view` : le serveur détient `.view`
+        // pour rattacher sa commande à une session ouverte, ce qui ne fait pas
+        // de lui un responsable de caisse — le garder ici lui montrerait les
+        // fonds initiaux et les écarts.
+        label: 'Sessions de caisse',
+        icon: 'wallet',
         route: '/vente/caisse/sessions',
         permission: 'session_caisse.create',
       },

@@ -369,3 +369,174 @@
   align-items: center;
   gap: var(--space-2);
 }
+
+// ─────────────────────────── Panier de prise de commande ───────────────────────────
+
+.panier-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.panier-compteur {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 7px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: var(--amber-soft);
+  color: var(--amber);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: center;
+}
+
+.btn-lien {
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--red-soft);
+  }
+}
+
+.panier-lignes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.panier-ligne {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+// Cibles tapées au doigt en salle : plus larges que des boutons de bureau.
+.panier-qte {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  button {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: var(--text-md);
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+  }
+
+  span {
+    min-width: 26px;
+    text-align: center;
+    font-weight: 700;
+  }
+}
+
+.panier-nom {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.panier-commentaire {
+  border: 0;
+  border-bottom: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--text-sm);
+  padding: 2px 0;
+
+  &:focus {
+    outline: none;
+    border-bottom-color: var(--amber);
+    color: var(--text);
+  }
+}
+
+.panier-prix {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.panier-pied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.panier-total {
+  font-size: var(--text-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+// ─────────────────────────── Ticket groupé par tour ───────────────────────────
+
+.tour-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 14px 0 6px;
+
+  &:first-of-type {
+    margin-top: 4px;
+  }
+}
+
+.tour-titre {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+// L'état se lit à la couleur avant le mot : en un coup d'œil, le serveur doit
+// voir ce qui est encore en production.
+.tour-etat {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+
+  &--servi {
+    background: rgba(var(--green-rgb), 0.12);
+    color: var(--green-soft);
+  }
+  &--en-cuisine {
+    background: rgba(var(--amber-rgb), 0.14);
+    color: var(--amber);
+  }
+  &--non-envoyé {
+    background: rgba(var(--blue-rgb), 0.12);
+    color: var(--text-dim);
+  }
+}

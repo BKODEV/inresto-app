@@ -38,6 +38,17 @@ export class CaisseLayout {
   private readonly allTabs: CaisseTab[] = [
     { label: 'Sessions', route: 'sessions', permission: 'session_caisse.create' },
     { label: 'Prise de commande', route: 'commandes', permission: 'commande_client.view' },
+    // Poste de caisse. Gardé par `paiement.create` : sans le droit de saisir un
+    // paiement, la file des notes à régler n'est qu'une liste inerte.
+    { label: 'À encaisser', route: 'encaissement', permission: 'paiement.create' },
+    // Gardé par `paiement.view` et non `.create` : consulter ce qui a été
+    // encaissé n'est pas encaisser. Un responsable qui ne tient pas la caisse
+    // doit pouvoir relire le service sans pouvoir saisir de paiement — et le
+    // serveur, qui n'a ni l'un ni l'autre, ne voit pas l'onglet.
+    // « Ventes du service » et non « Ventes » : le menu PILOTAGE porte déjà une
+    // entrée « Ventes », qui agrège le chiffre d'affaires sur une période. Ici
+    // c'est le détail note par note d'UNE session de caisse.
+    { label: 'Ventes du service', route: 'ventes', permission: 'paiement.view' },
   ];
 
   readonly tabs = computed(() => this.allTabs.filter((t) => this.auth.hasPermission(t.permission)));

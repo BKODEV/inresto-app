@@ -15,7 +15,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 
 import { CommandeClientService } from '../../../core/api/commande-client/commande-client.service';
-import { CommandeClient } from '../../../core/api/commande-client/commande-client.model';
+import { TourKds } from '../../../core/api/commande-client/commande-client.model';
 import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
@@ -45,10 +45,11 @@ export class KdsPage implements OnInit {
     return siteId === null ? [] : this.allPdvs().filter((p) => p.site_id === siteId);
   });
   readonly selectedPdvId = signal<number | null>(null);
-  readonly commandes = signal<CommandeClient[]>([]);
+  readonly tours = signal<TourKds[]>([]);
   readonly loading = signal(true);
   readonly refreshing = signal(false);
-  readonly servingId = signal<number | null>(null);
+  /** Tour en cours de validation, identifié par son horodatage. */
+  readonly servingTour = signal<string | null>(null);
 
   /**
    * Horloge d'affichage : les minutes écoulées sont recalculées à chaque tic.
@@ -68,7 +69,7 @@ export class KdsPage implements OnInit {
     rafraichissementAuto(
       15_000,
       () => this.refresh(),
-      () => this.servingId() !== null,
+      () => this.servingTour() !== null,
     );
 
     // L'horloge n'interroge rien : elle fait juste vieillir l'affichage.
@@ -86,7 +87,7 @@ export class KdsPage implements OnInit {
       if (next !== null) {
         this.refresh();
       } else {
-        this.commandes.set([]);
+        this.tours.set([]);
       }
     });
   }
@@ -131,25 +132,33 @@ export class KdsPage implements OnInit {
       .kds(pdvId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (commandes) => {
-          this.commandes.set(commandes);
+        next: (tours) => {
+          this.tours.set(tours);
           this.refreshing.set(false);
         },
         error: () => this.refreshing.set(false),
       });
   }
 
-  /** Minutes écoulées depuis l'ouverture de la commande. */
-  private minutesEcoulees(c: CommandeClient): number {
-    if (!c.date_heure) {
+  /**
+   * Minutes écoulées depuis l'ENVOI du tour, et non depuis l'ouverture de la
+   * note : c'est la production qui traîne, pas le fait que la table soit
+   * installée. Une note ouverte depuis une heure dont le dessert vient de
+   * partir n'est pas en retard.
+   */
+  private minutesEcoulees(tour: TourKds): number {
+    if (!tour.envoyee_le) {
       return 0;
     }
-    return Math.max(0, Math.floor((this.maintenant() - new Date(c.date_heure).getTime()) / 60_000));
+    return Math.max(
+      0,
+      Math.floor((this.maintenant() - new Date(tour.envoyee_le).getTime()) / 60_000),
+    );
   }
 
   /** « 7 min » puis « 1 h 05 » au-delà de l'heure. */
-  attente(c: CommandeClient): string {
-    const minutes = this.minutesEcoulees(c);
+  attente(tour: TourKds): string {
+    const minutes = this.minutesEcoulees(tour);
     if (minutes < 60) {
       return `${minutes} min`;
     }
@@ -157,30 +166,38 @@ export class KdsPage implements OnInit {
   }
 
   /** Classe d'escalade : la couleur porte l'urgence avant la lecture du chiffre. */
-  urgence(c: CommandeClient): string {
-    const minutes = this.minutesEcoulees(c);
+  urgence(tour: TourKds): string {
+    const minutes = this.minutesEcoulees(tour);
     if (minutes >= this.SEUIL_RETARD) {
       return 'kds-card--retard';
     }
     return minutes >= this.SEUIL_ATTENTION ? 'kds-card--attention' : '';
   }
 
-  lignesActives(c: CommandeClient) {
-    return c.lignes?.filter((l) => l.statut === 'actif') ?? [];
+  /** Identifiant d'affichage d'un tour : une note peut en avoir plusieurs. */
+  cle(tour: TourKds): string {
+    return `${tour.commande_id}|${tour.envoyee_le}`;
   }
 
-  servir(c: CommandeClient): void {
-    this.servingId.set(c.id);
+  /**
+   * Valide le ticket, et lui seul : une note peut porter deux tours en
+   * production, servir le premier ne doit pas emporter le second.
+   */
+  servir(tour: TourKds): void {
+    this.servingTour.set(this.cle(tour));
     this.commandeService
-      .servir(c.id)
+      .servir(
+        tour.commande_id,
+        tour.lignes.map((l) => l.id),
+      )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.commandes.update((list) => list.filter((x) => x.id !== c.id));
-          this.servingId.set(null);
+          this.tours.update((list) => list.filter((t) => this.cle(t) !== this.cle(tour)));
+          this.servingTour.set(null);
         },
         error: (err: HttpErrorResponse) => {
-          this.servingId.set(null);
+          this.servingTour.set(null);
           alert(apiErrorMessage(err, 'Service impossible.'));
         },
       });

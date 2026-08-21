@@ -1,0 +1,310 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">À encaisser</h1>
+      <p class="page-subtitle">
+        Notes servies en attente de règlement, les plus anciennes d'abord.
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (estConsolide()) {
+    <app-site-requis message="L'encaissement se fait sur un point de vente. Choisissez un site." />
+  } @else if (pdvs().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun point de vente</span>
+      <span class="empty-message">
+        @if (currentSite(); as site) {
+          Le site « {{ site.nom }} » n'a pas de point de vente.
+        } @else {
+          Sélectionnez un site dans la barre du haut.
+        }
+      </span>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <label class="field-label">
+        <span class="field-text">Point de vente</span>
+        <select
+          class="field-select"
+          [value]="selectedPdvId()"
+          (change)="onPdvChange($any($event.target).value)"
+        >
+          @for (pdv of pdvs(); track pdv.id) {
+            <option [value]="pdv.id">{{ pdv.nom }}</option>
+          }
+        </select>
+      </label>
+
+      <!-- Le filtre du versement : quand un serveur se présente au comptoir,
+           le caissier isole ses tables et les solde. -->
+      <label class="field-label">
+        <span class="field-text">Serveur</span>
+        <select
+          class="field-select"
+          [value]="filtreServeur()"
+          (change)="onFiltreServeur($any($event.target).value)"
+        >
+          <option value="">Tous les serveurs</option>
+          @for (s of serveurs(); track s) {
+            <option [value]="s">{{ s }}</option>
+          }
+        </select>
+      </label>
+
+      @if (notesFiltrees().length > 0) {
+        <div class="encaisse-total">
+          <span class="field-text">Reste à encaisser</span>
+          <strong>{{ totalAEncaisser() | montant }}</strong>
+        </div>
+      }
+    </div>
+
+    @if (loadingNotes()) {
+      <div class="loading-row">
+        <div class="spinner"></div>
+        <span>Chargement…</span>
+      </div>
+    } @else if (notesFiltrees().length === 0) {
+      <div class="empty-state">
+        <span class="empty-title">Rien à encaisser</span>
+        <span class="empty-message">
+          @if (filtreServeur()) {
+            Aucune note servie pour {{ filtreServeur() }}.
+          } @else {
+            Toutes les notes servies ont été réglées.
+          }
+        </span>
+      </div>
+    } @else {
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Table</th>
+              <th>Note</th>
+              <th>Serveur</th>
+              <th>Ouverte depuis</th>
+              <th class="num">Total</th>
+              <th class="num">Reste</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (c of notesFiltrees(); track c.id) {
+              <tr>
+                <td class="td-primary">{{ c.table_numero ?? c.table?.numero ?? '—' }}</td>
+                <td class="td-mono">
+                  <!-- L'accès à la fiche pour ce qui dépasse l'encaissement :
+                       remise, vérification des lignes, impression. -->
+                  <a class="lien-note" [routerLink]="['/vente/caisse/commandes', c.id]">
+                    #{{ c.id }}
+                  </a>
+                </td>
+                <td>{{ c.serveur ?? '—' }}</td>
+                <td class="td-mono">{{ attente(c) }}</td>
+                <td class="num td-mono">{{ c.montant_total | montant }}</td>
+                <td class="num td-mono">
+                  <strong>{{ c.reste_a_payer | montant }}</strong>
+                </td>
+                <td class="td-actions">
+                  <button class="btn btn-primary" type="button" (click)="ouvrirReglement(c)">
+                    Régler
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>
+
+<!-- Tiroir de règlement : on solde sans quitter la file. -->
+@if (cible(); as note) {
+  <div class="drawer-overlay" (click)="fermerReglement()"></div>
+  <div class="drawer" role="dialog" aria-modal="true" aria-label="Régler la note">
+    <div class="drawer-header">
+      <h2 class="drawer-title">
+        @if (etape() === 'saisie') {
+          Régler la note #{{ note.id }}
+        } @else {
+          Note #{{ note.id }} réglée
+        }
+        <span class="drawer-sous-titre">
+          Table {{ note.table_numero ?? note.table?.numero ?? '—' }} · {{ note.serveur ?? '—' }}
+        </span>
+      </h2>
+      <button class="btn-icon" type="button" (click)="fermerReglement()">✕</button>
+    </div>
+
+    @if (etape() === 'saisie') {
+      <form class="drawer-body" [formGroup]="reglementForm" (ngSubmit)="regler()" novalidate>
+        @if (formError()) {
+          <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+        }
+        @if (info()) {
+          <div class="alert-info" style="margin-bottom: 16px">{{ info() }}</div>
+        }
+
+        <dl class="reglement-recap">
+          <div>
+            <dt>Total</dt>
+            <dd>{{ note.montant_total | montant }}</dd>
+          </div>
+          @if (note.montant_du !== note.montant_total) {
+            <div>
+              <dt>Après remise</dt>
+              <dd>{{ note.montant_du | montant }}</dd>
+            </div>
+          }
+          <div>
+            <dt>Déjà payé</dt>
+            <dd>{{ note.montant_paye | montant }}</dd>
+          </div>
+          <div class="reglement-recap-fort">
+            <dt>Reste à payer</dt>
+            <dd>{{ note.reste_a_payer | montant }}</dd>
+          </div>
+        </dl>
+
+        <!-- L'addition précède l'argent : le client veut voir le détail avant
+             de payer. Elle n'affiche aucune ligne de paiement. -->
+        <button
+          class="btn btn-secondary btn-bloc"
+          type="button"
+          [disabled]="pdfBusy()"
+          (click)="imprimerAddition()"
+        >
+          Imprimer l'addition
+        </button>
+
+        <label class="field-label" style="margin-top: 20px">
+          <span class="field-text">Mode de paiement <span class="required">*</span></span>
+          <select class="field-select" formControlName="mode_de_paiement_id">
+            <option [value]="0" disabled>Sélectionner…</option>
+            @for (m of modes(); track m.id) {
+              <option [value]="m.id">{{ m.libelle }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="field-label" style="margin-top: 16px">
+          <span class="field-text">Montant encaissé <span class="required">*</span></span>
+          <input
+            class="field-input"
+            type="number"
+            min="0.01"
+            step="0.01"
+            formControlName="montant"
+          />
+        </label>
+
+        <!-- Le billet posé sur le comptoir. Il ne part PAS en base comme
+             paiement : seul le montant encaissé reste en tiroir, et c'est lui
+             qui compte dans le fond théorique de la session. -->
+        <label class="field-label" style="margin-top: 16px">
+          <span class="field-text">Reçu du client</span>
+          <input
+            class="field-input"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Espèces tendues, pour calculer la monnaie"
+            formControlName="montant_recu"
+          />
+        </label>
+
+        @if (recuInsuffisant()) {
+          <p class="reglement-apres reglement-apres-alerte">
+            Le montant reçu est inférieur au montant encaissé — les deux champs sont-ils inversés ?
+          </p>
+        } @else if (monnaieSaisie() > 0) {
+          <div class="monnaie-bloc">
+            <span class="field-text">Monnaie à rendre</span>
+            <strong>{{ monnaieSaisie() | montant }}</strong>
+          </div>
+        }
+
+        <!-- Dit avant de valider si le geste solde la note ou s'il faudra
+             enchaîner : espèces puis carte, acompte, partage d'addition. -->
+        @if (!soldeLaNote()) {
+          <p class="reglement-apres">
+            Paiement partiel : il restera <strong>{{ resteApres() | montant }}</strong
+            >, la note reste dans la file.
+          </p>
+        } @else {
+          <p class="reglement-apres reglement-apres-solde">
+            Solde la note : elle sera clôturée et quittera la file.
+          </p>
+        }
+      </form>
+
+      <div class="drawer-footer">
+        <button
+          class="btn btn-secondary"
+          type="button"
+          [disabled]="busy()"
+          (click)="fermerReglement()"
+        >
+          Fermer
+        </button>
+        <button class="btn btn-primary" type="button" [disabled]="busy()" (click)="regler()">
+          @if (busy()) {
+            <span class="spinner" style="width: 14px; height: 14px"></span>
+          }
+          @if (soldeLaNote()) {
+            Encaisser et clôturer
+          } @else {
+            Enregistrer le paiement
+          }
+        </button>
+      </div>
+    } @else {
+      <!-- Ce qui reste à faire des mains : rendre la monnaie, remettre le reçu. -->
+      <div class="drawer-body">
+        @if (formError()) {
+          <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+        }
+
+        @if (monnaieARendre() > 0) {
+          <div class="monnaie-bloc monnaie-bloc-fort">
+            <span class="field-text">Monnaie à rendre</span>
+            <strong>{{ monnaieARendre() | montant }}</strong>
+          </div>
+        } @else {
+          <div class="monnaie-bloc">
+            <span class="field-text">Compte juste</span>
+            <strong>Aucune monnaie</strong>
+          </div>
+        }
+
+        <dl class="reglement-recap" style="margin-top: 20px">
+          <div class="reglement-recap-fort">
+            <dt>Encaissé</dt>
+            <dd>{{ note.montant_du | montant }}</dd>
+          </div>
+        </dl>
+
+        <button
+          class="btn btn-secondary btn-bloc"
+          type="button"
+          [disabled]="pdfBusy()"
+          (click)="imprimerRecu()"
+        >
+          Imprimer le reçu
+        </button>
+      </div>
+
+      <div class="drawer-footer">
+        <button class="btn btn-primary" type="button" (click)="fermerReglement()">Terminer</button>
+      </div>
+    }
+  </div>
+}

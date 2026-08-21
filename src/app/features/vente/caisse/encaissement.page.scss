@@ -1,0 +1,184 @@
+// Styles propres au poste de caisse (file « À encaisser » et son tiroir de
+// règlement). Hors de caisse.page.scss, que se partagent cinq écrans : les
+// quatre autres n'ont pas à embarquer ces règles.
+
+// Le total dû saute aux yeux : c'est le chiffre que le caissier annonce.
+.encaisse-total {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-left: auto;
+  text-align: right;
+
+  strong {
+    font-size: var(--text-lg);
+    font-variant-numeric: tabular-nums;
+    color: var(--amber);
+  }
+}
+
+// Le numéro de note ouvre la fiche complète — remise, lignes, impression.
+// Discret : dans la file, l'action normale est le bouton Régler.
+.lien-note {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--border-strong);
+
+  &:hover {
+    color: var(--amber);
+    border-bottom-color: currentColor;
+  }
+}
+
+// Tiroir de règlement : le rappel du compte, puis ce que le geste va produire.
+.drawer-sous-titre {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.reglement-recap {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-4);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+
+  > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+
+    + div {
+      margin-top: 6px;
+    }
+  }
+
+  dt {
+    font-size: var(--text-sm);
+    color: var(--text-dim);
+  }
+
+  dd {
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .reglement-recap-fort {
+    margin-top: var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border);
+
+    dt {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    dd {
+      font-size: var(--text-lg);
+      font-weight: 700;
+      color: var(--amber);
+    }
+  }
+}
+
+.reglement-apres {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-dim);
+
+  strong {
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+
+  &.reglement-apres-solde {
+    color: var(--green-soft);
+  }
+}
+
+// La monnaie est le chiffre que le caissier lit pour ouvrir son tiroir : il ne
+// se cherche pas dans une liste de totaux.
+.monnaie-bloc {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+
+  strong {
+    font-size: var(--text-lg);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.monnaie-bloc-fort {
+    margin-top: 0;
+    border-color: var(--amber);
+    background: rgba(var(--amber-rgb), 0.1);
+
+    strong {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--amber);
+    }
+  }
+}
+
+.reglement-apres-alerte {
+  color: var(--red-soft);
+}
+
+.btn-bloc {
+  width: 100%;
+  margin-top: var(--space-4);
+}
+
+// Ventilation par mode : la lecture qui prépare la fermeture de caisse.
+.ventilation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.ventilation-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  strong {
+    font-size: var(--text-lg);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.ventilation-mode-total {
+    margin-left: auto;
+    text-align: right;
+
+    strong {
+      color: var(--amber);
+    }
+  }
+}
+
+.ventilation-notes {
+  font-size: var(--text-xs);
+  color: var(--text-dim);
+}
+
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}

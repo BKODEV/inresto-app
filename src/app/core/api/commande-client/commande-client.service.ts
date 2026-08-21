@@ -10,16 +10,42 @@ import {
   AnnulerLignePayload,
   CommandeClient,
   CreateCommandePayload,
+  LigneAEnvoyer,
   LigneCommandeClient,
   Paiement,
   Remise,
   StatutCommandeClient,
+  TourKds,
   StorePaiementPayload,
   StoreRemisePayload,
 } from './commande-client.model';
 
 interface CommandeIndex {
   commandes: CommandeClient[];
+  pagination: Pagination;
+}
+
+export interface Pagination {
+  total: number;
+  par_page: number;
+  page_courante: number;
+  derniere_page: number;
+}
+
+export interface CommandePage {
+  commandes: CommandeClient[];
+  pagination: Pagination;
+}
+
+export interface CommandeFiltres {
+  point_de_vente_id?: number;
+  table_id?: number;
+  session_caisse_id?: number;
+  statut?: StatutCommandeClient[];
+  /** Charge les paiements et leur mode. Réservé à `paiement.view` côté API. */
+  avec_paiements?: boolean;
+  per_page?: number;
+  page?: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -38,13 +64,16 @@ export class CommandeClientService {
    * n'est pas une journée calendaire, un service qui dépasse minuit doit rester
    * groupé.
    */
-  list(filters?: {
-    point_de_vente_id?: number;
-    table_id?: number;
-    session_caisse_id?: number;
-    statut?: StatutCommandeClient[];
-    per_page?: number;
-  }): Observable<CommandeClient[]> {
+  list(filters?: CommandeFiltres): Observable<CommandeClient[]> {
+    return this.listPagine(filters).pipe(map((page) => page.commandes));
+  }
+
+  /**
+   * Même index, en conservant le compte total. Les écrans qui listent un
+   * historique — les ventes d'une session — doivent pouvoir dire « 43 notes »
+   * sans confondre ce total avec la page affichée.
+   */
+  listPagine(filters?: CommandeFiltres): Observable<CommandePage> {
     let params = new HttpParams();
     if (filters?.point_de_vente_id) {
       params = params.set('point_de_vente_id', filters.point_de_vente_id);
@@ -58,12 +87,27 @@ export class CommandeClientService {
     for (const statut of filters?.statut ?? []) {
       params = params.append('statut[]', statut);
     }
+    if (filters?.avec_paiements) {
+      params = params.set('avec_paiements', 1);
+    }
     if (filters?.per_page) {
       params = params.set('per_page', filters.per_page);
     }
+    if (filters?.page) {
+      params = params.set('page', filters.page);
+    }
     return this.http
       .get<ApiResponse<CommandeIndex>>(this.base, { params })
-      .pipe(map((r) => r.data.commandes));
+      .pipe(map((r) => r.data));
+  }
+
+  /**
+   * Abandonne une commande que rien n'a jamais garnie et rend sa table.
+   * Sans motif : il ne s'est rien passé. L'API refuse en 409 dès que la
+   * commande a porté une ligne ou un paiement — c'est alors une annulation.
+   */
+  liberer(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.base}/${id}`);
   }
 
   get(id: number): Observable<CommandeClient> {
@@ -92,15 +136,15 @@ export class CommandeClientService {
       .pipe(map(() => undefined));
   }
 
-  envoyerEnCuisine(id: number): Observable<CommandeClient> {
+  /**
+   * Marque servi. `ligneIds` cible un tour précis — la cuisine valide le ticket
+   * qu'elle vient de produire, et une note peut porter deux tours à la fois.
+   * Sans lui, toute la production en attente est servie.
+   */
+  servir(id: number, ligneIds: number[] = []): Observable<CommandeClient> {
+    const corps = ligneIds.length > 0 ? { lignes: ligneIds } : {};
     return this.http
-      .post<ApiResponse<CommandeClient>>(`${this.base}/${id}/envoyer-en-cuisine`, {})
-      .pipe(map((r) => r.data));
-  }
-
-  servir(id: number): Observable<CommandeClient> {
-    return this.http
-      .post<ApiResponse<CommandeClient>>(`${this.base}/${id}/servir`, {})
+      .post<ApiResponse<CommandeClient>>(`${this.base}/${id}/servir`, corps)
       .pipe(map((r) => r.data));
   }
 
@@ -128,10 +172,21 @@ export class CommandeClientService {
       .pipe(map((r) => r.data));
   }
 
-  /** File KDS d'un point de vente (commandes envoyées en cuisine). */
-  kds(pointDeVenteId: number): Observable<CommandeClient[]> {
+  /** File de production d'un point de vente, en tickets (tours). */
+  kds(pointDeVenteId: number): Observable<TourKds[]> {
     return this.http
-      .get<ApiResponse<CommandeIndex>>(`${environment.apiUrl}/kds/${pointDeVenteId}`)
-      .pipe(map((r) => r.data.commandes));
+      .get<ApiResponse<{ tours: TourKds[] }>>(`${environment.apiUrl}/kds/${pointDeVenteId}`)
+      .pipe(map((r) => r.data.tours));
+  }
+
+  /**
+   * Envoie un tour en cuisine, panier compris : les lignes sont créées ET
+   * expédiées en un seul appel, au lieu d'un aller-retour réseau par plat.
+   */
+  envoyerEnCuisine(id: number, lignes: LigneAEnvoyer[] = []): Observable<CommandeClient> {
+    const corps = lignes.length > 0 ? { lignes } : {};
+    return this.http
+      .post<ApiResponse<CommandeClient>>(`${this.base}/${id}/envoyer-en-cuisine`, corps)
+      .pipe(map((r) => r.data));
   }
 }

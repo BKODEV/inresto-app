@@ -75,6 +75,8 @@ export class CommandesVentePage implements OnInit {
   readonly loadingData = signal(false);
 
   readonly drawerOpen = signal(false);
+  /** Table tapée dans le plan : intitule la confirmation. Null = création libre. */
+  readonly tableDemandee = signal<TableSalle | null>(null);
   readonly saving = signal(false);
   readonly formError = signal<string | null>(null);
 
@@ -215,8 +217,12 @@ export class CommandesVentePage implements OnInit {
 
   /**
    * Geste unique du service : taper une table. Elle est occupée → on ouvre sa
-   * commande ; elle est libre → on en crée une, sans étape intermédiaire dès
-   * qu'une seule session de caisse est ouverte.
+   * commande ; elle est libre → on demande confirmation avant d'en créer une.
+   *
+   * La confirmation n'est pas une politesse. Le plan de salle est une grille de
+   * grandes cibles tapées au doigt en plein service, et créer sur simple
+   * effleurement produisait des commandes accidentelles que seule une
+   * annulation motivée pouvait défaire.
    */
   ouvrirTable(entree: { table: TableSalle; commande: CommandeClient | null }): void {
     if (entree.commande !== null) {
@@ -230,20 +236,14 @@ export class CommandesVentePage implements OnInit {
       return;
     }
 
+    this.tableDemandee.set(entree.table);
     this.form.reset({ table_id: entree.table.id, session_caisse_id: sessions[0].id });
     this.formError.set(null);
-
-    if (sessions.length === 1) {
-      this.create();
-
-      return;
-    }
-
-    // Plusieurs caisses ouvertes : il faut savoir sur laquelle imputer.
     this.drawerOpen.set(true);
   }
 
   openCreate(): void {
+    this.tableDemandee.set(null);
     this.form.reset({ table_id: 0, session_caisse_id: this.sessions()[0]?.id ?? 0 });
     this.formError.set(null);
     this.drawerOpen.set(true);
@@ -251,6 +251,7 @@ export class CommandesVentePage implements OnInit {
 
   closeDrawer(): void {
     this.drawerOpen.set(false);
+    this.tableDemandee.set(null);
   }
 
   create(): void {

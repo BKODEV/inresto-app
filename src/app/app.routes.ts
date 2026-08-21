@@ -252,6 +252,20 @@ export const routes: Routes = [
                 title: 'Prise de commande',
               },
               {
+                path: 'encaissement',
+                loadComponent: () =>
+                  import('./features/vente/caisse/encaissement.page').then(
+                    (m) => m.EncaissementPage,
+                  ),
+                title: 'À encaisser',
+              },
+              {
+                path: 'ventes',
+                loadComponent: () =>
+                  import('./features/vente/caisse/ventes.page').then((m) => m.VentesPage),
+                title: 'Ventes du service',
+              },
+              {
                 path: 'commandes/:id',
                 loadComponent: () =>
                   import('./features/vente/caisse/commande-detail.page').then(

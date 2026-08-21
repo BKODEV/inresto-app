@@ -66,24 +66,27 @@
       </label>
     </div>
 
-    @if (commandes().length === 0) {
+    @if (tours().length === 0) {
       <div class="empty-state">
         <span class="empty-title">Rien à préparer</span>
-        <span class="empty-message">Aucune commande en cuisine pour ce point de vente.</span>
+        <span class="empty-message">Aucun ticket en production pour ce point de vente.</span>
       </div>
     } @else {
+      <!-- Une carte = un TOUR, pas une note. Une même table peut donc apparaître
+           deux fois : ses plats en production et son dessert qui vient de
+           partir sont deux tickets distincts pour la cuisine. -->
       <div class="kds-grid">
-        @for (c of commandes(); track c.id) {
-          <div class="kds-card" [class]="urgence(c)">
+        @for (tour of tours(); track cle(tour)) {
+          <div class="kds-card" [class]="urgence(tour)">
             <div class="kds-head">
-              <span class="kds-table">Table {{ c.table?.numero ?? c.table_id }}</span>
+              <span class="kds-table">Table {{ tour.table?.numero ?? '—' }}</span>
               <!-- Le temps d'attente prime sur le numéro : c'est lui qui dit
-                   quelle commande traîne. -->
-              <span class="kds-attente">{{ attente(c) }}</span>
+                   quel ticket traîne. -->
+              <span class="kds-attente">{{ attente(tour) }}</span>
             </div>
-            <div class="kds-ref">Commande #{{ c.id }}</div>
+            <div class="kds-ref">Commande #{{ tour.commande_id }}</div>
             <div class="kds-lignes">
-              @for (l of lignesActives(c); track l.id) {
+              @for (l of tour.lignes; track l.id) {
                 <div class="kds-ligne">
                   <span class="q">{{ l.quantite }}×</span>
                   <span>{{ l.produit?.libelle ?? '#' + l.produit_id }}</span>
@@ -96,13 +99,13 @@
             <button
               class="btn btn-primary btn-service"
               type="button"
-              [disabled]="servingId() === c.id"
-              (click)="servir(c)"
+              [disabled]="servingTour() === cle(tour)"
+              (click)="servir(tour)"
             >
-              @if (servingId() === c.id) {
+              @if (servingTour() === cle(tour)) {
                 <span class="spinner" style="width: 14px; height: 14px"></span>
               }
-              Marquer servie
+              Marquer servi
             </button>
           </div>
         }
