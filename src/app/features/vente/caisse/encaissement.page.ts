@@ -131,10 +131,12 @@ export class EncaissementPage implements OnInit {
     mode_de_paiement_id: [0, [Validators.required, Validators.min(1)]],
     montant: [0, [Validators.required, Validators.min(0.01)]],
     montant_recu: [0],
+    pourboire: [0],
   });
 
   private readonly montantSaisi = signal(0);
   private readonly recuSaisi = signal(0);
+  private readonly pourboireSaisi = signal(0);
 
   /**
    * Ce qu'il restera après ce paiement. Le caissier voit tout de suite s'il
@@ -155,16 +157,23 @@ export class EncaissementPage implements OnInit {
    */
   readonly monnaieSaisie = computed(() => {
     const recu = this.recuSaisi();
+    if (recu <= 0) {
+      return 0;
+    }
 
-    return recu > 0 ? Math.round((recu - this.montantSaisi()) * 100) / 100 : 0;
+    // Le pourboire se retranche : le client l'a laissé, on ne le lui rend pas.
+    return Math.round((recu - this.montantSaisi() - this.pourboireSaisi()) * 100) / 100;
   });
 
-  /** Saisie inversée : on ne rend pas plus que ce qu'on a reçu. */
+  /** Saisie inversée : le billet doit couvrir la vente ET le pourboire. */
   readonly recuInsuffisant = computed(() => {
     const recu = this.recuSaisi();
 
-    return recu > 0 && recu < this.montantSaisi();
+    return recu > 0 && recu < this.montantSaisi() + this.pourboireSaisi();
   });
+
+  /** Le geste du comptoir : « gardez la monnaie ». */
+  readonly peutGarderLaMonnaie = computed(() => this.monnaieSaisie() > 0);
 
   /** Horloge d'affichage : l'ancienneté se recalcule à chaque tic. */
   private readonly maintenant = signal(Date.now());
@@ -186,6 +195,9 @@ export class EncaissementPage implements OnInit {
     this.reglementForm.controls.montant_recu.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((valeur) => this.recuSaisi.set(Number(valeur) || 0));
+    this.reglementForm.controls.pourboire.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((valeur) => this.pourboireSaisi.set(Number(valeur) || 0));
 
     effect(() => {
       const list = this.pdvs();
@@ -256,6 +268,21 @@ export class EncaissementPage implements OnInit {
       mode_de_paiement_id: modeParDefaut(this.modes()),
       montant: Number(commande.reste_a_payer),
       montant_recu: 0,
+      pourboire: 0,
+    });
+  }
+
+  /**
+   * Bascule la monnaie restante en pourboire. C'est le « gardez la monnaie »
+   * du comptoir, en un geste plutôt qu'un calcul mental puis une saisie.
+   */
+  garderLaMonnaie(): void {
+    const monnaie = this.monnaieSaisie();
+    if (monnaie <= 0) {
+      return;
+    }
+    this.reglementForm.patchValue({
+      pourboire: Math.round((this.pourboireSaisi() + monnaie) * 100) / 100,
     });
   }
 
@@ -335,11 +362,14 @@ export class EncaissementPage implements OnInit {
 
     const saisie = this.reglementForm.getRawValue();
     const monnaie = this.monnaieSaisie();
+    const pourboire = this.pourboireSaisi();
     const paiement = {
       mode_de_paiement_id: saisie.mode_de_paiement_id,
       montant: saisie.montant,
-      // Transmis seulement quand il y a eu de la monnaie : une carte ou un
-      // compte juste n'ont pas de billet tendu à mémoriser.
+      pourboire: pourboire > 0 ? pourboire : null,
+      // Transmis seulement quand il reste quelque chose à rendre : une carte,
+      // un compte juste ou une monnaie entièrement laissée en pourboire n'ont
+      // pas de billet à mémoriser.
       montant_recu: monnaie > 0 ? saisie.montant_recu : null,
     };
 
@@ -375,7 +405,7 @@ export class EncaissementPage implements OnInit {
           if (reste > 0) {
             this.majDansLaFile(maj);
             this.cible.set(maj);
-            this.reglementForm.patchValue({ montant: reste, montant_recu: 0 });
+            this.reglementForm.patchValue({ montant: reste, montant_recu: 0, pourboire: 0 });
             this.info.set(
               `Paiement de ${formatMontant(paiement.montant)} enregistré. Reste ${formatMontant(reste)}.`,
             );

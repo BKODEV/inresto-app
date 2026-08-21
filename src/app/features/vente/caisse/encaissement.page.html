@@ -221,15 +221,36 @@
           />
         </label>
 
+        <!-- Le pourboire reste en tiroir mais n'appartient pas à
+             l'établissement : il compte dans le fond de caisse théorique et
+             jamais dans le chiffre d'affaires. Le bénéficiaire est le serveur
+             de la note. -->
+        <label class="field-label" style="margin-top: 16px">
+          <span class="field-text">Pourboire</span>
+          <input
+            class="field-input"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="Laissé au serveur"
+            formControlName="pourboire"
+          />
+        </label>
+
         @if (recuInsuffisant()) {
           <p class="reglement-apres reglement-apres-alerte">
-            Le montant reçu est inférieur au montant encaissé — les deux champs sont-ils inversés ?
+            Le montant reçu ne couvre pas le montant encaissé et le pourboire.
           </p>
         } @else if (monnaieSaisie() > 0) {
           <div class="monnaie-bloc">
             <span class="field-text">Monnaie à rendre</span>
             <strong>{{ monnaieSaisie() | montant }}</strong>
           </div>
+          <!-- « Gardez la monnaie » en un geste, plutôt qu'un calcul mental
+               suivi d'une saisie. -->
+          <button class="btn btn-secondary btn-bloc" type="button" (click)="garderLaMonnaie()">
+            Garder comme pourboire
+          </button>
         }
 
         <!-- Dit avant de valider si le geste solde la note ou s'il faudra

@@ -92,6 +92,7 @@
               <th>Hors tiroir</th>
               <th>Écart</th>
               <th>Statut</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -133,6 +134,20 @@
                     <span class="badge badge-success">Ouverte</span>
                   } @else {
                     <span class="badge badge-neutral">Fermée</span>
+                  }
+                </td>
+                <td class="td-actions">
+                  @if (s.statut === 'fermee') {
+                    <!-- Un ticket se perd : le rapprochement doit rester
+                         consultable après coup. -->
+                    <button
+                      class="btn btn-secondary"
+                      type="button"
+                      [disabled]="pdfBusy()"
+                      (click)="imprimerRapport(s)"
+                    >
+                      Rapport
+                    </button>
                   }
                 </td>
               </tr>

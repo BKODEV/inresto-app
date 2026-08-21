@@ -30,6 +30,7 @@ import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { rafraichissementAuto } from '../../../core/temps/rafraichissement-auto';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AuthService } from '../../../core/auth/auth.service';
 import { MontantPipe } from '../../../shared/format/nombre.pipes';
 
 const ACTIFS: StatutCommandeClient[] = ['ouverte', 'envoyee_en_cuisine', 'servie'];
@@ -51,6 +52,20 @@ export class CommandesVentePage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly auth = inject(AuthService);
+
+  /**
+   * Une table servie attend le temps que le client se lève, aille au comptoir
+   * et règle. Au-delà, elle mérite un regard ; bien au-delà, il faut aller voir.
+   */
+  private readonly SEUIL_ATTENTION = 15;
+  private readonly SEUIL_OUBLI = 30;
+
+  /** Filtre d'affichage : le serveur ne voit que les notes qu'il a ouvertes. */
+  readonly mesTablesSeulement = signal(false);
+
+  /** Horloge d'affichage : l'attente se recalcule sans interroger l'API. */
+  private readonly maintenant = signal(Date.now());
 
   readonly statutLabel: Record<StatutCommandeClient, string> = {
     ouverte: 'Ouverte',
@@ -98,15 +113,66 @@ export class CommandesVentePage implements OnInit {
       parTable.set(commande.table_id, commande);
     }
 
+    const mien = this.mesTablesSeulement() ? this.auth.user()?.id : null;
+
     // Tri naturel : l'API ordonne par `numero`, une colonne texte, qui place
     // T10 avant T2. Le plan de salle doit se lire dans l'ordre de la salle.
-    return [...this.tables()]
-      .sort((a, b) => a.numero.localeCompare(b.numero, 'fr', { numeric: true }))
-      .map((table) => ({
-        table,
-        commande: parTable.get(table.id) ?? null,
-      }));
+    return (
+      [...this.tables()]
+        .sort((a, b) => a.numero.localeCompare(b.numero, 'fr', { numeric: true }))
+        .map((table) => ({
+          table,
+          commande: parTable.get(table.id) ?? null,
+        }))
+        // Filtre d'affichage et non règle d'accès : un serveur peut toujours
+        // reprendre la table d'un collègue, il ne veut simplement pas la voir
+        // quand il cherche les siennes.
+        .filter((entree) => mien === null || entree.commande?.user_id === mien)
+    );
   });
+
+  /**
+   * Depuis combien de temps cette table attend son addition.
+   *
+   * Le repère n'est pas l'ouverture de la note — une table peut manger deux
+   * heures — mais son passage à « servie ». C'est le seul signal qui distingue
+   * un client parti au comptoir d'un client parti tout court.
+   */
+  attenteReglement(commande: CommandeClient): string | null {
+    const minutes = this.minutesDepuisService(commande);
+    if (minutes === null) {
+      return null;
+    }
+    if (minutes < 60) {
+      return `${minutes} min`;
+    }
+
+    return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')}`;
+  }
+
+  /** Escalade visuelle : une table servie qui traîne finit par se voir. */
+  classeAttente(commande: CommandeClient): string {
+    const minutes = this.minutesDepuisService(commande);
+    if (minutes === null) {
+      return '';
+    }
+    if (minutes >= this.SEUIL_OUBLI) {
+      return 'attente--oubli';
+    }
+
+    return minutes >= this.SEUIL_ATTENTION ? 'attente--attention' : '';
+  }
+
+  private minutesDepuisService(commande: CommandeClient): number | null {
+    if (commande.statut !== 'servie' || commande.servie_le === null) {
+      return null;
+    }
+
+    return Math.max(
+      0,
+      Math.floor((this.maintenant() - new Date(commande.servie_le).getTime()) / 60_000),
+    );
+  }
 
   /** Bascule vers l'ancienne liste, utile pour retrouver une commande par son numéro. */
   readonly vueListe = signal(false);

@@ -31,6 +31,8 @@ export interface SessionCaisse {
    * seulement sur les sessions fermées.
    */
   montant_hors_caisse?: string;
+  /** Qui a signé la fermeture — pas forcément qui a ouvert (relève d'équipe). */
+  ferme_par?: string | null;
   statut: StatutSessionCaisse;
   notes: string | null;
   caisse?: Caisse;

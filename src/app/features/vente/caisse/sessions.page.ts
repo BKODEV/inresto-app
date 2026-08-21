@@ -21,6 +21,7 @@ import { EcartSens, SessionCaisse } from '../../../core/api/session-caisse/sessi
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
 import { MontantPipe, MontantSignePipe } from '../../../shared/format/nombre.pipes';
 
 type DrawerMode = 'ouvrir' | 'fermer';
@@ -39,6 +40,7 @@ export class SessionsPage implements OnInit {
   private readonly selectedSite = inject(SelectedSiteService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly pdfService = inject(PdfService);
 
   // Toutes les caisses chargées, puis restreintes au site global (via leur PDV).
   private readonly allCaisses = signal<Caisse[]>([]);
@@ -59,6 +61,7 @@ export class SessionsPage implements OnInit {
   readonly saving = signal(false);
   readonly formError = signal<string | null>(null);
   readonly closingSession = signal<SessionCaisse | null>(null);
+  readonly pdfBusy = signal(false);
 
   readonly sessionOuverte = computed(
     () => this.sessions().find((s) => s.statut === 'ouverte') ?? null,
@@ -178,6 +181,30 @@ export class SessionsPage implements OnInit {
       });
   }
 
+  /**
+   * Rapport de fermeture (ticket Z). Imprimable à nouveau depuis la liste : un
+   * ticket se perd, et le rapprochement doit rester consultable.
+   */
+  imprimerRapport(session: SessionCaisse): void {
+    if (this.pdfBusy()) {
+      return;
+    }
+    this.pdfBusy.set(true);
+    this.pdfService
+      .rapportFermeture(session.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (blob) => {
+          this.pdfBusy.set(false);
+          ouvrirPdfDansOnglet(blob, `rapport-fermeture-${session.id}.pdf`);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.pdfBusy.set(false);
+          this.formError.set(apiErrorMessage(err, 'Impression impossible.'));
+        },
+      });
+  }
+
   fermer(): void {
     const session = this.closingSession();
     if (this.fermerForm.invalid || this.saving() || !session) {
@@ -194,6 +221,9 @@ export class SessionsPage implements OnInit {
           this.sessions.update((list) => list.map((s) => (s.id === updated.id ? updated : s)));
           this.saving.set(false);
           this.drawerMode.set(null);
+          // Le rapport sort dans la foulée, comme le reçu après un règlement :
+          // c'est le document qu'on classe dans le tiroir en le refermant.
+          this.imprimerRapport(updated);
         },
         error: (err: HttpErrorResponse) => {
           this.saving.set(false);

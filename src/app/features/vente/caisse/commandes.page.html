@@ -52,6 +52,19 @@
       <button class="btn btn-secondary" type="button" (click)="basculerVue()">
         {{ vueListe() ? 'Vue plan de salle' : 'Vue liste' }}
       </button>
+
+      <!-- Filtre d'affichage, pas une règle d'accès : un serveur peut toujours
+           reprendre la table d'un collègue, il ne veut simplement pas la voir
+           quand il cherche les siennes. -->
+      <button
+        class="btn"
+        type="button"
+        [class.btn-primary]="mesTablesSeulement()"
+        [class.btn-secondary]="!mesTablesSeulement()"
+        (click)="mesTablesSeulement.set(!mesTablesSeulement())"
+      >
+        Mes tables
+      </button>
     </div>
 
     @if (sessions().length === 0) {
@@ -125,6 +138,11 @@
             @if (entree.commande; as c) {
               <span class="salle-etat">{{ statutLabel[c.statut] }}</span>
               <span class="salle-montant">{{ c.reste_a_payer | montant }}</span>
+              <!-- Depuis quand la table attend son addition. Sans ce repère,
+                   rien ne distingue un client au comptoir d'un client parti. -->
+              @if (attenteReglement(c); as attente) {
+                <span class="salle-attente" [class]="classeAttente(c)">{{ attente }}</span>
+              }
             } @else {
               <span class="salle-etat salle-etat--libre">Libre</span>
             }

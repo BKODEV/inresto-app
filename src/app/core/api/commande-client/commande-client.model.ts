@@ -38,6 +38,11 @@ export interface Paiement {
   user_id: string;
   /** Ce qui reste en tiroir, et qui compte dans le théorique de la session. */
   montant: string;
+  /**
+   * Ce que le client a laissé au serveur. Dans le tiroir, mais pas de la
+   * recette : le bénéficiaire est le serveur de la note.
+   */
+  pourboire: string;
   /** Espèces tendues, quand il y a eu de la monnaie à rendre. */
   montant_recu: string | null;
   date_heure: string;
@@ -95,6 +100,12 @@ export interface CommandeClient {
   appartement_a_verifier: boolean;
   date_heure: string;
   statut: StatutCommandeClient;
+  /**
+   * Depuis quand la table attend son addition. Le seul repère qui distingue un
+   * client au comptoir d'un client parti sans payer. Null tant que la note
+   * n'est pas servie, et effacé si elle repart en cuisine.
+   */
+  servie_le: string | null;
   montant_total: string;
   montant_du: string;
   montant_paye: string;
@@ -133,6 +144,8 @@ export interface StorePaiementPayload {
    * y inscrire le billet reçu gonflerait le fond théorique de la monnaie
    * rendue, et ferait apparaître un manquant à la fermeture.
    */
+  /** Laissé au serveur : dans le tiroir, jamais dans le chiffre d'affaires. */
+  pourboire?: number | null;
   montant_recu?: number | null;
   reference_externe?: string | null;
 }

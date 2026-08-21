@@ -125,8 +125,8 @@ describe('VentesPage — ventes d’une session de caisse', () => {
     page.onCaisseChange('3');
 
     expect(page.ventilation()).toEqual([
-      { libelle: 'Espèces', montant: 5000, notes: 1 },
-      { libelle: 'Carte', montant: 3000, notes: 1 },
+      { libelle: 'Espèces', montant: 5000, pourboire: 0, notes: 1 },
+      { libelle: 'Carte', montant: 3000, pourboire: 0, notes: 1 },
     ]);
   });
 
@@ -147,9 +147,40 @@ describe('VentesPage — ventes d’une session de caisse', () => {
     page.onCaisseChange('3');
 
     expect(page.ventilation()).toEqual([
-      { libelle: 'Espèces', montant: 5000, notes: 1 },
-      { libelle: 'Carte', montant: 3000, notes: 1 },
+      { libelle: 'Espèces', montant: 5000, pourboire: 0, notes: 1 },
+      { libelle: 'Carte', montant: 3000, pourboire: 0, notes: 1 },
     ]);
+  });
+
+  /**
+   * Le pourboire est dans le tiroir mais dû au serveur : le confondre avec la
+   * recette gonflerait le chiffre annoncé au comptoir.
+   */
+  it('tient les pourboires à l’écart de la recette', () => {
+    const { page } = creer({
+      ventes: [
+        vente({
+          montant_du: '5000.00',
+          paiements: [
+            {
+              id: 1,
+              montant: '5000.00',
+              pourboire: '800.00',
+              mode_de_paiement: { id: 5, libelle: 'Espèces' },
+            },
+          ],
+        } as Partial<CommandeClient>),
+      ],
+    });
+
+    page.onCaisseChange('3');
+
+    expect(page.ventilation()).toEqual([
+      { libelle: 'Espèces', montant: 5000, pourboire: 800, notes: 1 },
+    ]);
+    expect(page.totalPourboires()).toBe(800);
+    // Le total encaissé reste la vente seule.
+    expect(page.totalPage()).toBe(5000);
   });
 
   /**

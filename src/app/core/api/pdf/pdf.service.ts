@@ -68,6 +68,16 @@ export class PdfService {
     });
   }
 
+  /**
+   * Rapport de fermeture d'une session de caisse — le « ticket Z », qui sort de
+   * l'imprimante du comptoir et se classe dans le tiroir.
+   */
+  rapportFermeture(sessionId: number): Observable<Blob> {
+    return this.http.get(`${this.base}/sessions-caisse/${sessionId}/rapport-fermeture`, {
+      responseType: 'blob',
+    });
+  }
+
   /** Chevalet QR d'une table (A6), à poser sur la table. */
   qrTable(tableId: number): Observable<Blob> {
     return this.http.get(`${this.base}/tables/${tableId}/qr-pdf`, { responseType: 'blob' });

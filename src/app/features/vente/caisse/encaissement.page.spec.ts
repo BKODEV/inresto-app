@@ -92,6 +92,7 @@ describe('EncaissementPage — tiroir de règlement', () => {
     expect(api.ajouterPaiement).toHaveBeenCalledWith(142, {
       mode_de_paiement_id: 5,
       montant: 5000,
+      pourboire: null,
       montant_recu: null,
     });
     expect(api.encaisser).toHaveBeenCalledWith(142);
@@ -125,6 +126,7 @@ describe('EncaissementPage — tiroir de règlement', () => {
     expect(api.ajouterPaiement).toHaveBeenCalledWith(142, {
       mode_de_paiement_id: 5,
       montant: 5000,
+      pourboire: null,
       montant_recu: 10000,
     });
     expect(page.monnaieARendre()).toBe(5000);
@@ -148,6 +150,7 @@ describe('EncaissementPage — tiroir de règlement', () => {
     expect(api.ajouterPaiement).toHaveBeenCalledWith(142, {
       mode_de_paiement_id: 5,
       montant: 5000,
+      pourboire: null,
       montant_recu: null,
     });
     expect(page.monnaieARendre()).toBe(0);
@@ -284,6 +287,68 @@ describe('EncaissementPage — tiroir de règlement', () => {
     page.choisirMode(9);
 
     expect(page.reglementForm.getRawValue().mode_de_paiement_id).toBe(9);
+  });
+
+  /**
+   * « Gardez la monnaie » : le geste le plus courant du comptoir. Le pourboire
+   * reste en tiroir — il compte donc dans le fond théorique — sans jamais
+   * devenir de la recette.
+   */
+  it('bascule la monnaie en pourboire d’un seul geste', () => {
+    const soldee = note({ montant_paye: '5000.00', reste_a_payer: '0.00' });
+    const { page, api } = creer({
+      api: {
+        get: vi.fn().mockReturnValue(of(soldee)),
+        encaisser: vi.fn().mockReturnValue(of({ ...soldee, statut: 'encaissee' })),
+      } as Partial<CommandeClientService>,
+    });
+    page.notes.set([note()]);
+
+    page.ouvrirReglement(page.notes()[0]);
+    page.reglementForm.patchValue({ montant_recu: 6000 });
+
+    expect(page.monnaieSaisie()).toBe(1000);
+
+    page.garderLaMonnaie();
+
+    // Plus rien à rendre : le client a laissé la différence.
+    expect(page.monnaieSaisie()).toBe(0);
+    expect(page.reglementForm.getRawValue().pourboire).toBe(1000);
+
+    page.regler();
+
+    expect(api.ajouterPaiement).toHaveBeenCalledWith(142, {
+      mode_de_paiement_id: 5,
+      montant: 5000,
+      pourboire: 1000,
+      // Rien à rendre, donc pas de billet à mémoriser.
+      montant_recu: null,
+    });
+  });
+
+  it('retranche le pourboire de la monnaie à rendre', () => {
+    // Le client pose 10 000 sur 5 000 et laisse 1 000 : on lui rend 4 000.
+    const { page } = creer();
+    page.notes.set([note()]);
+
+    page.ouvrirReglement(page.notes()[0]);
+    page.reglementForm.patchValue({ montant_recu: 10000, pourboire: 1000 });
+
+    expect(page.monnaieSaisie()).toBe(4000);
+  });
+
+  it('refuse un billet qui ne couvre pas la vente et le pourboire', () => {
+    const { page, api } = creer();
+    page.notes.set([note()]);
+
+    page.ouvrirReglement(page.notes()[0]);
+    page.reglementForm.patchValue({ montant_recu: 5500, pourboire: 1000 });
+
+    expect(page.recuInsuffisant()).toBe(true);
+
+    page.regler();
+
+    expect(api.ajouterPaiement).not.toHaveBeenCalled();
   });
 
   it('annonce si le geste solde la note, avant de valider', () => {

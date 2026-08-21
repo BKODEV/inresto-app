@@ -36,6 +36,7 @@ const PAR_PAGE = 50;
 interface LigneVentilation {
   libelle: string;
   montant: number;
+  pourboire: number;
   notes: number;
 }
 
@@ -104,6 +105,11 @@ export class VentesPage implements OnInit {
   );
 
   readonly totalSession = computed(() => this.pagination()?.total ?? 0);
+
+  /** Pourboires de la page, à reverser aux serveurs. */
+  readonly totalPourboires = computed(() =>
+    this.ventilation().reduce((total, mode) => total + mode.pourboire, 0),
+  );
   readonly pageUnique = computed(() => (this.pagination()?.derniere_page ?? 1) <= 1);
 
   /**
@@ -117,8 +123,11 @@ export class VentesPage implements OnInit {
     for (const vente of this.ventes()) {
       for (const paiement of vente.paiements ?? []) {
         const libelle = paiement.mode_de_paiement?.libelle ?? 'Non précisé';
-        const ligne = parMode.get(libelle) ?? { libelle, montant: 0, notes: 0 };
+        const ligne = parMode.get(libelle) ?? { libelle, montant: 0, pourboire: 0, notes: 0 };
+        // Recette et pourboire restent séparés : le second est dans le tiroir
+        // mais n'appartient pas à l'établissement.
         ligne.montant += Number(paiement.montant);
+        ligne.pourboire += Number(paiement.pourboire ?? 0);
         ligne.notes += 1;
         parMode.set(libelle, ligne);
       }

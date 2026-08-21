@@ -33,6 +33,13 @@
       <span class="empty-message">Créez votre premier mode de paiement.</span>
     </div>
   } @else {
+    @if (aucunModeEnTiroir()) {
+      <div class="alert-error" style="margin-bottom: 16px">
+        Aucun mode actif n'alimente le tiroir. Le montant théorique d'une session se réduira au
+        fonds initial, et la fermeture affichera un excédent égal à toutes les ventes du service.
+      </div>
+    }
+
     <div class="card">
       <table class="data-table">
         <thead>

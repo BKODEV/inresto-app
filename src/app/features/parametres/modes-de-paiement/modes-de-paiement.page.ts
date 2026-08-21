@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -35,6 +36,18 @@ export class ModesDePaiementPage implements OnInit {
   readonly saving = signal(false);
   readonly formError = signal<string | null>(null);
   readonly deletingId = signal<number | null>(null);
+
+  /**
+   * Aucun mode actif n'alimente le tiroir : le montant théorique d'une session
+   * se réduirait alors au fonds initial, et chaque vente semblerait s'être
+   * évaporée à la fermeture. Un avertissement et non un blocage — un
+   * établissement entièrement dématérialisé est légitime.
+   */
+  readonly aucunModeEnTiroir = computed(() => {
+    const actifs = this.items().filter((m) => m.statut === 'actif');
+
+    return actifs.length > 0 && !actifs.some((m) => m.compte_en_caisse);
+  });
 
   readonly form = this.fb.nonNullable.group({
     libelle: ['', [Validators.required, Validators.maxLength(255)]],

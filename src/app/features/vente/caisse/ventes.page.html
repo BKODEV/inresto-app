@@ -99,6 +99,14 @@
             <span class="ventilation-notes">{{ mode.notes }} paiement(s)</span>
           </div>
         }
+        @if (totalPourboires() > 0) {
+          <!-- Dans le tiroir, mais dû aux serveurs : jamais de la recette. -->
+          <div class="ventilation-mode">
+            <span class="field-text">Pourboires</span>
+            <strong>{{ totalPourboires() | montant }}</strong>
+            <span class="ventilation-notes">à reverser</span>
+          </div>
+        }
         <div class="ventilation-mode ventilation-mode-total">
           <span class="field-text">
             @if (pageUnique()) {
