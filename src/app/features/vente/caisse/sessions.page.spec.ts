@@ -17,7 +17,7 @@ import { SelectedSiteService } from '../../../core/site/selected-site.service';
  * ce que les chiffres prétendent dire.
  */
 describe('SessionsPage — lecture de l’écart de caisse', () => {
-  function creer(options: { fermer?: unknown; peutVerser?: boolean } = {}) {
+  function creer(options: { fermer?: unknown; peutVerser?: boolean; peutForcer?: boolean } = {}) {
     const rapportFermeture = vi.fn().mockReturnValue(of(new Blob()));
     const creerVersement = vi.fn().mockReturnValue(of({ id: 1, montant: '100000.00' }));
 
@@ -45,7 +45,12 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
         },
         {
           provide: AuthService,
-          useValue: { hasPermission: () => options.peutVerser !== false },
+          useValue: {
+            hasPermission: (p: string) =>
+              p === 'session_caisse.forcer_fermeture'
+                ? options.peutForcer === true
+                : options.peutVerser !== false,
+          },
         },
         {
           provide: SelectedSiteService,
@@ -229,5 +234,69 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
 
     expect(page.verserForm.getRawValue().destination).toBe('coffre');
     expect(page.verserForm.getRawValue().montant).toBe(0);
+  });
+
+  // ───────────────────────── fermeture forcée ─────────────────────────
+
+  /**
+   * Exiger un compte par contenant est la bonne règle, mais une règle sans
+   * issue immobilise : un terminal en panne et la caisse ne se ferme plus, donc
+   * le service suivant ne démarre pas.
+   */
+  it('laisse passer outre le compte à qui en a la permission', () => {
+    const fermer = vi.fn().mockReturnValue(of({ id: 4, statut: 'fermee' }));
+    const { page } = creer({ fermer, peutForcer: true });
+    page.ngOnInit();
+
+    page.openFermer({ id: 4 } as never);
+    page.onConstat(5, '183500'); // la carte reste non comptée
+    page.fermerForm.patchValue({ forcer: true, motif_forcage: 'Terminal en panne.' });
+    page.fermer();
+
+    expect(fermer).toHaveBeenCalledWith(
+      4,
+      expect.objectContaining({ forcer: true, motif_forcage: 'Terminal en panne.' }),
+    );
+  });
+
+  it('exige un motif pour forcer', () => {
+    // Un forçage sans explication ne vaut pas mieux qu'un trou.
+    const fermer = vi.fn().mockReturnValue(of({ id: 4, statut: 'fermee' }));
+    const { page } = creer({ fermer, peutForcer: true });
+    page.ngOnInit();
+
+    page.openFermer({ id: 4 } as never);
+    page.fermerForm.patchValue({ forcer: true, motif_forcage: '   ' });
+    page.fermer();
+
+    expect(fermer).not.toHaveBeenCalled();
+    expect(page.formError()).toContain('Expliquez');
+  });
+
+  it('ignore la case de forçage sans la permission', () => {
+    // Savoir fermer une caisse ne doit pas suffire à contourner le contrôle.
+    const fermer = vi.fn().mockReturnValue(of({ id: 4, statut: 'fermee' }));
+    const { page } = creer({ fermer, peutForcer: false });
+    page.ngOnInit();
+
+    page.openFermer({ id: 4 } as never);
+    page.fermerForm.patchValue({ forcer: true, motif_forcage: 'Peu importe.' });
+    page.fermer();
+
+    expect(fermer).not.toHaveBeenCalled();
+    expect(page.formError()).toContain('Comptez chaque');
+  });
+
+  it('ne marque pas forcée une fermeture où tout est compté', () => {
+    const fermer = vi.fn().mockReturnValue(of({ id: 4, statut: 'fermee' }));
+    const { page } = creer({ fermer, peutForcer: true });
+    page.ngOnInit();
+
+    page.openFermer({ id: 4 } as never);
+    page.onConstat(5, '100');
+    page.onConstat(9, '0');
+    page.fermer();
+
+    expect(fermer.mock.calls[0][1]).not.toHaveProperty('forcer');
   });
 });

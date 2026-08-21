@@ -62,6 +62,8 @@ export interface SessionCaisse {
   /** Un par mode de paiement actif, figé à la fermeture. */
   rapprochements?: RapprochementCaisse[];
   statut: StatutSessionCaisse;
+  /** Renseigné = fermée sans que tout soit compté, et voici pourquoi. */
+  motif_forcage: string | null;
   notes: string | null;
   caisse?: Caisse;
   user?: { id: string; nom: string; prenom: string };
@@ -80,5 +82,8 @@ export interface ConstatParMode {
 
 export interface FermerSessionPayload {
   rapprochements: ConstatParMode[];
+  /** Passer outre le compte d'un contenant. Exige la permission dédiée. */
+  forcer?: boolean;
+  motif_forcage?: string | null;
   notes?: string | null;
 }

@@ -110,7 +110,14 @@ export class SessionsPage implements OnInit {
   });
   readonly fermerForm = this.fb.nonNullable.group({
     notes: [''],
+    // Passer outre le compte d'un contenant qu'on ne peut pas vérifier ce soir
+    // — un terminal en panne. Sans issue, la caisse resterait ouverte et le
+    // service suivant ne pourrait pas démarrer.
+    forcer: [false],
+    motif_forcage: [''],
   });
+
+  readonly peutForcer = computed(() => this.auth.hasPermission('session_caisse.forcer_fermeture'));
 
   /** Modes de paiement actifs : un contenant à rapprocher par mode. */
   readonly modes = signal<ModeDePaiement[]>([]);
@@ -281,7 +288,7 @@ export class SessionsPage implements OnInit {
 
   openFermer(session: SessionCaisse): void {
     this.closingSession.set(session);
-    this.fermerForm.reset({ notes: '' });
+    this.fermerForm.reset({ notes: '', forcer: false, motif_forcage: '' });
     // Toutes les cases vides : le formulaire ne souffle AUCUN montant attendu,
     // ni pour le tiroir ni pour le terminal. Le montrer inviterait à le
     // recopier au lieu de compter, et le rapprochement ne vaudrait plus rien.
@@ -355,13 +362,21 @@ export class SessionsPage implements OnInit {
       this.fermerForm.markAllAsTouched();
       return;
     }
+    const forcer = this.fermerForm.getRawValue().forcer && this.peutForcer();
+
     const manquants = this.contenantsNonComptes();
-    if (manquants.length > 0) {
+    if (manquants.length > 0 && !forcer) {
       this.formError.set(
         `Comptez chaque moyen de paiement avant de fermer : ${manquants
           .map((mode) => mode.libelle)
           .join(', ')}.`,
       );
+
+      return;
+    }
+    if (forcer && this.fermerForm.getRawValue().motif_forcage.trim() === '') {
+      // Un forçage sans explication ne vaut pas mieux qu'un trou.
+      this.formError.set('Expliquez pourquoi la fermeture est forcée.');
 
       return;
     }
@@ -372,6 +387,9 @@ export class SessionsPage implements OnInit {
     this.sessionService
       .fermer(session.id, {
         notes: this.fermerForm.getRawValue().notes,
+        ...(forcer
+          ? { forcer: true, motif_forcage: this.fermerForm.getRawValue().motif_forcage }
+          : {}),
         rapprochements: this.modes().map((mode) => ({
           mode_de_paiement_id: mode.id,
           montant_constate: constats[mode.id] ?? null,

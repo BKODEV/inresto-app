@@ -113,6 +113,15 @@ export const MENU: MenuSection[] = [
         permission: 'session_caisse.create',
       },
       {
+        // N'apparaît que si la direction a attribué la permission, absente de
+        // tous les rôles par défaut : que l'équipe suive ses cumuls est une
+        // décision d'organisation, pas un réglage technique.
+        label: 'Mes pourboires',
+        icon: 'wallet',
+        route: '/vente/mes-pourboires',
+        permission: 'pourboire.suivre_les_siens',
+      },
+      {
         // Afficheur mural, servi hors du shell : pas de barre latérale à côté
         // de laquelle un coup de coude renverrait la cuisine sur les fonds de
         // caisse. L'entrée reste ici pour l'ouvrir la première fois.

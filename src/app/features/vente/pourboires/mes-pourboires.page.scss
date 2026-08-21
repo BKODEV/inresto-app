@@ -1,0 +1,34 @@
+// Trois chiffres, lisibles d'un coup d'œil : c'est tout ce qu'un serveur vient
+// chercher. Le détail des reversements suit dessous.
+.cumul-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.cumul-carte {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-5);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+
+  strong {
+    font-size: 24px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // Le seul chiffre qui appelle une action : ce qu'on lui doit encore.
+  &.cumul-carte-fort {
+    border-color: var(--amber);
+    background: rgba(var(--amber-rgb), 0.1);
+
+    strong {
+      color: var(--amber);
+    }
+  }
+}

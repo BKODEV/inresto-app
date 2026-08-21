@@ -148,6 +148,10 @@
                 <td>
                   @if (s.statut === 'ouverte') {
                     <span class="badge badge-success">Ouverte</span>
+                  } @else if (s.motif_forcage) {
+                    <!-- Fermée sans que tout soit compté : ça doit se voir dans
+                         la liste, pas seulement sur le rapport. -->
+                    <span class="badge badge-warning" [title]="s.motif_forcage">Forcée</span>
                   } @else {
                     <span class="badge badge-neutral">Fermée</span>
                   }
@@ -332,6 +336,36 @@
           placeholder="Optionnel"
         ></textarea>
       </label>
+
+      <!-- La porte de sortie, et elle est étroite : un terminal en panne ne doit
+           pas immobiliser la caisse, mais passer outre le contrôle se signe. -->
+      @if (peutForcer() && contenantsNonComptes().length > 0) {
+        <label
+          class="field-check"
+          style="margin-top: 20px; display: flex; align-items: flex-start; gap: 8px"
+        >
+          <input type="checkbox" formControlName="forcer" style="margin-top: 3px" />
+          <span>
+            <span class="field-text">Fermer sans tout compter</span>
+            <span class="field-hint">
+              Pour un moyen de paiement qu'on ne peut pas vérifier ce soir. Il restera « non
+              rapproché » sur le rapport.
+            </span>
+          </span>
+        </label>
+
+        @if (fermerForm.controls.forcer.value) {
+          <label class="field-label" style="margin-top: 12px">
+            <span class="field-text">Motif du forçage <span class="required">*</span></span>
+            <textarea
+              class="field-textarea"
+              formControlName="motif_forcage"
+              rows="2"
+              placeholder="Ex : le terminal ne sort pas son ticket"
+            ></textarea>
+          </label>
+        }
+      }
     </form>
     <div class="drawer-footer">
       <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
@@ -340,7 +374,9 @@
       <button
         class="btn btn-primary"
         type="button"
-        [disabled]="saving() || contenantsNonComptes().length > 0"
+        [disabled]="
+          saving() || (contenantsNonComptes().length > 0 && !fermerForm.controls.forcer.value)
+        "
         (click)="fermer()"
       >
         @if (saving()) {

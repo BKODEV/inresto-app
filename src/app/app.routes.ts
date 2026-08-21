@@ -226,6 +226,14 @@ export const routes: Routes = [
             title: 'Composition de carte',
           },
           {
+            path: 'mes-pourboires',
+            loadComponent: () =>
+              import('./features/vente/pourboires/mes-pourboires.page').then(
+                (m) => m.MesPourboiresPage,
+              ),
+            title: 'Mes pourboires',
+          },
+          {
             path: 'tables',
             loadComponent: () =>
               import('./features/vente/tables/tables.page').then((m) => m.TablesPage),
