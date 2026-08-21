@@ -25,6 +25,7 @@ import {
 import { Statut } from '../../../core/api/api.types';
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { MontantPipe } from '../../../shared/format/nombre.pipes';
 
 /**
  * Détail d'un site (Paramètres) : ses informations et la liste de ses points de
@@ -34,7 +35,7 @@ import { apiErrorMessage } from '../../../core/api/api-error.util';
 @Component({
   selector: 'app-site-detail-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, DatePipe],
+  imports: [ReactiveFormsModule, RouterLink, DatePipe, MontantPipe],
   templateUrl: './site-detail.page.html',
   styleUrl: './site-detail.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -90,6 +91,7 @@ export class SiteDetailPage implements OnInit {
   readonly parametreForm = this.fb.nonNullable.group({
     nom_commercial: ['', [Validators.required, Validators.maxLength(255)]],
     devise: ['XOF', [Validators.required, Validators.maxLength(10)]],
+    tolerance_ecart_caisse: [0, [Validators.min(0)]],
     slogan: [''],
     adresse: [''],
     telephone: [''],
@@ -150,6 +152,7 @@ export class SiteDetailPage implements OnInit {
     this.parametreForm.reset({
       nom_commercial: p?.nom_commercial ?? this.site()?.nom ?? '',
       devise: p?.devise ?? 'XOF',
+      tolerance_ecart_caisse: Number(p?.tolerance_ecart_caisse ?? 0),
       slogan: p?.slogan ?? '',
       adresse: p?.adresse ?? this.site()?.adresse ?? '',
       telephone: p?.telephone ?? '',
@@ -181,6 +184,7 @@ export class SiteDetailPage implements OnInit {
     const payload = {
       nom_commercial: raw.nom_commercial,
       devise: raw.devise,
+      tolerance_ecart_caisse: raw.tolerance_ecart_caisse,
       slogan: raw.slogan || null,
       adresse: raw.adresse || null,
       telephone: raw.telephone || null,

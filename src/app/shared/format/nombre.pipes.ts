@@ -3,6 +3,7 @@ import { Pipe, PipeTransform } from '@angular/core';
 import {
   formatCoutUnitaire,
   formatMontant,
+  formatMontantSigne,
   formatPourcentage,
   formatQuantite,
 } from './nombre.format';
@@ -21,6 +22,17 @@ import {
 export class MontantPipe implements PipeTransform {
   transform(valeur: unknown, siVide = '—'): string {
     return formatMontant(valeur, siVide);
+  }
+}
+
+/**
+ * Montant dont le sens compte : l'excédent porte son `+`. Réservé aux valeurs
+ * où le signe se lit comme une information, pas à un prix.
+ */
+@Pipe({ name: 'montantSigne', standalone: true })
+export class MontantSignePipe implements PipeTransform {
+  transform(valeur: unknown, siVide = '—'): string {
+    return formatMontantSigne(valeur, siVide);
   }
 }
 

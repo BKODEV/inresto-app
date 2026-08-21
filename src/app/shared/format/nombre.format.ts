@@ -19,6 +19,19 @@
 /** Montants : `decimal(_, 2)` — prix, totaux, budgets, écarts de caisse. */
 const MONTANT = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 });
 
+/**
+ * Montants dont le SENS compte autant que la valeur : l'écart de caisse.
+ *
+ * `signDisplay: 'exceptZero'` écrit le `+` d'un excédent, que `Intl` omet par
+ * défaut. Sans lui, seul un manquant portait une marque — un excédent avait
+ * l'air d'un montant ordinaire, alors qu'il signale souvent une vente encaissée
+ * sans note ouverte.
+ */
+const MONTANT_SIGNE = new Intl.NumberFormat('fr-FR', {
+  maximumFractionDigits: 2,
+  signDisplay: 'exceptZero',
+});
+
 /** Quantités : `decimal(_, 3)` — stock, inventaires, recettes, réceptions. */
 const QUANTITE = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 3 });
 
@@ -50,6 +63,13 @@ export function formatMontant(valeur: unknown, siVide = '—'): string {
   const nombre = toNombre(valeur);
 
   return nombre === null ? siVide : MONTANT.format(nombre);
+}
+
+/** Montant signé : `+1 500` pour un excédent, `-1 500` pour un manquant. */
+export function formatMontantSigne(valeur: unknown, siVide = '—'): string {
+  const nombre = toNombre(valeur);
+
+  return nombre === null ? siVide : MONTANT_SIGNE.format(nombre);
 }
 
 /** Quantité de stock, d'inventaire ou de recette : jusqu'à 3 décimales. */

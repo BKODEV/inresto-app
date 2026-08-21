@@ -27,6 +27,10 @@ import { CarteProduitService } from '../../../core/api/carte/carte-produit.servi
 import { CarteProduit } from '../../../core/api/carte/carte-produit.model';
 import { ModeDePaiementService } from '../../../core/api/mode-de-paiement/mode-de-paiement.service';
 import { ModeDePaiement } from '../../../core/api/mode-de-paiement/mode-de-paiement.model';
+import {
+  modeParDefaut,
+  modesProposables,
+} from '../../../core/api/mode-de-paiement/mode-de-paiement.util';
 import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -39,7 +43,7 @@ type DrawerMode = 'paiement' | 'remise' | 'annuler-ligne' | null;
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, MontantPipe],
   templateUrl: './commande-detail.page.html',
-  styleUrl: './caisse.page.scss',
+  styleUrls: ['./caisse.page.scss', './modes-paiement.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CommandeVenteDetailPage implements OnInit {
@@ -168,7 +172,7 @@ export class CommandeVenteDetailPage implements OnInit {
     this.modeService
       .list()
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((modes) => this.modes.set(modes.filter((m) => m.statut === 'actif')));
+      .subscribe((modes) => this.modes.set(modesProposables(modes)));
     this.restaurerPanier();
     this.reload(true);
   }
@@ -511,11 +515,16 @@ export class CommandeVenteDetailPage implements OnInit {
 
   openPaiement(): void {
     this.paiementForm.reset({
-      mode_de_paiement_id: this.modes()[0]?.id ?? 0,
+      mode_de_paiement_id: modeParDefaut(this.modes()),
       montant: Number(this.commande()?.reste_a_payer ?? 0),
     });
     this.formError.set(null);
     this.drawerMode.set('paiement');
+  }
+
+  /** Sélection d'un mode par bouton, en lieu et place d'une liste déroulante. */
+  choisirMode(id: number): void {
+    this.paiementForm.patchValue({ mode_de_paiement_id: id });
   }
 
   ajouterPaiement(): void {

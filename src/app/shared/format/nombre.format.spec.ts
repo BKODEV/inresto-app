@@ -1,6 +1,7 @@
 import {
   formatCoutUnitaire,
   formatMontant,
+  formatMontantSigne,
   formatPourcentage,
   formatQuantite,
   toNombre,
@@ -71,6 +72,29 @@ describe('formatMontant', () => {
 
   it('gère les montants négatifs des écarts de caisse', () => {
     expect(formatMontant('-250.50')).toContain('250,5');
+  });
+});
+
+/**
+ * Sur un écart de caisse, le signe EST l'information : un manquant est de
+ * l'argent parti, un excédent signale plutôt une vente encaissée sans note.
+ */
+describe('formatMontantSigne', () => {
+  it('marque l’excédent d’un plus, que Intl omet par défaut', () => {
+    expect(formatMontantSigne('1500.00')).toBe(`+1${ESPACE_FINE}500`);
+  });
+
+  it('garde le signe du manquant', () => {
+    expect(formatMontantSigne('-250.50')).toContain('250,5');
+    expect(formatMontantSigne('-250.50').startsWith('+')).toBe(false);
+  });
+
+  it('n’affuble pas le zéro d’un signe', () => {
+    expect(formatMontantSigne('0.00')).toBe('0');
+  });
+
+  it('rend le tiret sur une valeur absente', () => {
+    expect(formatMontantSigne(null)).toBe('—');
   });
 });
 

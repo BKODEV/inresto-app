@@ -17,18 +17,18 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { CaisseService } from '../../../core/api/caisse/caisse.service';
 import { Caisse } from '../../../core/api/caisse/caisse.model';
 import { SessionCaisseService } from '../../../core/api/session-caisse/session-caisse.service';
-import { SessionCaisse } from '../../../core/api/session-caisse/session-caisse.model';
+import { EcartSens, SessionCaisse } from '../../../core/api/session-caisse/session-caisse.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
-import { MontantPipe } from '../../../shared/format/nombre.pipes';
+import { MontantPipe, MontantSignePipe } from '../../../shared/format/nombre.pipes';
 
 type DrawerMode = 'ouvrir' | 'fermer';
 
 @Component({
   selector: 'app-sessions-page',
   standalone: true,
-  imports: [ReactiveFormsModule, DatePipe, SiteRequisComponent, MontantPipe],
+  imports: [ReactiveFormsModule, DatePipe, SiteRequisComponent, MontantPipe, MontantSignePipe],
   templateUrl: './sessions.page.html',
   styleUrl: './caisse.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -89,6 +89,18 @@ export class SessionsPage implements OnInit {
       }
     });
   }
+
+  /**
+   * Ce que l'écart raconte, en toutes lettres. Le badge affichait un rouge
+   * unique dès que l'écart n'était pas nul : un excédent et un manquant s'y
+   * confondaient, alors qu'ils appellent des vérifications opposées.
+   */
+  readonly libelleEcart: Record<EcartSens, string> = {
+    juste: 'Caisse juste',
+    tolere: 'Écart toléré',
+    excedent: 'Excédent',
+    manquant: 'Manquant',
+  };
 
   ngOnInit(): void {
     this.caisseService

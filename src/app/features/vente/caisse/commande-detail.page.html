@@ -382,15 +382,27 @@
       @if (formError()) {
         <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
       }
-      <label class="field-label">
+      <div class="field-label">
         <span class="field-text">Mode de paiement <span class="required">*</span></span>
-        <select class="field-select" formControlName="mode_de_paiement_id">
-          <option [value]="0" disabled>Sélectionner…</option>
+        <!-- Des boutons et non une liste : à un comptoir le mode se tape d'un
+             doigt, et le choix retenu reste visible pendant qu'on saisit le
+             montant — donc plus difficile à enregistrer par erreur. -->
+        <div class="modes-boutons">
           @for (m of modes(); track m.id) {
-            <option [value]="m.id">{{ m.libelle }}</option>
+            <button
+              type="button"
+              class="mode-bouton"
+              [class.mode-bouton-actif]="paiementForm.controls.mode_de_paiement_id.value === m.id"
+              (click)="choisirMode(m.id)"
+            >
+              <span class="mode-libelle">{{ m.libelle }}</span>
+              @if (!m.compte_en_caisse) {
+                <span class="mode-note">hors tiroir</span>
+              }
+            </button>
           }
-        </select>
-      </label>
+        </div>
+      </div>
       <label class="field-label" style="margin-top: 16px">
         <span class="field-text">Montant <span class="required">*</span></span>
         <input class="field-input" type="number" min="0.01" step="0.01" formControlName="montant" />

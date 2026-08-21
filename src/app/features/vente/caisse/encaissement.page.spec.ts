@@ -69,7 +69,9 @@ describe('EncaissementPage — tiroir de règlement', () => {
     const page = TestBed.runInInjectionContext(() => new EncaissementPage());
     // Les modes viennent d'un stub vide : on injecte celui que le caissier
     // choisirait, sinon le formulaire reste invalide et `regler()` rend la main.
-    page.modes.set([{ id: 5, libelle: 'Espèces' } as never]);
+    page.modes.set([
+      { id: 5, libelle: 'Espèces', compte_en_caisse: true, ordre: 1, statut: 'actif' },
+    ] as never);
 
     return { page, api };
   }
@@ -249,6 +251,39 @@ describe('EncaissementPage — tiroir de règlement', () => {
     expect(page.cible()).not.toBeNull();
     expect(page.formError()).toBe('Session caisse fermée.');
     expect(page.busy()).toBe(false);
+  });
+
+  /**
+   * Le mode présélectionné décide dans quelle colonne l'argent est compté à la
+   * fermeture. Il valait `modes()[0]` sur une liste que l'API renvoyait sans
+   * tri : un mode hors tiroir placé en tête devenait le défaut sans que
+   * personne ne l'ait décidé.
+   */
+  it('présélectionne le mode qui alimente le tiroir, pas le premier affiché', () => {
+    const { page } = creer();
+    page.modes.set([
+      { id: 9, libelle: 'Virement', compte_en_caisse: false, ordre: 1, statut: 'actif' },
+      { id: 5, libelle: 'Espèces', compte_en_caisse: true, ordre: 2, statut: 'actif' },
+    ] as never);
+    page.notes.set([note()]);
+
+    page.ouvrirReglement(page.notes()[0]);
+
+    expect(page.reglementForm.getRawValue().mode_de_paiement_id).toBe(5);
+  });
+
+  it('change de mode au clic sur son bouton', () => {
+    const { page } = creer();
+    page.modes.set([
+      { id: 5, libelle: 'Espèces', compte_en_caisse: true, ordre: 1, statut: 'actif' },
+      { id: 9, libelle: 'Virement', compte_en_caisse: false, ordre: 2, statut: 'actif' },
+    ] as never);
+    page.notes.set([note()]);
+
+    page.ouvrirReglement(page.notes()[0]);
+    page.choisirMode(9);
+
+    expect(page.reglementForm.getRawValue().mode_de_paiement_id).toBe(9);
   });
 
   it('annonce si le geste solde la note, avant de valider', () => {

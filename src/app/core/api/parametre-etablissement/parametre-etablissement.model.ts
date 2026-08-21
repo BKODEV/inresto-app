@@ -20,6 +20,11 @@ export interface ParametreEtablissement {
   rccm?: string | null;
   regime_fiscal?: string | null;
   devise: string;
+  /**
+   * Montant sous lequel un écart de fermeture de caisse est réputé normal.
+   * `'0.00'` = règle désactivée, tout écart non nul est signalé.
+   */
+  tolerance_ecart_caisse: string;
   mentions_pied_page?: string | null;
   created_at?: string;
   updated_at?: string;

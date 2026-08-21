@@ -37,8 +37,9 @@
       <table class="data-table">
         <thead>
           <tr>
-            <th>#</th>
+            <th>Ordre</th>
             <th>Libellé</th>
+            <th>En tiroir</th>
             <th>Statut</th>
             <th></th>
           </tr>
@@ -46,8 +47,18 @@
         <tbody>
           @for (item of items(); track item.id) {
             <tr>
-              <td class="td-mono">{{ item.id }}</td>
+              <td class="td-mono">{{ item.ordre }}</td>
               <td class="td-primary">{{ item.libelle }}</td>
+              <td>
+                <!-- Décide si cet argent entre dans le montant théorique de la
+                     session : un virement est encaissé, mais on ne le retrouve
+                     pas en comptant le tiroir. -->
+                @if (item.compte_en_caisse) {
+                  <span class="badge badge-success">Oui</span>
+                } @else {
+                  <span class="badge badge-neutral">Non</span>
+                }
+              </td>
               <td>
                 @if (item.statut === 'actif') {
                   <span class="badge badge-success">Actif</span>
@@ -140,6 +151,27 @@
         @if (form.controls.libelle.touched && form.controls.libelle.invalid) {
           <span class="field-error">Le libellé est requis.</span>
         }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Ordre d'affichage</span>
+        <input class="field-input" type="number" min="0" formControlName="ordre" />
+        <span class="field-hint">
+          Position dans les boutons de la caisse. 0 place le mode en fin de liste.
+        </span>
+      </label>
+      <label
+        class="field-check"
+        style="margin-top: 16px; display: flex; align-items: flex-start; gap: 8px"
+      >
+        <input type="checkbox" formControlName="compte_en_caisse" style="margin-top: 3px" />
+        <span>
+          <span class="field-text">Cet argent va dans le tiroir</span>
+          <span class="field-hint">
+            À décocher pour un virement, un chèque ou une carte : leur montant ne doit pas entrer
+            dans le fond de caisse théorique, sinon la fermeture affiche un manquant qui n'existe
+            pas.
+          </span>
+        </span>
       </label>
       <label class="field-label" style="margin-top: 16px">
         <span class="field-text">Statut</span>

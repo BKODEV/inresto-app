@@ -19,6 +19,10 @@ import { CommandeClientService } from '../../../core/api/commande-client/command
 import { CommandeClient } from '../../../core/api/commande-client/commande-client.model';
 import { ModeDePaiementService } from '../../../core/api/mode-de-paiement/mode-de-paiement.service';
 import { ModeDePaiement } from '../../../core/api/mode-de-paiement/mode-de-paiement.model';
+import {
+  modeParDefaut,
+  modesProposables,
+} from '../../../core/api/mode-de-paiement/mode-de-paiement.util';
 import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
 import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
@@ -35,9 +39,10 @@ import { MontantPipe } from '../../../shared/format/nombre.pipes';
  *
  * Distinct de la prise de commande, qui montre un plan de salle : le caissier
  * ne cherche pas une table, il solde une file. L'argent entre dans le système
- * ici et nulle part ailleurs — un serveur qui a encaissé à table vient verser,
- * et c'est le caissier qui saisit. `montant_theorique` de la session compte
- * donc bien ce qui est réellement en tiroir.
+ * ici et nulle part ailleurs : le client se déplace pour régler, et c'est le
+ * caissier qui saisit. Le `montant_theorique` de la session ne compte que les
+ * modes marqués « en tiroir » — un virement est encaissé, mais on ne le
+ * retrouve pas en comptant la caisse.
  *
  * Le règlement se fait dans la file, sans changer d'écran : renvoyer le
  * caissier sur la fiche de commande le déposait sur l'écran du serveur — une
@@ -51,7 +56,7 @@ import { MontantPipe } from '../../../shared/format/nombre.pipes';
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, SiteRequisComponent, MontantPipe],
   templateUrl: './encaissement.page.html',
-  styleUrls: ['./caisse.page.scss', './encaissement.page.scss'],
+  styleUrls: ['./caisse.page.scss', './encaissement.page.scss', './modes-paiement.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EncaissementPage implements OnInit {
@@ -213,7 +218,7 @@ export class EncaissementPage implements OnInit {
     this.modeService
       .list()
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((modes) => this.modes.set(modes.filter((m) => m.statut === 'actif')));
+      .subscribe((modes) => this.modes.set(modesProposables(modes)));
   }
 
   onPdvChange(valeur: string): void {
@@ -248,10 +253,15 @@ export class EncaissementPage implements OnInit {
     this.etape.set('saisie');
     this.cible.set(commande);
     this.reglementForm.reset({
-      mode_de_paiement_id: this.modes()[0]?.id ?? 0,
+      mode_de_paiement_id: modeParDefaut(this.modes()),
       montant: Number(commande.reste_a_payer),
       montant_recu: 0,
     });
+  }
+
+  /** Sélection d'un mode par bouton, en lieu et place d'une liste déroulante. */
+  choisirMode(id: number): void {
+    this.reglementForm.patchValue({ mode_de_paiement_id: id });
   }
 
   fermerReglement(): void {

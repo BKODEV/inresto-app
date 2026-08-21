@@ -89,6 +89,7 @@
               <th>Fonds</th>
               <th>Théorique</th>
               <th>Réel</th>
+              <th>Hors tiroir</th>
               <th>Écart</th>
               <th>Statut</th>
             </tr>
@@ -102,14 +103,27 @@
                 <td>{{ s.fonds_initial | montant }}</td>
                 <td>{{ s.montant_theorique | montant }}</td>
                 <td>{{ s.montant_reel | montant }}</td>
+                <!-- Encaissé sans passer par le tiroir : c'est ce qui explique
+                     qu'une caisse presque vide affiche un écart nul. -->
+                <td class="td-mono">{{ s.montant_hors_caisse | montant }}</td>
                 <td>
-                  @if (s.ecart !== null) {
-                    <span
-                      class="badge"
-                      [class.badge-success]="+s.ecart === 0"
-                      [class.badge-danger]="+s.ecart !== 0"
-                      >{{ s.ecart | montant }}</span
-                    >
+                  <!-- Le sens vient de l'API : il dépend de la tolérance du
+                       site. Un excédent et un manquant n'appellent pas les
+                       mêmes vérifications, les afficher du même rouge revenait
+                       à ne rien dire. -->
+                  @if (s.ecart_sens; as sens) {
+                    <span class="ecart-cellule">
+                      <span
+                        class="badge"
+                        [class.badge-success]="sens === 'juste'"
+                        [class.badge-warning]="sens === 'tolere'"
+                        [class.badge-danger]="sens === 'manquant' || sens === 'excedent'"
+                        >{{ libelleEcart[sens] }}</span
+                      >
+                      @if (sens !== 'juste') {
+                        <span class="td-mono">{{ s.ecart | montantSigne }}</span>
+                      }
+                    </span>
                   } @else {
                     —
                   }
