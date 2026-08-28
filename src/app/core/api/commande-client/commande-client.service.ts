@@ -14,6 +14,7 @@ import {
   LigneCommandeClient,
   Paiement,
   Remise,
+  ServicePass,
   StatutCommandeClient,
   TourKds,
   StorePaiementPayload,
@@ -172,11 +173,66 @@ export class CommandeClientService {
       .pipe(map((r) => r.data));
   }
 
-  /** File de production d'un point de vente, en tickets (tours). */
-  kds(pointDeVenteId: number): Observable<TourKds[]> {
+  /**
+   * La cuisine annonce au pass : c'est prêt, la salle peut venir chercher.
+   *
+   * Ne sert ni ne déstocke rien — l'annonce est RÉVERSIBLE ({@link annulerPret}),
+   * et c'est précisément pourquoi le stock ne s'y accroche pas. `ligneIds` cible
+   * un ticket précis.
+   *
+   * Gouverné par `commande_client.marquer_pret`, et non par `update` comme le
+   * service : la cuisine annonce sans pouvoir toucher aux notes de salle.
+   */
+  marquerPret(id: number, ligneIds: number[] = []): Observable<CommandeClient> {
+    const corps = ligneIds.length > 0 ? { lignes: ligneIds } : {};
     return this.http
-      .get<ApiResponse<{ tours: TourKds[] }>>(`${environment.apiUrl}/kds/${pointDeVenteId}`)
+      .post<ApiResponse<CommandeClient>>(`${this.base}/${id}/marquer-pret`, corps)
+      .pipe(map((r) => r.data));
+  }
+
+  /** Dévalide une annonce faite trop tôt : la ligne retourne en production. */
+  annulerPret(id: number, ligneIds: number[] = []): Observable<CommandeClient> {
+    const corps = ligneIds.length > 0 ? { lignes: ligneIds } : {};
+    return this.http
+      .post<ApiResponse<CommandeClient>>(`${this.base}/${id}/annuler-pret`, corps)
+      .pipe(map((r) => r.data));
+  }
+
+  /**
+   * File du PASS : ce qui est prêt et attend d'être emporté en salle. Le
+   * pendant de {@link kds}, pour l'autre métier.
+   */
+  pass(pointDeVenteId: number, posteCuisineId?: number | null): Observable<ServicePass[]> {
+    return this.http
+      .get<ApiResponse<{ services: ServicePass[] }>>(
+        `${environment.apiUrl}/pass/${pointDeVenteId}`,
+        {
+          params: this.filtrePoste(posteCuisineId),
+        },
+      )
+      .pipe(map((r) => r.data.services));
+  }
+
+  /** File de production d'un point de vente, en tickets (tours). */
+  kds(pointDeVenteId: number, posteCuisineId?: number | null): Observable<TourKds[]> {
+    return this.http
+      .get<ApiResponse<{ tours: TourKds[] }>>(`${environment.apiUrl}/kds/${pointDeVenteId}`, {
+        params: this.filtrePoste(posteCuisineId),
+      })
       .pipe(map((r) => r.data.tours));
+  }
+
+  /**
+   * Le poste, quand un poste est choisi. Un plat dont la catégorie n'est
+   * rattachée à aucun poste reste servi par l'API sur TOUS les écrans : la
+   * configuration incomplète dégrade vers « tout le monde le voit ».
+   */
+  private filtrePoste(posteCuisineId?: number | null): HttpParams {
+    let params = new HttpParams();
+    if (posteCuisineId) {
+      params = params.set('poste_cuisine_id', posteCuisineId);
+    }
+    return params;
   }
 
   /**

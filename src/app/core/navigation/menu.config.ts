@@ -130,6 +130,15 @@ export const MENU: MenuSection[] = [
         route: '/kds',
         permission: 'commande_client.view',
       },
+      {
+        // Le pendant salle : ce que la cuisine a annoncé et qu'il faut porter.
+        // Gouverné par `update`, la permission du service — c'est ici que le
+        // stock se décharge.
+        label: 'Pass (à emporter)',
+        icon: 'chef-hat',
+        route: '/pass',
+        permission: 'commande_client.update',
+      },
     ],
   },
   {

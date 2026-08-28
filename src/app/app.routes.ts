@@ -41,6 +41,15 @@ export const routes: Routes = [
     title: 'Écran cuisine',
   },
   {
+    // Pendant salle du KDS : ce qui est prêt et attend d'être porté. Hors du
+    // shell pour les mêmes raisons — c'est une tablette posée au pass, pas un
+    // écran de navigation.
+    path: 'pass',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/vente/caisse/pass.page').then((m) => m.PassPage),
+    title: 'Pass',
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./features/shell/shell.layout').then((m) => m.ShellLayout),
@@ -386,6 +395,16 @@ export const routes: Routes = [
                 (m) => m.ModesDePaiementPage,
               ),
             title: 'Modes de paiement',
+          },
+          {
+            // Organisation de la brigade : qui cuit quoi. Distinct des
+            // catégories produit, qui rangent la carte pour le client.
+            path: 'postes-cuisine',
+            loadComponent: () =>
+              import('./features/parametres/postes-cuisine/postes-cuisine.page').then(
+                (m) => m.PostesCuisinePage,
+              ),
+            title: 'Postes de production',
           },
           {
             path: 'utilisateurs',

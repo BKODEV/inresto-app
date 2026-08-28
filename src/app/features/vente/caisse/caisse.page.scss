@@ -245,6 +245,19 @@
   min-height: 48px;
   width: 100%;
   font-size: var(--text-base);
+
+  // Pas de lueur portée, contrairement au `.btn-primary` dont il hérite.
+  //
+  // `--shadow-amber` porte à 24 px vers le bas (0 8px 24px -8px) alors qu'il ne
+  // reste que 17 px entre le bouton et le bord de la carte : la lueur
+  // débordait en permanence. Au survol, le `filter: brightness()` du bouton
+  // primaire force le repaint de toute cette zone — d'où l'artefact visible au
+  // passage de la souris, et révélé au scroll quand le compositeur redessine.
+  //
+  // On garde le liseré interne, qui donne le relief. La lueur, elle, est faite
+  // pour un bouton isolé sur fond nu ; répétée sur douze cartes d'un écran de
+  // cuisine, elle n'apportait que du bruit.
+  box-shadow: 0 1px 0 rgba(var(--brillance-rgb), 0.4) inset;
 }
 
 .kds-attente {
@@ -276,6 +289,73 @@
   .kds-attente {
     color: var(--red);
   }
+}
+
+// Bande « au pass » de l'écran cuisine : annoncé, en attente d'enlèvement.
+// Volontairement en retrait de la file de production — c'est un rappel, pas le
+// travail en cours. Le titre porte lui-même le séparateur : une règle de moins,
+// et le budget de la feuille est serré.
+.pass-titre {
+  margin: var(--space-6) 0 var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+.kds-card--pass {
+  border-left-color: var(--text-mute);
+  opacity: 0.85;
+}
+
+// La ligne devient le geste : un bouton, mais qui doit rester une ligne de
+// ticket à l'œil. D'où le décapage complet du style natif — sans quoi la
+// cuisine lirait une pile de boutons gris au lieu d'une commande.
+.kds-ligne--action {
+  width: 100%;
+  min-height: 44px; // plancher tactile : on tape debout, les mains prises
+  align-items: center;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  // Survol franc, et pas seulement un fond d'un ton au-dessus : `--surface-2`
+  // sur `--surface` sont deux teintes presque identiques, invisibles sur un
+  // écran mural éclairé de biais.
+  //
+  // Le liseré ambre reprend l'idiome de la maison — l'ambre marque la cible
+  // visée, cf. `.btn-icon:hover` — et il est posé en `inset` : une bordure
+  // réelle décalerait le texte de 2 px à chaque passage de souris.
+  &:hover:not(:disabled) {
+    background: var(--surface-3);
+    box-shadow: inset 2px 0 0 var(--amber);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+// Pousse la catégorie contre le bord droit, où l'œil la balaie en colonne.
+.kds-nom {
+  flex: 1;
+}
+
+// La catégorie telle que l'établissement l'a saisie. Discrète : c'est un repère
+// pour retrouver ses plats dans un ticket mêlé, pas une information de premier
+// plan.
+.kds-cat {
+  font-size: var(--text-xs);
+  color: var(--text-mute);
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 // ═══ Plan de salle (prise de commande) ══════════════════════════════════════

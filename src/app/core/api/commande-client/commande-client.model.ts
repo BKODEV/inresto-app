@@ -24,6 +24,12 @@ export interface LigneCommandeClient {
    * même envoi le partagent. Null = encore au brouillon.
    */
   envoyee_le: string | null;
+  /**
+   * Annoncée prête au pass par la cuisine, pas encore emportée. Sépare le temps
+   * du chef (`envoyee_le → prete_le`) de l'attente sous la lampe
+   * (`prete_le → servie_le`). Réversible tant que la ligne n'est pas servie.
+   */
+  prete_le: string | null;
   /** Servie et déstockée. Un second service ne la reprend pas. */
   servie_le: string | null;
   /** Jamais partie en cuisine : se retire sans motif d'annulation. */
@@ -78,6 +84,21 @@ export interface TourKds {
   commande_id: number;
   table: TableSalle | null;
   envoyee_le: string | null;
+  lignes: LigneCommandeClient[];
+}
+
+/**
+ * Un enlèvement au pass : ce qui est prêt pour UNE note et attend la salle.
+ *
+ * Groupé par note et non par tour, contrairement à {@link TourKds} : l'unité de
+ * travail du runner est un voyage vers une table, pas un ticket. Deux tours
+ * prêts pour la table 12 se prennent en un seul déplacement.
+ */
+export interface ServicePass {
+  commande_id: number;
+  table: TableSalle | null;
+  /** L'annonce la plus ancienne de la note : depuis quand ça attend. */
+  prete_le: string | null;
   lignes: LigneCommandeClient[];
 }
 

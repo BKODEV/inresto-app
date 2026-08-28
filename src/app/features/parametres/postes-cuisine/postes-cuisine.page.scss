@@ -1,0 +1,70 @@
+:host {
+  display: block;
+  flex: 1;
+}
+
+.param-page {
+  padding: var(--page-pad);
+}
+
+.loading-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-mute);
+  font-size: var(--text-sm);
+  padding: var(--space-8) 0;
+}
+
+.field-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field-text {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-dim);
+}
+.required {
+  color: var(--red);
+}
+
+// Cases à cocher des catégories : une grille plutôt qu'une liste, un pass
+// comptant vite une quinzaine de catégories qu'on veut embrasser d'un regard.
+.cat-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cat-case {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: var(--text-sm);
+
+  &:hover {
+    background: var(--surface-2);
+  }
+}
+
+.cat-case--choisie {
+  border-color: var(--amber);
+}
+
+// Les catégories que personne ne prend en charge : un avertissement, pas une
+// erreur — ces plats s'affichent sur tous les écrans.
+.cat-orphelines {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--text-mute);
+}
