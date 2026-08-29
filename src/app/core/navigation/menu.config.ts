@@ -150,10 +150,15 @@ export const MENU: MenuSection[] = [
         // L'écran le plus utilisé du service : une entrée à part entière plutôt
         // qu'un onglet enfoui sous « Caisse », que le serveur ouvrirait
         // cinquante fois par service en deux clics au lieu d'un.
+        //
+        // `create` et non `view` : c'est l'écran où l'on OUVRE des notes, et
+        // `commande_client.view` est détenue pour de tout autres raisons — la
+        // cuisine lit la file du KDS, un écran mural lit la sienne. Les y
+        // envoyer leur donnait une liste sur laquelle ils ne peuvent rien.
         label: 'Prise de commande',
         icon: 'clipboard-list',
         route: '/vente/caisse/commandes',
-        permission: 'commande_client.view',
+        permission: 'commande_client.create',
       },
       {
         // Le poste de caisse : la file des notes à régler. Gardé par

@@ -41,7 +41,9 @@ export class CaisseLayout {
    */
   private readonly allTabs: CaisseTab[] = [
     { label: 'Sessions', route: 'sessions', permission: 'session_caisse.create' },
-    { label: 'Prise de commande', route: 'commandes', permission: 'commande_client.view' },
+    // `create` et non `view` : on ouvre des notes ici. `commande_client.view`
+    // est détenue par la cuisine pour lire sa file, pas pour prendre commande.
+    { label: 'Prise de commande', route: 'commandes', permission: 'commande_client.create' },
     // Poste de caisse. Gardé par `paiement.create` : sans le droit de saisir un
     // paiement, la file des notes à régler n'est qu'une liste inerte.
     { label: 'À encaisser', route: 'encaissement', permission: 'paiement.create' },

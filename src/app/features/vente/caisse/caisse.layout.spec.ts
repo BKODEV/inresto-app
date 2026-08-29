@@ -46,7 +46,7 @@ describe('CaisseLayout — onglets filtrés par permission', () => {
   it('n’expose que la prise de commande au serveur, malgré son session_caisse.view', async () => {
     // Le serveur détient `session_caisse.view` pour lister les sessions
     // ouvertes ; ça ne doit pas lui ouvrir l'écran des fonds de caisse.
-    configurer(['commande_client.view', 'session_caisse.view']);
+    configurer(['commande_client.view', 'commande_client.create', 'session_caisse.view']);
     const harness = await RouterTestingHarness.create();
 
     const layout = await harness.navigateByUrl('/vente/caisse/commandes', CaisseLayout);
@@ -57,7 +57,7 @@ describe('CaisseLayout — onglets filtrés par permission', () => {
   it('détourne un serveur qui atterrit sur les sessions de caisse', async () => {
     // La redirection par défaut vise « sessions » : sans garde-fou, le serveur
     // verrait les fonds initiaux et les écarts de caisse.
-    configurer(['commande_client.view', 'session_caisse.view']);
+    configurer(['commande_client.view', 'commande_client.create', 'session_caisse.view']);
     const harness = await RouterTestingHarness.create();
 
     await harness.navigateByUrl('/vente/caisse');
@@ -75,7 +75,7 @@ describe('CaisseLayout — onglets filtrés par permission', () => {
   });
 
   it('cache les ventes au serveur, qui n’a aucun droit sur l’argent', async () => {
-    configurer(['commande_client.view', 'session_caisse.view']);
+    configurer(['commande_client.view', 'commande_client.create', 'session_caisse.view']);
     const harness = await RouterTestingHarness.create();
 
     const layout = await harness.navigateByUrl('/vente/caisse/commandes', CaisseLayout);
@@ -112,7 +112,7 @@ describe('CaisseLayout — onglets filtrés par permission', () => {
   });
 
   it('cache les pourboires au serveur', async () => {
-    configurer(['commande_client.view', 'session_caisse.view']);
+    configurer(['commande_client.view', 'commande_client.create', 'session_caisse.view']);
     const harness = await RouterTestingHarness.create();
 
     const layout = await harness.navigateByUrl('/vente/caisse/commandes', CaisseLayout);
@@ -121,7 +121,7 @@ describe('CaisseLayout — onglets filtrés par permission', () => {
   });
 
   it('montre les deux onglets au profil qui cumule les deux rôles', async () => {
-    configurer(['session_caisse.create', 'commande_client.view']);
+    configurer(['session_caisse.create', 'commande_client.view', 'commande_client.create']);
     const harness = await RouterTestingHarness.create();
 
     const layout = await harness.navigateByUrl('/vente/caisse/sessions', CaisseLayout);

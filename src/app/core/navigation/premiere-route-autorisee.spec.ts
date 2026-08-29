@@ -51,6 +51,30 @@ describe('premiereRouteAutorisee', () => {
     expect(route).not.toBe('/pass');
   });
 
+  /**
+   * L'exception : un compte d'APPAREIL — « Écran cuisine — Restaurant » — dont
+   * le rôle ne porte que de quoi lire la file et annoncer au pass. Le repli sur
+   * `/dashboard` le déposait, à chaque démarrage de la tablette murale, sur un
+   * écran qu'il n'a pas le droit d'ouvrir.
+   */
+  it('mène le compte de l’écran mural à son écran, faute d’autre chose', () => {
+    const ecran = auth(['commande_client.view', 'commande_client.marquer_pret']);
+
+    expect(premiereRouteAutorisee(ecran)).toBe('/kds');
+  });
+
+  /**
+   * L'appareil ne passe qu'en SECOND : dès qu'un écran de navigation est
+   * ouvert, c'est lui la destination. Sinon un serveur, qui détient
+   * `commande_client.view` pour prendre ses commandes, se retrouverait sur
+   * l'afficheur de la cuisine.
+   */
+  it('préfère toujours un écran de navigation à un appareil', () => {
+    const serveur = auth(['commande_client.view', 'commande_client.create', 'table.view']);
+
+    expect(premiereRouteAutorisee(serveur)).toBe('/vente/tables');
+  });
+
   it('n’y dépose pas non plus le super-admin', () => {
     // Il passe toutes les permissions : sans l'exclusion, l'ordre du menu seul
     // le protégerait — c'est-à-dire pas du tout.
