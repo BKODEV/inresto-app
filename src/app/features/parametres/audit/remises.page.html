@@ -1,0 +1,129 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Remises accordées</h1>
+      <p class="page-subtitle">
+        Ce qui a été retiré des notes, par qui et sur quel motif. Lecture seule.
+      </p>
+    </div>
+  </div>
+
+  <div class="filters">
+    <label class="field-label">
+      <span class="field-text">Du</span>
+      <input
+        class="field-input"
+        type="date"
+        [value]="dateDebut()"
+        (change)="onDateDebut($any($event.target).value)"
+      />
+    </label>
+    <label class="field-label">
+      <span class="field-text">Au</span>
+      <input
+        class="field-input"
+        type="date"
+        [value]="dateFin()"
+        (change)="onDateFin($any($event.target).value)"
+      />
+    </label>
+    <label class="field-label">
+      <span class="field-text">Type</span>
+      <select class="field-select" (change)="onType($any($event.target).value)">
+        <option value="" [selected]="type() === null">Tous</option>
+        <option value="pourcentage" [selected]="type() === 'pourcentage'">Pourcentage</option>
+        <option value="montant_fixe" [selected]="type() === 'montant_fixe'">Montant fixe</option>
+      </select>
+    </label>
+  </div>
+
+  @if (error()) {
+    <div class="alert-error" style="margin-bottom: 16px">{{ error() }}</div>
+  }
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (remises().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucune remise</span>
+      <span class="empty-message">Aucune remise accordée sur cette période.</span>
+    </div>
+  } @else {
+    <!-- On ne somme QUE les montants fixes : additionner des pourcentages à des
+         francs donnerait un total qui ne veut rien dire. Le pourcentage se
+         rapporte au total de sa note, qui n'est pas sur cet écran. -->
+    <p class="resume">
+      {{ pagination()?.total }} remise{{ (pagination()?.total ?? 0) > 1 ? 's' : '' }} sur la
+      période. Sur cette page : {{ fMontant(totalMontantFixe()) }} en montants fixes
+      @if (nbPourcentage() > 0) {
+        , et {{ nbPourcentage() }} remise{{ nbPourcentage() > 1 ? 's' : '' }} en pourcentage — non
+        sommables, chacune se rapportant au total de sa note.
+      }
+    </p>
+
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Horodatage</th>
+            <th>Note</th>
+            <th>Table</th>
+            <th>Type</th>
+            <th>Valeur</th>
+            <th>Accordée par</th>
+            <th>Motif</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of remises(); track r.id) {
+            <tr>
+              <td class="td-mono">{{ r.date_heure | date: 'short' }}</td>
+              <td class="td-mono">
+                <a
+                  class="lien-note"
+                  [routerLink]="['/vente/caisse/commandes', r.commande_client_id]"
+                >
+                  #{{ r.commande_client_id }}
+                </a>
+              </td>
+              <td class="td-primary">{{ r.table_numero ?? '—' }}</td>
+              <td>
+                <span class="badge badge-neutral">{{ typeLabel[r.type] }}</span>
+              </td>
+              <td class="td-mono">{{ valeur(r) }}</td>
+              <td>{{ r.auteur ?? '—' }}</td>
+              <td class="motif">{{ r.motif ?? '' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (pagination(); as p) {
+      @if (p.derniere_page > 1) {
+        <div class="pagination-row">
+          <button
+            class="btn btn-secondary"
+            type="button"
+            [disabled]="p.page_courante <= 1"
+            (click)="allerPage(p.page_courante - 1)"
+          >
+            Précédent
+          </button>
+          <span class="field-text">Page {{ p.page_courante }} / {{ p.derniere_page }}</span>
+          <button
+            class="btn btn-secondary"
+            type="button"
+            [disabled]="p.page_courante >= p.derniere_page"
+            (click)="allerPage(p.page_courante + 1)"
+          >
+            Suivant
+          </button>
+        </div>
+      }
+    }
+  }
+</div>

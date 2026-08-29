@@ -1,0 +1,53 @@
+// Écrans de relecture (remises, annulations). Même grammaire que le journal
+// d'activité : une barre de filtres, une table, une pagination.
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.resume {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  margin: 0 0 var(--space-3);
+}
+
+.motif {
+  color: var(--text-dim);
+  font-size: var(--text-sm);
+  max-width: 320px;
+}
+
+// Le sort d'une annulation n'est pas décoratif : « perte » est une matière
+// jetée, « remise en stock » une matière récupérée. L'œil doit les séparer.
+.badge {
+  &--perte {
+    background: rgba(var(--red-rgb), 0.12);
+    color: var(--red-soft);
+  }
+  &--remise_en_stock {
+    background: rgba(var(--green-rgb), 0.12);
+    color: var(--green-soft);
+  }
+}
+
+.pagination-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+// Le numéro de note ouvre la fiche complète : c'est le chemin naturel depuis
+// un contrôle vers le contexte du geste.
+.lien-note {
+  color: var(--amber);
+  text-decoration: none;
+  font-weight: 600;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

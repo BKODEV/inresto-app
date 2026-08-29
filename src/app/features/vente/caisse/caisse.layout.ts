@@ -53,6 +53,10 @@ export class CaisseLayout {
     // permission que les sorties de tiroir : lire ce qu'on doit relève du même
     // geste que voir l'argent en sortir.
     { label: 'Pourboires', route: 'pourboires', permission: 'versement.view' },
+    // Le service de la brigade. Ici et non dans un menu à part : c'est un
+    // service qui s'ouvre et se ferme, comme la session de caisse à deux
+    // onglets de là — même geste, même endroit.
+    { label: 'Cuisine', route: 'cuisine', permission: 'session_cuisine.view' },
   ];
 
   readonly tabs = computed(() => this.allTabs.filter((t) => this.auth.hasPermission(t.permission)));

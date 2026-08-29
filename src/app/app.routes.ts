@@ -289,6 +289,14 @@ export const routes: Routes = [
                 title: 'Ventes du service',
               },
               {
+                path: 'cuisine',
+                loadComponent: () =>
+                  import('./features/vente/caisse/sessions-cuisine.page').then(
+                    (m) => m.SessionsCuisinePage,
+                  ),
+                title: 'Services de cuisine',
+              },
+              {
                 path: 'pourboires',
                 loadComponent: () =>
                   import('./features/vente/caisse/pourboires.page').then((m) => m.PourboiresPage),
@@ -431,6 +439,18 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/parametres/journal/journal.page').then((m) => m.JournalPage),
             title: "Journal d'activité",
+          },
+          {
+            path: 'remises',
+            loadComponent: () =>
+              import('./features/parametres/audit/remises.page').then((m) => m.RemisesPage),
+            title: 'Remises accordées',
+          },
+          {
+            path: 'annulations',
+            loadComponent: () =>
+              import('./features/parametres/audit/annulations.page').then((m) => m.AnnulationsPage),
+            title: 'Annulations',
           },
         ],
       },

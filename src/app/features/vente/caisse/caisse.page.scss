@@ -666,3 +666,32 @@
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
+
+// Composition de la brigade : on coche des noms, il n'y a rien d'autre à
+// valider. Une liste scrollable plutôt qu'un multi-select, qui se manipule mal
+// au doigt sur la tablette du passe.
+.brigade-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  padding: 8px;
+}
+
+.check-membre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    color: var(--amber);
+  }
+}
