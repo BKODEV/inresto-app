@@ -127,7 +127,7 @@
                   @for (ligne of f.lignes_matieres; track ligne.id) {
                     <tr>
                       <td class="td-primary">{{ matiereLibelle(ligne) }}</td>
-                      <td class="num td-mono">{{ ligne.quantite }}</td>
+                      <td class="num td-mono">{{ ligne.quantite | qte }}</td>
                       <td>{{ uniteSymbole(ligne) }}</td>
                     </tr>
                   }
@@ -150,13 +150,64 @@
                   @for (ligne of f.lignes_sous_recettes; track ligne.id) {
                     <tr>
                       <td class="td-primary">{{ sousRecetteLibelle(ligne) }}</td>
-                      <td class="num td-mono">{{ ligne.quantite }}</td>
+                      <td class="num td-mono">{{ ligne.quantite | qte }}</td>
                     </tr>
                   }
                 </tbody>
               </table>
             } @else {
               <p class="muted-line">Aucune sous-recette.</p>
+            }
+
+            <!-- La méthodologie : ce qui rend la liste des matières exécutable
+                 par quelqu'un qui n'a jamais fait le plat. Les points critiques
+                 viennent en tête — on ne les lit pas une fois, on les garde à
+                 l'œil pendant toute la production. -->
+            <h3 class="sub-h">Méthodologie</h3>
+
+            @if (f.points_critiques?.length) {
+              <div class="points-critiques">
+                @for (p of f.points_critiques; track p.id) {
+                  <div class="point-critique">
+                    <span class="badge" [class]="'badge--' + p.type">{{ p.type_libelle }}</span>
+                    <span>{{ p.description }}</span>
+                  </div>
+                }
+              </div>
+            }
+
+            @if (f.materiels?.length) {
+              <p class="muted-line">
+                <strong>Matériel :</strong>
+                {{ materielLibelles(f) }}
+              </p>
+            }
+
+            @if (f.etapes?.length) {
+              <ol class="etapes">
+                @for (e of f.etapes; track e.id) {
+                  <li>
+                    <span>{{ e.description }}</span>
+                    <!-- Rien plutôt que « 0 min » : une étape non chiffrée n'est
+                         pas une étape instantanée. -->
+                    @if (e.duree_minutes) {
+                      <span class="etape-duree">{{ e.duree_minutes }} min</span>
+                    }
+                  </li>
+                }
+              </ol>
+              @if (f.duree_totale_minutes) {
+                <p class="muted-line">
+                  Durée cumulée des étapes chiffrées : {{ f.duree_totale_minutes }} min
+                </p>
+              }
+            } @else if (!f.points_critiques?.length && !f.materiels?.length) {
+              <p class="muted-line">
+                Aucun mode opératoire.
+                @if (canManage()) {
+                  Sans lui, un extra ne saura pas préparer ce plat.
+                }
+              </p>
             }
           } @else {
             <div class="empty-state">
@@ -303,6 +354,99 @@
       <button class="add-line" type="button" (click)="addSousRecette()">
         + Ajouter une sous-recette
       </button>
+
+      <h3 class="sub-h">Points critiques</h3>
+      <p class="muted-line">
+        Ce qui rend le plat dangereux s'il est mal produit : cuisson à cœur, allergène, chaîne du
+        froid.
+      </p>
+      @for (group of pointsCritiques(); track group; let i = $index) {
+        <div class="entry" [formGroup]="group">
+          <div class="entry-top">
+            <span class="entry-idx">Point {{ i + 1 }}</span>
+            <button class="entry-rm" type="button" (click)="removePointCritique(group)">✕</button>
+          </div>
+          <select class="field-select" formControlName="type">
+            @for (t of typesPointCritique; track t.valeur) {
+              <option [ngValue]="t.valeur">{{ t.libelle }}</option>
+            }
+          </select>
+          <label class="ctl-l" style="margin-top: 12px"
+            >Description <span class="req">*</span></label
+          >
+          <input class="field-input" type="text" formControlName="description" />
+        </div>
+      }
+      <button class="add-line" type="button" (click)="addPointCritique()">
+        + Ajouter un point critique
+      </button>
+
+      <h3 class="sub-h">Matériel</h3>
+      @for (group of materiels(); track group; let i = $index) {
+        <div class="entry" [formGroup]="group">
+          <div class="entry-top">
+            <span class="entry-idx">Matériel {{ i + 1 }}</span>
+            <button class="entry-rm" type="button" (click)="removeMateriel(group)">✕</button>
+          </div>
+          <input
+            class="field-input"
+            type="text"
+            formControlName="libelle"
+            placeholder="Braisière, sonde, chinois…"
+          />
+        </div>
+      }
+      <button class="add-line" type="button" (click)="addMateriel()">+ Ajouter un matériel</button>
+
+      <h3 class="sub-h">Étapes</h3>
+      <p class="muted-line">
+        Dans l'ordre d'exécution : c'est cet ordre qui sera imprimé sur la fiche.
+      </p>
+      @for (group of etapes(); track group; let i = $index) {
+        <div class="entry" [formGroup]="group">
+          <div class="entry-top">
+            <span class="entry-idx">Étape {{ i + 1 }}</span>
+            <span class="entry-actions">
+              <!-- Déplacer n'est pas cosmétique : l'ordre EST la recette. -->
+              <button
+                class="entry-move"
+                type="button"
+                [disabled]="i === 0"
+                aria-label="Monter l'étape"
+                (click)="deplacerEtape(group, -1)"
+              >
+                ↑
+              </button>
+              <button
+                class="entry-move"
+                type="button"
+                [disabled]="i === etapes().length - 1"
+                aria-label="Descendre l'étape"
+                (click)="deplacerEtape(group, 1)"
+              >
+                ↓
+              </button>
+              <button class="entry-rm" type="button" (click)="removeEtape(group)">✕</button>
+            </span>
+          </div>
+          <textarea
+            class="field-textarea"
+            rows="2"
+            formControlName="description"
+            placeholder="Désosser le poulet, réserver les cuisses."
+          ></textarea>
+          <label class="ctl-l" style="margin-top: 12px">Durée (minutes)</label>
+          <input
+            class="field-input"
+            type="number"
+            min="1"
+            max="1440"
+            formControlName="duree_minutes"
+            placeholder="Facultative"
+          />
+        </div>
+      }
+      <button class="add-line" type="button" (click)="addEtape()">+ Ajouter une étape</button>
     </div>
     <div class="drawer-footer">
       <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>

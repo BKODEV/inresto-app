@@ -3,6 +3,7 @@ import {
   Component,
   DestroyRef,
   OnInit,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -36,8 +37,22 @@ export class ModesDePaiementPage implements OnInit {
   readonly formError = signal<string | null>(null);
   readonly deletingId = signal<number | null>(null);
 
+  /**
+   * Aucun mode actif n'alimente le tiroir : le montant théorique d'une session
+   * se réduirait alors au fonds initial, et chaque vente semblerait s'être
+   * évaporée à la fermeture. Un avertissement et non un blocage — un
+   * établissement entièrement dématérialisé est légitime.
+   */
+  readonly aucunModeEnTiroir = computed(() => {
+    const actifs = this.items().filter((m) => m.statut === 'actif');
+
+    return actifs.length > 0 && !actifs.some((m) => m.compte_en_caisse);
+  });
+
   readonly form = this.fb.nonNullable.group({
     libelle: ['', [Validators.required, Validators.maxLength(255)]],
+    compte_en_caisse: [true],
+    ordre: [0, [Validators.min(0)]],
     statut: ['actif' as Statut],
   });
 
@@ -61,14 +76,19 @@ export class ModesDePaiementPage implements OnInit {
 
   openCreate(): void {
     this.editingItem.set(null);
-    this.form.reset({ libelle: '', statut: 'actif' });
+    this.form.reset({ libelle: '', compte_en_caisse: true, ordre: 0, statut: 'actif' });
     this.formError.set(null);
     this.drawerOpen.set(true);
   }
 
   openEdit(item: ModeDePaiement): void {
     this.editingItem.set(item);
-    this.form.reset({ libelle: item.libelle, statut: item.statut });
+    this.form.reset({
+      libelle: item.libelle,
+      compte_en_caisse: item.compte_en_caisse,
+      ordre: item.ordre,
+      statut: item.statut,
+    });
     this.formError.set(null);
     this.drawerOpen.set(true);
   }
@@ -94,14 +114,13 @@ export class ModesDePaiementPage implements OnInit {
       : this.service.create(payload);
 
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (saved) => {
-        if (editing) {
-          this.items.update((list) => list.map((i) => (i.id === saved.id ? saved : i)));
-        } else {
-          this.items.update((list) => [...list, saved]);
-        }
+      next: () => {
         this.saving.set(false);
         this.drawerOpen.set(false);
+        // Rechargement plutôt que mutation locale : poser un mode à une place
+        // occupée décale ses voisins côté serveur, et la liste en mémoire
+        // ignorerait ces décalages.
+        this.load();
       },
       error: (err: HttpErrorResponse) => {
         this.saving.set(false);

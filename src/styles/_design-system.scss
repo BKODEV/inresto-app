@@ -613,6 +613,16 @@
   line-height: 1.5;
 }
 
+.alert-info {
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(var(--blue-rgb), 0.08);
+  border: 1px solid rgba(var(--blue-rgb), 0.3);
+  color: var(--text-soft);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
 // Loading spinner
 .spinner {
   width: 20px;

@@ -1,0 +1,172 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Pourboires</h1>
+      <p class="page-subtitle">
+        Ce qui reste dû à chacun, depuis toujours et jusqu'au reversement.
+      </p>
+    </div>
+  </div>
+
+  @if (estConsolide()) {
+    <app-site-requis message="Les pourboires se reversent depuis une caisse. Choisissez un site." />
+  } @else if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else {
+    <div class="toolbar">
+      @if (caisses().length > 0) {
+        <label class="field-label">
+          <span class="field-text">Caisse à débiter</span>
+          <select
+            class="field-select"
+            [value]="selectedCaisseId()"
+            (change)="onCaisseChange($any($event.target).value)"
+          >
+            @for (caisse of caisses(); track caisse.id) {
+              <option [value]="caisse.id">
+                {{ caisse.libelle }} — {{ caisse.point_de_vente?.nom }}
+              </option>
+            }
+          </select>
+        </label>
+      }
+
+      @if (totalDu() > 0) {
+        <div class="encaisse-total">
+          <span class="field-text">Reste à reverser</span>
+          <strong>{{ totalDu() | montant }}</strong>
+        </div>
+      }
+    </div>
+
+    @if (formError()) {
+      <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+    }
+
+    @if (soldes().length === 0) {
+      <div class="empty-state">
+        <span class="empty-title">Aucun pourboire</span>
+        <span class="empty-message">
+          Rien n'a été encaissé au comptoir comme pourboire. Un pourboire remis directement au
+          serveur ne passe pas par la caisse et n'apparaît pas ici.
+        </span>
+      </div>
+    } @else {
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Serveur</th>
+              <th class="num">Encaissé</th>
+              <th class="num">Déjà reversé</th>
+              <th class="num">Reste dû</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (ligne of soldes(); track ligne.user_id) {
+              <tr>
+                <td class="td-primary">{{ ligne.serveur }}</td>
+                <td class="num td-mono">{{ ligne.encaisse | montant }}</td>
+                <td class="num td-mono">{{ ligne.reverse | montant }}</td>
+                <td class="num td-mono">
+                  @if (ligne.solde < 0) {
+                    <!-- Reçu plus qu'il n'a généré : anomalie, pas une dette. -->
+                    <span class="badge badge-danger">{{ ligne.solde | montant }}</span>
+                  } @else {
+                    <strong>{{ ligne.solde | montant }}</strong>
+                  }
+                </td>
+                <td class="td-actions">
+                  @if (peutReverser() && ligne.solde > 0 && selectedCaisseId() !== null) {
+                    <button
+                      class="btn btn-primary"
+                      type="button"
+                      (click)="ouvrirReversement(ligne)"
+                    >
+                      Reverser
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>
+
+<!-- Le bénéficiaire est la ligne cliquée : aucun sélecteur à parcourir, et
+     aucun nom saisi à la main qui ne se recouperait avec rien. -->
+@if (cible(); as ligne) {
+  <div class="drawer-overlay" (click)="fermerReversement()"></div>
+  <div class="drawer" role="dialog" aria-modal="true" aria-label="Reverser un pourboire">
+    <div class="drawer-header">
+      <h2 class="drawer-title">
+        Reverser à {{ ligne.serveur }}
+        <span class="drawer-sous-titre">Sortie du tiroir vers le personnel</span>
+      </h2>
+      <button class="btn-icon" type="button" (click)="fermerReversement()">✕</button>
+    </div>
+
+    <form class="drawer-body" [formGroup]="reverserForm" (ngSubmit)="reverser()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+
+      <dl class="reglement-recap">
+        <div>
+          <dt>Encaissé</dt>
+          <dd>{{ ligne.encaisse | montant }}</dd>
+        </div>
+        <div>
+          <dt>Déjà reversé</dt>
+          <dd>{{ ligne.reverse | montant }}</dd>
+        </div>
+        <div class="reglement-recap-fort">
+          <dt>Reste dû</dt>
+          <dd>{{ ligne.solde | montant }}</dd>
+        </div>
+      </dl>
+
+      <label class="field-label">
+        <span class="field-text">Montant reversé <span class="required">*</span></span>
+        <input class="field-input" type="number" min="0.01" step="0.01" formControlName="montant" />
+        <span class="field-hint">
+          Prérempli au solde. Un reversement partiel laisse le reste dû.
+        </span>
+      </label>
+
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Notes</span>
+        <textarea
+          class="field-textarea"
+          formControlName="notes"
+          rows="2"
+          placeholder="Optionnel"
+        ></textarea>
+      </label>
+    </form>
+
+    <div class="drawer-footer">
+      <button
+        class="btn btn-secondary"
+        type="button"
+        [disabled]="saving()"
+        (click)="fermerReversement()"
+      >
+        Annuler
+      </button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="reverser()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Reverser
+      </button>
+    </div>
+  </div>
+}

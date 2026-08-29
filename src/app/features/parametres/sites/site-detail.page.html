@@ -155,6 +155,16 @@
                 <div class="fv-label">Devise</div>
                 <div class="fv-value td-mono">{{ p.devise }}</div>
               </div>
+              <div class="field-view">
+                <div class="fv-label">Tolérance d'écart de caisse</div>
+                <div class="fv-value td-mono">
+                  @if (+p.tolerance_ecart_caisse > 0) {
+                    {{ p.tolerance_ecart_caisse | montant }}
+                  } @else {
+                    Aucune
+                  }
+                </div>
+              </div>
               @if (p.slogan) {
                 <div class="field-view">
                   <div class="fv-label">Slogan</div>
@@ -474,7 +484,12 @@
       }
       <label class="field-label">
         <span class="field-text">Nom commercial <span class="required">*</span></span>
-        <input class="field-input" type="text" formControlName="nom_commercial" autocomplete="off" />
+        <input
+          class="field-input"
+          type="text"
+          formControlName="nom_commercial"
+          autocomplete="off"
+        />
         @if (
           parametreForm.controls.nom_commercial.touched &&
           parametreForm.controls.nom_commercial.invalid
@@ -494,6 +509,20 @@
         @if (parametreForm.controls.devise.touched && parametreForm.controls.devise.invalid) {
           <span class="field-error">La devise est requise (10 caractères max).</span>
         }
+      </label>
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Tolérance d'écart de caisse</span>
+        <input
+          class="field-input"
+          type="number"
+          min="0"
+          step="0.01"
+          formControlName="tolerance_ecart_caisse"
+        />
+        <span class="field-hint">
+          Montant sous lequel un écart de fermeture est considéré comme normal. Avec de la petite
+          monnaie on ne tombe jamais pile. 0 signale le moindre écart.
+        </span>
       </label>
       <label class="field-label" style="margin-top: 16px">
         <span class="field-text">Slogan</span>
@@ -520,7 +549,12 @@
       </label>
       <label class="field-label" style="margin-top: 16px">
         <span class="field-text">Raison sociale</span>
-        <input class="field-input" type="text" formControlName="raison_sociale" autocomplete="off" />
+        <input
+          class="field-input"
+          type="text"
+          formControlName="raison_sociale"
+          autocomplete="off"
+        />
       </label>
       <label class="field-label" style="margin-top: 16px">
         <span class="field-text">NCC</span>

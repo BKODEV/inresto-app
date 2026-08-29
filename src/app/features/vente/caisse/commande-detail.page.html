@@ -11,7 +11,7 @@
       <div>
         <h1 class="page-title">
           Commande #{{ c.id }} —
-          {{ c.table?.numero ? 'Table ' + c.table?.numero : 'Table ' + c.table_id }}
+          {{ 'Table ' + (c.table_numero ?? c.table?.numero ?? c.table_id) }}
         </h1>
         <div class="statut-badges">
           @switch (c.statut) {
@@ -42,7 +42,9 @@
     <div class="order-grid">
       <!-- Sélection de produits (commande ouverte) -->
       <div>
-        @if (estOuverte()) {
+        <!-- La carte reste ouverte tant que la note n'est pas close : un repas se
+             commande en plusieurs services, le dessert arrive après les plats. -->
+        @if (!estTerminee()) {
           <div class="card" style="padding: var(--space-4)">
             <h2 class="page-subtitle" style="margin: 0 0 12px">Ajouter un produit</h2>
             @if (produitsCarte().length === 0) {
@@ -50,28 +52,86 @@
             } @else {
               <div class="produits-grid">
                 @for (cp of produitsCarte(); track cp.id) {
-                  <button
-                    type="button"
-                    class="produit-card"
-                    [disabled]="busy()"
-                    (click)="ajouterProduit(cp)"
-                  >
+                  <button type="button" class="produit-card" (click)="ajouterProduit(cp)">
                     <span class="produit-nom">{{
                       cp.produit?.libelle ?? '#' + cp.produit_id
                     }}</span>
-                    <span class="produit-prix">{{ cp.prix_vente }}</span>
+                    <span class="produit-prix">{{ cp.prix_vente | montant }}</span>
                   </button>
                 }
               </div>
             }
           </div>
-        } @else if (!estTerminee()) {
-          <div class="card" style="padding: var(--space-4)">
-            <p class="field-text">
-              La commande est {{ estEnvoyee() ? 'en cuisine' : 'servie' }} : l'ajout de produits est
-              clos.
-            </p>
-          </div>
+
+          <!-- Panier : rien n'est enregistré tant qu'on n'a pas envoyé. Retirer
+               une ligne ici ne coûte donc rien et ne demande aucun motif.
+               N'apparaît qu'une fois rempli : après un envoi il n'a plus rien à
+               dire, et l'espace revient au ticket. -->
+          @if (!panierVide()) {
+            <div class="card panier" style="padding: var(--space-4); margin-top: var(--space-4)">
+              <div class="panier-tete">
+                <h2 class="page-subtitle" style="margin: 0">
+                  À envoyer
+                  <span class="panier-compteur">{{ panierNbArticles() }}</span>
+                </h2>
+                <button class="btn-lien" type="button" (click)="viderPanier()">Tout retirer</button>
+              </div>
+
+              <div class="panier-lignes">
+                @for (l of panier(); track $index) {
+                  <div class="panier-ligne">
+                    <div class="panier-qte">
+                      <button
+                        type="button"
+                        (click)="changerQuantite($index, -1)"
+                        title="Retirer un"
+                      >
+                        −
+                      </button>
+                      <span>{{ l.quantite }}</span>
+                      <button type="button" (click)="changerQuantite($index, 1)" title="Ajouter un">
+                        +
+                      </button>
+                    </div>
+                    <div class="panier-nom">
+                      {{ l.libelle }}
+                      <input
+                        class="panier-commentaire"
+                        type="text"
+                        placeholder="Cuisson, sans piment…"
+                        [value]="l.commentaire"
+                        (input)="changerCommentaire($index, $any($event.target).value)"
+                      />
+                    </div>
+                    <span class="panier-prix">{{ l.quantite * l.prix | montant }}</span>
+                    <button
+                      class="btn-icon"
+                      type="button"
+                      title="Retirer du panier"
+                      (click)="retirerDuPanier($index)"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                }
+              </div>
+
+              <div class="panier-pied">
+                <span class="panier-total">{{ panierTotal() | montant }}</span>
+                <button
+                  class="btn btn-primary"
+                  type="button"
+                  [disabled]="envoiEnCours()"
+                  (click)="envoyerEnCuisine()"
+                >
+                  @if (envoiEnCours()) {
+                    <span class="spinner" style="width: 14px; height: 14px"></span>
+                  }
+                  Envoyer en cuisine ({{ panierNbArticles() }})
+                </button>
+              </div>
+            </div>
+          }
         }
 
         <!-- Paiements & remises (récap) -->
@@ -98,7 +158,7 @@
                     <span>{{
                       p.mode_de_paiement?.libelle ?? 'Mode #' + p.mode_de_paiement_id
                     }}</span>
-                    <span>{{ p.montant }}</span>
+                    <span>{{ p.montant | montant }}</span>
                   </div>
                 }
               </div>
@@ -115,69 +175,92 @@
           @if (lignesActives().length === 0) {
             <p class="field-text">Aucune ligne.</p>
           } @else {
-            <div class="ticket-lignes">
-              @for (l of lignesActives(); track l.id) {
-                <div class="ticket-ligne">
-                  <span class="ticket-qte">{{ l.quantite }}×</span>
-                  <span class="ticket-nom">{{ l.produit?.libelle ?? '#' + l.produit_id }}</span>
-                  <span class="ticket-prix">{{ l.prix_unitaire }}</span>
-                  @if (!estTerminee()) {
-                    <button
-                      class="btn-icon btn-icon-danger"
-                      type="button"
-                      title="Annuler la ligne"
-                      (click)="openAnnulerLigne(l)"
-                    >
-                      <svg
-                        width="13"
-                        height="13"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                      >
-                        <line x1="18" y1="6" x2="6" y2="18" />
-                        <line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
+            <!-- Groupé par tour : une liste plate ne dirait pas ce qui est déjà
+                 sur la table et ce qui cuit encore. C'est ce que le serveur
+                 regarde quand le client demande « et mon entrée ? ». -->
+            @for (tour of toursTicket(); track tour.envoyeeLe) {
+              <div class="tour-tete">
+                <span class="tour-titre">
+                  Tour {{ tour.numero }}
+                  @if (tour.envoyeeLe) {
+                    · {{ heureTour(tour.envoyeeLe) }}
                   }
-                </div>
-              }
-            </div>
+                </span>
+                <span class="tour-etat" [class]="'tour-etat--' + tour.etat.replace(' ', '-')">
+                  {{ tour.etat }}
+                </span>
+              </div>
+              <div class="ticket-lignes">
+                @for (l of tour.lignes; track l.id) {
+                  <div class="ticket-ligne">
+                    <span class="ticket-qte">{{ l.quantite }}×</span>
+                    <span class="ticket-nom">{{ l.produit?.libelle ?? '#' + l.produit_id }}</span>
+                    <!-- Total de la ligne : le prix unitaire seul se lit mal
+                         en face d'un « 3× » et ne s'additionne pas au total. -->
+                    <span class="ticket-prix">{{ totalLigne(l) | montant }}</span>
+                    @if (!estTerminee()) {
+                      <button
+                        class="btn-icon btn-icon-danger"
+                        type="button"
+                        [title]="libelleRetrait(l)"
+                        (click)="openAnnulerLigne(l)"
+                      >
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                        >
+                          <line x1="18" y1="6" x2="6" y2="18" />
+                          <line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            }
           }
 
           <hr class="sep" />
 
           <div class="sub-list">
             <div class="sub-row">
-              <span>Total lignes</span><span>{{ c.montant_total }}</span>
+              <span>Total lignes</span><span>{{ c.montant_total | montant }}</span>
             </div>
             <div class="sub-row">
-              <span>Montant dû</span><strong>{{ c.montant_du }}</strong>
+              <span>Montant dû</span><strong>{{ c.montant_du | montant }}</strong>
             </div>
             <div class="sub-row">
-              <span>Payé</span><span>{{ c.montant_paye }}</span>
+              <span>Payé</span><span>{{ c.montant_paye | montant }}</span>
             </div>
             <div class="sub-row">
               <span>Reste à payer</span>
               <strong
                 [class.total-value--reste]="+c.reste_a_payer > 0"
                 [class.total-value--ok]="+c.reste_a_payer <= 0"
-                >{{ c.reste_a_payer }}</strong
+                >{{ c.reste_a_payer | montant }}</strong
               >
             </div>
           </div>
 
           <div class="actions-row">
-            @if (lignesActives().length > 0) {
+            <!-- Documents d'argent : ils sortent du comptoir, pas de la salle.
+                 Le serveur n'a pas `paiement.create` — il cliquait « Reçu »
+                 pour apporter l'addition, ce qui imprimait « Merci de votre
+                 visite » sur une note non réglée. Le caissier, lui, atteint
+                 cette fiche depuis la file et peut réimprimer. -->
+            @if (lignesActives().length > 0 && peutSaisirPaiement()) {
               <button
                 class="btn btn-secondary"
                 type="button"
                 [disabled]="pdfBusy()"
-                (click)="imprimerFacture()"
+                (click)="imprimerAddition()"
               >
-                Facture
+                Addition
               </button>
               <button
                 class="btn btn-secondary"
@@ -187,16 +270,18 @@
               >
                 Reçu
               </button>
+              <button
+                class="btn btn-secondary"
+                type="button"
+                [disabled]="pdfBusy()"
+                (click)="imprimerFacture()"
+              >
+                Facture
+              </button>
             }
             @if (estOuverte()) {
-              <button
-                class="btn btn-primary"
-                type="button"
-                [disabled]="busy() || lignesActives().length === 0"
-                (click)="envoyerEnCuisine()"
-              >
-                Envoyer en cuisine
-              </button>
+              <!-- L'envoi en cuisine vit avec le panier, plus dans ce pied :
+                   c'est un seul geste, au même endroit que la saisie. -->
               <button
                 class="btn btn-secondary"
                 type="button"
@@ -205,14 +290,29 @@
               >
                 Remise
               </button>
-              <button
-                class="btn btn-danger"
-                type="button"
-                [disabled]="busy()"
-                (click)="annulerCommande()"
-              >
-                Annuler
-              </button>
+              <!-- Commande vierge : l'abandonner n'est pas une annulation, rien
+                   ne s'est passé. Motif exigé seulement dès qu'elle a porté
+                   quelque chose, pour ne pas noyer la trace des vraies
+                   annulations sous des « erreur de saisie ». -->
+              @if (peutEtreLiberee()) {
+                <button
+                  class="btn btn-secondary"
+                  type="button"
+                  [disabled]="busy()"
+                  (click)="libererTable()"
+                >
+                  Libérer la table
+                </button>
+              } @else {
+                <button
+                  class="btn btn-danger"
+                  type="button"
+                  [disabled]="busy()"
+                  (click)="annulerCommande()"
+                >
+                  Annuler
+                </button>
+              }
             } @else if (estEnvoyee()) {
               <button class="btn btn-primary" type="button" [disabled]="busy()" (click)="servir()">
                 Marquer servie
@@ -226,30 +326,40 @@
                 Annuler
               </button>
             } @else if (estServie()) {
-              <button
-                class="btn btn-secondary"
-                type="button"
-                [disabled]="busy()"
-                (click)="openRemise()"
-              >
-                Remise
-              </button>
-              <button
-                class="btn btn-secondary"
-                type="button"
-                [disabled]="busy()"
-                (click)="openPaiement()"
-              >
-                Paiement
-              </button>
-              <button
-                class="btn btn-primary"
-                type="button"
-                [disabled]="busy() || +c.reste_a_payer > 0"
-                (click)="encaisser()"
-              >
-                Encaisser
-              </button>
+              <!-- Gestes du poste de caisse. Masqués pour le serveur, qui n'a
+                   ni `remise.create`, ni `paiement.create`, ni
+                   `commande_client.encaisser` : il porte l'argent au comptoir,
+                   c'est le caissier qui saisit. -->
+              @if (peutAppliquerRemise()) {
+                <button
+                  class="btn btn-secondary"
+                  type="button"
+                  [disabled]="busy()"
+                  (click)="openRemise()"
+                >
+                  Remise
+                </button>
+              }
+              @if (peutSaisirPaiement()) {
+                <button
+                  class="btn btn-secondary"
+                  type="button"
+                  [disabled]="busy()"
+                  (click)="openPaiement()"
+                >
+                  Paiement
+                </button>
+              }
+              @if (peutEncaisser()) {
+                <button
+                  class="btn btn-primary"
+                  type="button"
+                  [disabled]="busy() || +c.reste_a_payer > 0"
+                  (click)="encaisser()"
+                >
+                  Encaisser
+                </button>
+              }
             }
           </div>
         </div>
@@ -272,19 +382,95 @@
       @if (formError()) {
         <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
       }
-      <label class="field-label">
+      <div class="field-label">
         <span class="field-text">Mode de paiement <span class="required">*</span></span>
-        <select class="field-select" formControlName="mode_de_paiement_id">
-          <option [value]="0" disabled>Sélectionner…</option>
+        <!-- Des boutons et non une liste : à un comptoir le mode se tape d'un
+             doigt, et le choix retenu reste visible pendant qu'on saisit le
+             montant — donc plus difficile à enregistrer par erreur. -->
+        <div class="modes-boutons">
           @for (m of modes(); track m.id) {
-            <option [value]="m.id">{{ m.libelle }}</option>
+            <button
+              type="button"
+              class="mode-bouton"
+              [class.mode-bouton-actif]="paiementForm.controls.mode_de_paiement_id.value === m.id"
+              (click)="choisirMode(m.id)"
+            >
+              <span class="mode-libelle">{{ m.libelle }}</span>
+              @if (!m.compte_en_caisse) {
+                <span class="mode-note">hors tiroir</span>
+              }
+            </button>
           }
-        </select>
-      </label>
+        </div>
+      </div>
       <label class="field-label" style="margin-top: 16px">
         <span class="field-text">Montant <span class="required">*</span></span>
         <input class="field-input" type="number" min="0.01" step="0.01" formControlName="montant" />
       </label>
+
+      <!-- Le billet posé sur le comptoir. Ne part pas en base tel quel : seul
+           le montant encaissé reste en tiroir. Obligatoire dès que l'argent y
+           passe : sans lui, le reçu n'a aucune monnaie à annoncer. -->
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">
+          Reçu du client
+          @if (modeEnTiroir()) {
+            <span class="required">*</span>
+          }
+        </span>
+        <input
+          class="field-input"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="Espèces tendues, pour calculer la monnaie"
+          formControlName="montant_recu"
+        />
+        @if (!modeEnTiroir()) {
+          <span class="field-hint">
+            Ce mode ne passe pas par le tiroir : aucun billet n'est tendu, rien à saisir.
+          </span>
+        }
+      </label>
+
+      <!-- Ne concerne QUE le pourboire qui atterrit dans le tiroir. Celui que
+           le serveur reçoit de la main à la main n'entre jamais ici : le saisir
+           gonflerait le fond de caisse théorique d'un argent que personne ne
+           retrouvera en comptant, donc un manquant à la fermeture. -->
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Pourboire reçu au comptoir</span>
+        <input
+          class="field-input"
+          type="number"
+          min="0"
+          step="0.01"
+          placeholder="0"
+          formControlName="pourboire"
+        />
+        <span class="field-hint">
+          Uniquement si l'argent est dans le tiroir. Un pourboire remis directement au serveur ne se
+          saisit pas.
+        </span>
+      </label>
+
+      @if (recuManquant()) {
+        <p class="reglement-apres reglement-apres-alerte">
+          Saisissez les espèces tendues par le client : le reçu en a besoin pour annoncer la monnaie
+          rendue.
+        </p>
+      } @else if (recuInsuffisant()) {
+        <p class="reglement-apres reglement-apres-alerte">
+          Le montant reçu ne couvre pas le montant encaissé et le pourboire.
+        </p>
+      } @else if (monnaieSaisie() > 0) {
+        <div class="monnaie-bloc">
+          <span class="field-text">Monnaie à rendre</span>
+          <strong>{{ monnaieSaisie() | montant }}</strong>
+        </div>
+        <button class="btn btn-secondary btn-bloc" type="button" (click)="garderLaMonnaie()">
+          Garder comme pourboire
+        </button>
+      }
     </form>
     <div class="drawer-footer">
       <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>

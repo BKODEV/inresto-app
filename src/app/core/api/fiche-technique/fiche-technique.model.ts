@@ -30,6 +30,36 @@ export interface LigneFicheTechniqueSousRecette {
   sous_recette?: SousRecette;
 }
 
+/**
+ * Nature d'un point critique. Liste fermée côté API : un contrôle qui ne
+ * distingue pas un allergène d'une température de cuisson ne contrôle rien.
+ */
+export type TypePointCritique =
+  'cuisson' | 'refroidissement' | 'conservation' | 'allergene' | 'hygiene' | 'autre';
+
+/** Une étape de production, dans l'ordre où on l'exécute. */
+export interface EtapeFicheTechnique {
+  id: number;
+  ordre: number;
+  description: string;
+  /** Nulle quand l'étape n'a pas de durée qu'on veuille chiffrer. */
+  duree_minutes: number | null;
+}
+
+export interface MaterielFicheTechnique {
+  id: number;
+  ordre: number;
+  libelle: string;
+}
+
+export interface PointCritiqueFicheTechnique {
+  id: number;
+  ordre: number;
+  type: TypePointCritique;
+  type_libelle: string;
+  description: string;
+}
+
 export interface FicheTechnique {
   id: number;
   produit_id: number;
@@ -41,6 +71,12 @@ export interface FicheTechnique {
   produit?: Produit;
   lignes_matieres?: LigneFicheTechnique[];
   lignes_sous_recettes?: LigneFicheTechniqueSousRecette[];
+  /** Méthodologie — versionnée avec la fiche, comme le coût. */
+  etapes?: EtapeFicheTechnique[];
+  materiels?: MaterielFicheTechnique[];
+  points_critiques?: PointCritiqueFicheTechnique[];
+  /** Somme des étapes chiffrées ; null si aucune ne l'est. */
+  duree_totale_minutes?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -56,8 +92,22 @@ export interface LigneSousRecettePayload {
   quantite: number;
 }
 
+/** L'ordre vient de la position dans le tableau : le serveur numérote. */
+export interface EtapePayload {
+  description: string;
+  duree_minutes?: number | null;
+}
+
+export interface PointCritiquePayload {
+  type: TypePointCritique;
+  description: string;
+}
+
 export interface FicheTechniquePayload {
   produit_id: number;
   lignes_matieres: LigneMatierePayload[];
   lignes_sous_recettes: LigneSousRecettePayload[];
+  etapes?: EtapePayload[];
+  materiels?: string[];
+  points_critiques?: PointCritiquePayload[];
 }

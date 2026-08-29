@@ -5,6 +5,13 @@ export interface MenuItem {
   /** Une liste signifie « au moins une de ces permissions ». */
   permission?: string | string[];
   enabled?: boolean;
+  /**
+   * Écran servi HORS du shell : un afficheur mural ou une tablette posée au
+   * pass, sans barre latérale. L'entrée sert à l'ouvrir la première fois, mais
+   * ce n'est pas une destination de navigation — on n'y dépose personne au
+   * démarrage (cf. `premiereRouteAutorisee`).
+   */
+  horsShell?: boolean;
 }
 
 export interface MenuSection {
@@ -20,10 +27,21 @@ export interface MenuSection {
  */
 export const MENU: MenuSection[] = [
   {
-    items: [{ label: 'Tableau de bord', icon: 'layout-dashboard', route: '/dashboard' }],
+    // Gardé par `reporting.dashboard`, la permission qu'exige l'API : sans
+    // elle l'entrée menait à un écran qui ne pouvait que refuser de se charger.
+    items: [
+      {
+        label: 'Tableau de bord',
+        icon: 'layout-dashboard',
+        route: '/dashboard',
+        permission: 'reporting.dashboard',
+      },
+    ],
   },
   {
-    title: 'CUISINE & STOCK',
+    // Ce qui ENTRE dans la maison : on achète, on réceptionne, on stocke, on
+    // budgète. Séparé de CUISINE, qui est ce qu'on en fait pendant le service.
+    title: 'ACHATS & STOCK',
     items: [
       {
         label: 'Fournisseurs',
@@ -44,12 +62,6 @@ export const MENU: MenuSection[] = [
         permission: 'commande-fournisseur.view',
       },
       {
-        label: 'Produits & recettes',
-        icon: 'chef-hat',
-        route: '/cuisine/fiches-techniques',
-        permission: 'fichetechnique.view',
-      },
-      {
         label: 'Stock & inventaire',
         icon: 'boxes',
         route: '/cuisine/stock',
@@ -57,6 +69,59 @@ export const MENU: MenuSection[] = [
         permission: ['stock.view', 'inventaire.view'],
       },
       { label: 'Budget', icon: 'wallet', route: '/cuisine/budget', permission: 'budget.view' },
+    ],
+  },
+  {
+    // La PRODUCTION, tenue par le chef et sa brigade. Le service de cuisine
+    // était sous « Sessions de caisse » : ouvrir un tiroir-caisse et ouvrir un
+    // service de brigade sont deux responsabilités, tenues par deux personnes
+    // différentes, et les mélanger montrait au chef des écrans d'argent.
+    title: 'CUISINE',
+    items: [
+      {
+        label: 'Services de cuisine',
+        icon: 'chef-hat',
+        route: '/cuisine/services',
+        permission: 'session_cuisine.view',
+      },
+      {
+        // L'organigramme du pass : qui tient quel poste, et quelles catégories
+        // y sont produites. Ce n'est PAS un paramètre global — c'est le métier
+        // du chef, qui n'a pas `parametre.view` et ne pouvait donc même pas
+        // ouvrir l'écran tant qu'il vivait sous Paramètres.
+        label: 'Postes de production',
+        icon: 'chef-hat',
+        route: '/cuisine/postes',
+        permission: 'poste_cuisine.view',
+      },
+      {
+        // Les recettes sont le métier du chef, pas un réglage d'achat : elles
+        // rejoignent la production plutôt que le stock dont elles consomment.
+        label: 'Produits & recettes',
+        icon: 'chef-hat',
+        route: '/cuisine/fiches-techniques',
+        permission: 'fichetechnique.view',
+      },
+      {
+        // Afficheur mural, servi hors du shell : pas de barre latérale à côté
+        // de laquelle un coup de coude renverrait la cuisine sur les fonds de
+        // caisse. L'entrée reste ici pour l'ouvrir la première fois.
+        label: 'Écran cuisine (KDS)',
+        icon: 'chef-hat',
+        route: '/kds',
+        permission: 'commande_client.view',
+        horsShell: true,
+      },
+      {
+        // Le pendant salle : ce que la cuisine a annoncé et qu'il faut porter.
+        // Gouverné par `update`, la permission du service — c'est ici que le
+        // stock se décharge.
+        label: 'Pass (à emporter)',
+        icon: 'chef-hat',
+        route: '/pass',
+        permission: 'commande_client.update',
+        horsShell: true,
+      },
     ],
   },
   {
@@ -82,10 +147,49 @@ export const MENU: MenuSection[] = [
         enabled: false,
       },
       {
-        label: 'Caisse',
+        // L'écran le plus utilisé du service : une entrée à part entière plutôt
+        // qu'un onglet enfoui sous « Caisse », que le serveur ouvrirait
+        // cinquante fois par service en deux clics au lieu d'un.
+        //
+        // `create` et non `view` : c'est l'écran où l'on OUVRE des notes, et
+        // `commande_client.view` est détenue pour de tout autres raisons — la
+        // cuisine lit la file du KDS, un écran mural lit la sienne. Les y
+        // envoyer leur donnait une liste sur laquelle ils ne peuvent rien.
+        label: 'Prise de commande',
+        icon: 'clipboard-list',
+        route: '/vente/caisse/commandes',
+        permission: 'commande_client.create',
+      },
+      {
+        // Le poste de caisse : la file des notes à régler. Gardé par
+        // `paiement.create` — sans le droit de saisir un paiement, cette file
+        // n'est qu'une liste inerte.
+        label: 'Encaissement',
         icon: 'receipt',
-        route: '/vente/caisse',
-        permission: 'session_caisse.view',
+        route: '/vente/caisse/encaissement',
+        permission: 'paiement.create',
+      },
+      {
+        // Nommée sans ambiguïté : cette entrée ne contient QUE l'ouverture et la
+        // fermeture de caisse. « Caisse » laissait croire qu'on y encaissait.
+        //
+        // `session_caisse.create` et non `.view` : le serveur détient `.view`
+        // pour rattacher sa commande à une session ouverte, ce qui ne fait pas
+        // de lui un responsable de caisse — le garder ici lui montrerait les
+        // fonds initiaux et les écarts.
+        label: 'Sessions de caisse',
+        icon: 'wallet',
+        route: '/vente/caisse/sessions',
+        permission: 'session_caisse.create',
+      },
+      {
+        // N'apparaît que si la direction a attribué la permission, absente de
+        // tous les rôles par défaut : que l'équipe suive ses cumuls est une
+        // décision d'organisation, pas un réglage technique.
+        label: 'Mes pourboires',
+        icon: 'wallet',
+        route: '/vente/mes-pourboires',
+        permission: 'pourboire.suivre_les_siens',
       },
     ],
   },
@@ -122,32 +226,6 @@ export const MENU: MenuSection[] = [
     title: 'PARAMÈTRES',
     items: [
       { label: 'Paramètres', icon: 'settings', route: '/parametres', permission: 'parametre.view' },
-    ],
-  },
-  {
-    title: 'ADMINISTRATION',
-    items: [
-      {
-        label: 'Utilisateurs',
-        icon: 'users',
-        route: '/admin/utilisateurs',
-        permission: 'utilisateur.view',
-        enabled: false,
-      },
-      {
-        label: 'Rôles & permissions',
-        icon: 'shield',
-        route: '/admin/roles',
-        permission: 'role.view',
-        enabled: false,
-      },
-      {
-        label: "Journal d'activité",
-        icon: 'history',
-        route: '/admin/journal',
-        permission: 'journal.view',
-        enabled: false,
-      },
     ],
   },
 ];

@@ -291,3 +291,86 @@
     display: none !important;
   }
 }
+
+// Méthodologie ---------------------------------------------------------------
+
+// Les points critiques ouvrent le bloc : ils ne se lisent pas une fois, ils
+// restent à l'œil pendant toute la production.
+.points-critiques {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: var(--space-3);
+}
+
+.point-critique {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: var(--text-sm);
+}
+
+.badge {
+  &--cuisson,
+  &--refroidissement {
+    background: rgba(var(--amber-rgb), 0.12);
+    color: var(--amber);
+  }
+  &--allergene {
+    background: rgba(var(--red-rgb), 0.12);
+    color: var(--red-soft);
+  }
+  &--conservation,
+  &--hygiene,
+  &--autre {
+    background: rgba(var(--text-mute-rgb), 0.15);
+    color: var(--text-dim);
+  }
+}
+
+.etapes {
+  margin: var(--space-3) 0;
+  padding-left: 20px;
+
+  li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+  }
+}
+
+.etape-duree {
+  display: inline-block;
+  margin-left: 8px;
+  color: var(--text-dim);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.entry-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+// Réordonner une étape change la recette : le geste mérite un bouton, pas un
+// glisser-déposer qu'on rate au doigt sur une tablette d'atelier.
+.entry-move {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: var(--radius-sm, 6px);
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  line-height: 1;
+
+  &:hover:not(:disabled) {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}

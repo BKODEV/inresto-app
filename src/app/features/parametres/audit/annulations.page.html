@@ -1,0 +1,151 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Annulations</h1>
+      <p class="page-subtitle">
+        Ce qui a été annulé, et le devenir de la matière déjà déchargée. Lecture seule.
+      </p>
+    </div>
+  </div>
+
+  <div class="filters">
+    <label class="field-label">
+      <span class="field-text">Du</span>
+      <input
+        class="field-input"
+        type="date"
+        [value]="dateDebut()"
+        (change)="onDateDebut($any($event.target).value)"
+      />
+    </label>
+    <label class="field-label">
+      <span class="field-text">Au</span>
+      <input
+        class="field-input"
+        type="date"
+        [value]="dateFin()"
+        (change)="onDateFin($any($event.target).value)"
+      />
+    </label>
+    <label class="field-label">
+      <span class="field-text">Nature</span>
+      <select class="field-select" (change)="onNature($any($event.target).value)">
+        <option value="" [selected]="nature() === null">Toutes</option>
+        <option value="commandes_client" [selected]="nature() === 'commandes_client'">
+          Note entière
+        </option>
+        <option value="lignes_commande_client" [selected]="nature() === 'lignes_commande_client'">
+          Ligne
+        </option>
+      </select>
+    </label>
+    <label class="field-label">
+      <span class="field-text">Devenir du stock</span>
+      <select class="field-select" (change)="onSort($any($event.target).value)">
+        <option value="" [selected]="sort() === null">Tous</option>
+        <option value="perte" [selected]="sort() === 'perte'">Perte</option>
+        <option value="remise_en_stock" [selected]="sort() === 'remise_en_stock'">
+          Remise en stock
+        </option>
+      </select>
+    </label>
+  </div>
+
+  @if (error()) {
+    <div class="alert-error" style="margin-bottom: 16px">{{ error() }}</div>
+  }
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (annulations().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucune annulation</span>
+      <span class="empty-message">Rien n'a été annulé sur cette période.</span>
+    </div>
+  } @else {
+    <p class="resume">
+      {{ pagination()?.total }} annulation{{ (pagination()?.total ?? 0) > 1 ? 's' : '' }} sur la
+      période.
+      @if (nbPertes() > 0) {
+        <!-- Une perte est une matière déchargée puis jetée : elle ne revient
+             jamais au stock, et se répète rarement par hasard. -->
+        <strong>{{ nbPertes() }} en perte sur cette page.</strong>
+      }
+    </p>
+
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Horodatage</th>
+            <th>Note</th>
+            <th>Nature</th>
+            <th>Devenir du stock</th>
+            <th>Annulée par</th>
+            <th>Motif</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of annulations(); track a.id) {
+            <tr>
+              <td class="td-mono">{{ a.date_heure | date: 'short' }}</td>
+              <td class="td-mono">
+                @if (a.commande_client_id) {
+                  <a
+                    class="lien-note"
+                    [routerLink]="['/vente/caisse/commandes', a.commande_client_id]"
+                  >
+                    #{{ a.commande_client_id }}
+                  </a>
+                } @else {
+                  —
+                }
+              </td>
+              <td>
+                <span class="badge badge-neutral">{{ natureLabel[a.annulable_type] }}</span>
+              </td>
+              <td>
+                <!-- Vide n'est pas une lacune : rien n'avait été déchargé, il
+                     n'y a donc pas de devenir à décider. -->
+                @if (a.sort) {
+                  <span class="badge" [class]="'badge--' + a.sort">{{ sortLabel[a.sort] }}</span>
+                } @else {
+                  <span class="field-text">Rien de déstocké</span>
+                }
+              </td>
+              <td>{{ a.auteur ?? '—' }}</td>
+              <td class="motif">{{ a.motif ?? '' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (pagination(); as p) {
+      @if (p.derniere_page > 1) {
+        <div class="pagination-row">
+          <button
+            class="btn btn-secondary"
+            type="button"
+            [disabled]="p.page_courante <= 1"
+            (click)="allerPage(p.page_courante - 1)"
+          >
+            Précédent
+          </button>
+          <span class="field-text">Page {{ p.page_courante }} / {{ p.derniere_page }}</span>
+          <button
+            class="btn btn-secondary"
+            type="button"
+            [disabled]="p.page_courante >= p.derniere_page"
+            (click)="allerPage(p.page_courante + 1)"
+          >
+            Suivant
+          </button>
+        </div>
+      }
+    }
+  }
+</div>

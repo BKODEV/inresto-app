@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
 import { ReportingService } from '../../core/api/reporting/reporting.service';
@@ -16,6 +17,8 @@ import { SelectedSiteService } from '../../core/site/selected-site.service';
 import { ChartComponent } from '../../shared/chart/chart.component';
 import { caEvolutionLine, donutChart, horizontalBar } from '../../shared/chart/chart-options';
 import { CHART_PALETTE } from '../../shared/chart/echarts-theme';
+import { QuantitePipe } from '../../shared/format/nombre.pipes';
+import { formatMontant, formatPourcentage } from '../../shared/format/nombre.format';
 
 /** Couleur d'accent par niveau d'alerte budgétaire (vert → rouge). */
 const COULEUR_ALERTE: Record<NiveauAlerteBudget, string> = {
@@ -25,15 +28,10 @@ const COULEUR_ALERTE: Record<NiveauAlerteBudget, string> = {
   depassement: CHART_PALETTE.red,
 };
 
-const MONTANT = new Intl.NumberFormat('fr-FR', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [ChartComponent],
+  imports: [ChartComponent, QuantitePipe],
   templateUrl: './dashboard.page.html',
   styleUrl: './dashboard.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -92,13 +90,13 @@ export class DashboardPage {
     this.router.navigate(['/pilotage/stock']);
   }
 
-  /** Montant formaté, ou tiret si aucune activité (évite les « 0,00 » orphelins). */
+  /** Montant formaté, ou tiret si aucune activité (évite les « 0 » orphelins). */
   montantOuTiret(montant: number | undefined, actif: boolean): string {
-    return actif ? MONTANT.format(montant ?? 0) : '—';
+    return actif ? formatMontant(montant ?? 0) : '—';
   }
 
   pct(value: number | undefined): string {
-    return `${MONTANT.format(value ?? 0)} %`;
+    return formatPourcentage(value ?? 0);
   }
 
   private load(siteId: number | null): void {
@@ -113,8 +111,15 @@ export class DashboardPage {
           this.data.set(data);
           this.loading.set(false);
         },
-        error: () => {
-          this.error.set('Impossible de charger le tableau de bord.');
+        error: (err: HttpErrorResponse) => {
+          // Un 403 n'est pas une panne : c'est une réponse. Le confondre avec
+          // « impossible de charger » envoie l'utilisateur rafraîchir une page
+          // qui ne s'ouvrira jamais pour lui.
+          this.error.set(
+            err.status === 403
+              ? 'Le tableau de bord demande la permission « Consulter le tableau de bord ». Demandez-la à votre responsable.'
+              : 'Impossible de charger le tableau de bord.',
+          );
           this.loading.set(false);
         },
       });

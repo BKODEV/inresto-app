@@ -1,22 +1,25 @@
-// Helpers de formatage partagés par les pages de pilotage. L'API renvoie des
-// nombres bruts ; on formate en fr-FR (séparateurs), la devise restant gérée
-// ailleurs (paramètres d'établissement).
+import {
+  formatMontant as montant,
+  formatPourcentage as pourcentage,
+  formatQuantite as quantite,
+} from '../../../shared/format/nombre.format';
 
-const MONTANT = new Intl.NumberFormat('fr-FR', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-const NOMBRE = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 3 });
+// Helpers de formatage des pages de pilotage. La règle de précision est commune
+// à toute l'application — voir shared/format/nombre.format.ts. Ces alias restent
+// parce que les templates de pilotage appellent des méthodes de composant plutôt
+// que des pipes.
+//
+// Une valeur absente est traitée comme un zéro, et non comme un tiret : sur un
+// tableau de bord, un indicateur sans mouvement vaut bien zéro.
 
 export function formatMontant(value: number): string {
-  return MONTANT.format(value ?? 0);
+  return montant(value ?? 0, '0');
 }
 
 export function formatNombre(value: number): string {
-  return NOMBRE.format(value ?? 0);
+  return quantite(value ?? 0, '0');
 }
 
 export function formatPct(value: number): string {
-  return `${MONTANT.format(value ?? 0)} %`;
+  return pourcentage(value ?? 0, '0');
 }

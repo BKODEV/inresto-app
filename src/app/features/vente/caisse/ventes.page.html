@@ -1,0 +1,214 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Ventes</h1>
+      <p class="page-subtitle">Notes encaissées de la session, les plus récentes d'abord.</p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (estConsolide()) {
+    <app-site-requis message="Les ventes se lisent par caisse. Choisissez un site." />
+  } @else if (caisses().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucune caisse</span>
+      <span class="empty-message">
+        @if (currentSite(); as site) {
+          Le site « {{ site.nom }} » n'a pas de caisse.
+        } @else {
+          Sélectionnez un site dans la barre du haut.
+        }
+      </span>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <label class="field-label">
+        <span class="field-text">Caisse</span>
+        <select
+          class="field-select"
+          [value]="selectedCaisseId()"
+          (change)="onCaisseChange($any($event.target).value)"
+        >
+          @for (caisse of caisses(); track caisse.id) {
+            <option [value]="caisse.id">
+              {{ caisse.libelle }} — {{ caisse.point_de_vente?.nom }}
+            </option>
+          }
+        </select>
+      </label>
+
+      <!-- Le périmètre est la session, pas la journée : un service qui dépasse
+           minuit doit rester d'un seul tenant. -->
+      <label class="field-label">
+        <span class="field-text">Session</span>
+        <select
+          class="field-select"
+          [value]="selectedSessionId()"
+          (change)="onSessionChange($any($event.target).value)"
+        >
+          @for (s of sessions(); track s.id) {
+            <option [value]="s.id">
+              #{{ s.id }} — {{ s.ouvert_le | date: 'short' }}
+              @if (s.statut === 'ouverte') {
+                (en cours)
+              }
+            </option>
+          }
+        </select>
+      </label>
+
+      @if (totalSession() > 0) {
+        <div class="encaisse-total">
+          <span class="field-text">Notes encaissées</span>
+          <strong>{{ totalSession() }}</strong>
+        </div>
+      }
+    </div>
+
+    @if (error()) {
+      <div class="alert-error" style="margin-bottom: 16px">{{ error() }}</div>
+    }
+
+    @if (loadingVentes()) {
+      <div class="loading-row">
+        <div class="spinner"></div>
+        <span>Chargement…</span>
+      </div>
+    } @else if (sessions().length === 0) {
+      <div class="empty-state">
+        <span class="empty-title">Aucune session</span>
+        <span class="empty-message">Cette caisse n'a jamais été ouverte.</span>
+      </div>
+    } @else if (ventes().length === 0) {
+      <div class="empty-state">
+        <span class="empty-title">Aucune vente</span>
+        <span class="empty-message">Rien n'a encore été encaissé sur cette session.</span>
+      </div>
+    } @else {
+      <!-- Ce que chaque mode a encaissé. C'est la lecture qui prépare la
+           fermeture : seul l'argent des modes en espèces est dans le tiroir. -->
+      <div class="card ventilation">
+        @for (mode of ventilation(); track mode.libelle) {
+          <div class="ventilation-mode">
+            <span class="field-text">{{ mode.libelle }}</span>
+            <strong>{{ mode.montant | montant }}</strong>
+            <span class="ventilation-notes">{{ mode.notes }} paiement(s)</span>
+          </div>
+        }
+        @if (totalPourboires() > 0) {
+          <!-- Dans le tiroir, mais dû aux serveurs : jamais de la recette. -->
+          <div class="ventilation-mode">
+            <span class="field-text">Pourboires</span>
+            <strong>{{ totalPourboires() | montant }}</strong>
+            <span class="ventilation-notes">à reverser</span>
+          </div>
+        }
+        <div class="ventilation-mode ventilation-mode-total">
+          <span class="field-text">
+            @if (pageUnique()) {
+              Total encaissé
+            } @else {
+              Total de la page
+            }
+          </span>
+          <strong>{{ totalPage() | montant }}</strong>
+          @if (!pageUnique()) {
+            <span class="ventilation-notes">
+              {{ ventes().length }} notes sur {{ totalSession() }}
+            </span>
+          }
+        </div>
+      </div>
+
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Heure</th>
+              <th>Note</th>
+              <th>Table</th>
+              <th>Serveur</th>
+              <!-- Qui a clôturé la note : la piste d'audit de la caisse. Le
+                   serveur a ouvert la note, le caissier l'a soldée — ce n'est
+                   pas toujours la même personne. -->
+              <th>Encaissé par</th>
+              <th>Règlement</th>
+              <th class="num">Total</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (v of ventes(); track v.id) {
+              <tr>
+                <td class="td-mono">{{ v.date_heure | date: 'shortTime' }}</td>
+                <td class="td-mono">
+                  <a class="lien-note" [routerLink]="['/vente/caisse/commandes', v.id]">
+                    #{{ v.id }}
+                  </a>
+                </td>
+                <td class="td-primary">{{ v.table_numero ?? v.table?.numero ?? '—' }}</td>
+                <td>{{ v.serveur ?? '—' }}</td>
+                <td>
+                  {{ v.encaisse_par_nom ?? '—' }}
+                  @if (v.encaisse_le) {
+                    <span class="detail-heure">{{ v.encaisse_le | date: 'shortTime' }}</span>
+                  }
+                </td>
+                <td>
+                  @for (p of v.paiements ?? []; track p.id) {
+                    <span class="badge badge-neutral">
+                      {{ p.mode_de_paiement?.libelle ?? 'Paiement' }}
+                    </span>
+                  } @empty {
+                    —
+                  }
+                </td>
+                <td class="num td-mono">
+                  <strong>{{ v.montant_du | montant }}</strong>
+                </td>
+                <td class="td-actions">
+                  <button
+                    class="btn btn-secondary"
+                    type="button"
+                    [disabled]="pdfBusy()"
+                    (click)="imprimerRecu(v)"
+                  >
+                    Reçu
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (pagination(); as p) {
+        @if (p.derniere_page > 1) {
+          <div class="pagination-row">
+            <button
+              class="btn btn-secondary"
+              type="button"
+              [disabled]="p.page_courante <= 1"
+              (click)="allerPage(p.page_courante - 1)"
+            >
+              Précédent
+            </button>
+            <span class="field-text">Page {{ p.page_courante }} / {{ p.derniere_page }}</span>
+            <button
+              class="btn btn-secondary"
+              type="button"
+              [disabled]="p.page_courante >= p.derniere_page"
+              (click)="allerPage(p.page_courante + 1)"
+            >
+              Suivant
+            </button>
+          </div>
+        }
+      }
+    }
+  }
+</div>

@@ -245,6 +245,19 @@
   min-height: 48px;
   width: 100%;
   font-size: var(--text-base);
+
+  // Pas de lueur portée, contrairement au `.btn-primary` dont il hérite.
+  //
+  // `--shadow-amber` porte à 24 px vers le bas (0 8px 24px -8px) alors qu'il ne
+  // reste que 17 px entre le bouton et le bord de la carte : la lueur
+  // débordait en permanence. Au survol, le `filter: brightness()` du bouton
+  // primaire force le repaint de toute cette zone — d'où l'artefact visible au
+  // passage de la souris, et révélé au scroll quand le compositeur redessine.
+  //
+  // On garde le liseré interne, qui donne le relief. La lueur, elle, est faite
+  // pour un bouton isolé sur fond nu ; répétée sur douze cartes d'un écran de
+  // cuisine, elle n'apportait que du bruit.
+  box-shadow: 0 1px 0 rgba(var(--brillance-rgb), 0.4) inset;
 }
 
 .kds-attente {
@@ -276,6 +289,73 @@
   .kds-attente {
     color: var(--red);
   }
+}
+
+// Bande « au pass » de l'écran cuisine : annoncé, en attente d'enlèvement.
+// Volontairement en retrait de la file de production — c'est un rappel, pas le
+// travail en cours. Le titre porte lui-même le séparateur : une règle de moins,
+// et le budget de la feuille est serré.
+.pass-titre {
+  margin: var(--space-6) 0 var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+.kds-card--pass {
+  border-left-color: var(--text-mute);
+  opacity: 0.85;
+}
+
+// La ligne devient le geste : un bouton, mais qui doit rester une ligne de
+// ticket à l'œil. D'où le décapage complet du style natif — sans quoi la
+// cuisine lirait une pile de boutons gris au lieu d'une commande.
+.kds-ligne--action {
+  width: 100%;
+  min-height: 44px; // plancher tactile : on tape debout, les mains prises
+  align-items: center;
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+
+  // Survol franc, et pas seulement un fond d'un ton au-dessus : `--surface-2`
+  // sur `--surface` sont deux teintes presque identiques, invisibles sur un
+  // écran mural éclairé de biais.
+  //
+  // Le liseré ambre reprend l'idiome de la maison — l'ambre marque la cible
+  // visée, cf. `.btn-icon:hover` — et il est posé en `inset` : une bordure
+  // réelle décalerait le texte de 2 px à chaque passage de souris.
+  &:hover:not(:disabled) {
+    background: var(--surface-3);
+    box-shadow: inset 2px 0 0 var(--amber);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+// Pousse la catégorie contre le bord droit, où l'œil la balaie en colonne.
+.kds-nom {
+  flex: 1;
+}
+
+// La catégorie telle que l'établissement l'a saisie. Discrète : c'est un repère
+// pour retrouver ses plats dans un ticket mêlé, pas une information de premier
+// plan.
+.kds-cat {
+  font-size: var(--text-xs);
+  color: var(--text-mute);
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 // ═══ Plan de salle (prise de commande) ══════════════════════════════════════
@@ -360,4 +440,269 @@
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
     gap: var(--space-2);
   }
+}
+
+// Écran cuisine servi hors du shell : il porte lui-même ses actions de sortie
+// et son sélecteur de site, absents faute de barre latérale.
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+// ─────────────────────────── Panier de prise de commande ───────────────────────────
+
+.panier-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.panier-compteur {
+  display: inline-block;
+  min-width: 22px;
+  padding: 1px 7px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: var(--amber-soft);
+  color: var(--amber);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: center;
+}
+
+.btn-lien {
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--red-soft);
+  }
+}
+
+.panier-lignes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.panier-ligne {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+// Cibles tapées au doigt en salle : plus larges que des boutons de bureau.
+.panier-qte {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  button {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: var(--text-md);
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+  }
+
+  span {
+    min-width: 26px;
+    text-align: center;
+    font-weight: 700;
+  }
+}
+
+.panier-nom {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.panier-commentaire {
+  border: 0;
+  border-bottom: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--text-sm);
+  padding: 2px 0;
+
+  &:focus {
+    outline: none;
+    border-bottom-color: var(--amber);
+    color: var(--text);
+  }
+}
+
+.panier-prix {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.panier-pied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.panier-total {
+  font-size: var(--text-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+// ─────────────────────────── Ticket groupé par tour ───────────────────────────
+
+.tour-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 14px 0 6px;
+
+  &:first-of-type {
+    margin-top: 4px;
+  }
+}
+
+.tour-titre {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+// L'état se lit à la couleur avant le mot : en un coup d'œil, le serveur doit
+// voir ce qui est encore en production.
+.tour-etat {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+
+  &--servi {
+    background: rgba(var(--green-rgb), 0.12);
+    color: var(--green-soft);
+  }
+  &--en-cuisine {
+    background: rgba(var(--amber-rgb), 0.14);
+    color: var(--amber);
+  }
+  &--non-envoyé {
+    background: rgba(var(--blue-rgb), 0.12);
+    color: var(--text-dim);
+  }
+}
+
+// L'écart se lit en deux temps : ce qu'il signifie, puis combien. Le montant
+// seul obligeait à interpréter un signe ; le mot seul cacherait l'ampleur.
+.ecart-cellule {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+
+// Depuis quand la table attend son addition. Discret tant que c'est normal,
+// puis de plus en plus visible : une table servie qui traîne est soit un client
+// au comptoir, soit un client parti sans payer.
+.salle-attente {
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+
+  &.attente--attention {
+    color: var(--amber);
+  }
+
+  &.attente--oubli {
+    color: var(--red-soft);
+    font-weight: 600;
+  }
+}
+
+// Deux gestes dans l'en-tête : ouvrir une session, et sortir de l'argent du
+// tiroir. Le second n'est pas subordonné au premier — d'où deux boutons plutôt
+// qu'une action rangée dans la carte de la session ouverte.
+.header-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+// L'heure de clôture, sous le nom du caissier : deux informations d'audit qui
+// se lisent ensemble et ne méritent pas deux colonnes.
+.detail-heure {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+// Composition de la brigade : on coche des noms, il n'y a rien d'autre à
+// valider. Une liste scrollable plutôt qu'un multi-select, qui se manipule mal
+// au doigt sur la tablette du passe.
+.brigade-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  padding: 8px;
+}
+
+.check-membre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    color: var(--amber);
+  }
+}
+
+// Bascule « tout le personnel du site » au-dessus de la liste de brigade.
+.check-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
 }

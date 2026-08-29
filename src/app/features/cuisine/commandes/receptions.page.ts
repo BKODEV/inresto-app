@@ -17,6 +17,7 @@ import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { QuantitePipe } from '../../../shared/format/nombre.pipes';
 
 /**
  * Historique des réceptions du site courant. Une réception est immuable une
@@ -25,7 +26,7 @@ import { apiErrorMessage } from '../../../core/api/api-error.util';
 @Component({
   selector: 'app-receptions-page',
   standalone: true,
-  imports: [RouterLink, SiteRequisComponent],
+  imports: [RouterLink, SiteRequisComponent, QuantitePipe],
   templateUrl: './receptions.page.html',
   styleUrl: './receptions.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

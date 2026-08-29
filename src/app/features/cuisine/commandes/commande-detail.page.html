@@ -149,15 +149,15 @@
             @for (ligne of c.lignes; track ligne.id) {
               <tr>
                 <td class="td-primary">{{ matiereLibelle(ligne) }}</td>
-                <td class="num td-mono">{{ ligne.quantite_commandee }}</td>
+                <td class="num td-mono">{{ ligne.quantite_commandee | qte }}</td>
                 @if (!isBrouillon()) {
-                  <td class="num td-mono">{{ dejaRecu(ligne) }}</td>
+                  <td class="num td-mono">{{ dejaRecu(ligne) | qte }}</td>
                   <td
                     class="num td-mono"
                     [class.td-solde]="resteARecevoir(ligne) === 0"
                     [class.td-attente]="resteARecevoir(ligne) > 0"
                   >
-                    {{ resteARecevoir(ligne) === 0 ? 'Soldé' : resteARecevoir(ligne) }}
+                    {{ resteARecevoir(ligne) === 0 ? 'Soldé' : (resteARecevoir(ligne) | qte) }}
                   </td>
                 }
                 <td>{{ uniteSymbole(ligne.unite_id, ligne) }}</td>
@@ -354,9 +354,9 @@
               <b>{{ group.value.matiere_libelle }}</b>
               <span class="field-hint">
                 Unité d'achat : {{ group.value.unite_symbole }} — commandé
-                {{ group.value.quantite_commandee }}
+                {{ group.value.quantite_commandee | qte }}
                 @if (group.value.deja_recu > 0) {
-                  , déjà reçu {{ group.value.deja_recu }}
+                  , déjà reçu {{ group.value.deja_recu | qte }}
                 }
               </span>
             </div>

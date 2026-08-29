@@ -4,14 +4,31 @@
       <h1 class="page-title">Sessions de caisse</h1>
       <p class="page-subtitle">Ouverture, fermeture et contrôle d'écart par caisse.</p>
     </div>
-    <button
-      class="btn btn-primary"
-      type="button"
-      (click)="openOuvrir()"
-      [disabled]="selectedCaisseId() === null || sessionOuverte() !== null"
-    >
-      + Ouvrir une session
-    </button>
+    <div class="header-actions">
+      <!-- Sortir de l'argent ne demande PAS une session ouverte : le versement
+           se rattache à la dernière session connue, ce qui permet de vider le
+           tiroir après la clôture. Il faut seulement que la caisse ait déjà
+           servi une fois — sans session, l'API n'aurait rien à rattacher. -->
+      @if (peutVerser()) {
+        <button
+          class="btn btn-secondary"
+          type="button"
+          (click)="openVerser()"
+          [disabled]="selectedCaisseId() === null || sessions().length === 0"
+          title="Sortir de l'argent du tiroir"
+        >
+          Verser
+        </button>
+      }
+      <button
+        class="btn btn-primary"
+        type="button"
+        (click)="openOuvrir()"
+        [disabled]="selectedCaisseId() === null || sessionOuverte() !== null"
+      >
+        + Ouvrir une session
+      </button>
+    </div>
   </div>
 
   @if (loading()) {
@@ -62,7 +79,7 @@
         <div class="totaux" style="padding: 0">
           <div class="total-item">
             <span class="total-label">Fonds initial</span>
-            <span class="total-value">{{ open.fonds_initial }}</span>
+            <span class="total-value">{{ open.fonds_initial | montant }}</span>
           </div>
         </div>
         <div class="actions-row">
@@ -89,8 +106,11 @@
               <th>Fonds</th>
               <th>Théorique</th>
               <th>Réel</th>
+              <th>Hors tiroir</th>
+              <th>Transition</th>
               <th>Écart</th>
               <th>Statut</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -99,17 +119,45 @@
                 <td class="td-mono">{{ s.id }}</td>
                 <td>{{ s.ouvert_le | date: 'short' }}</td>
                 <td>{{ s.ferme_le ? (s.ferme_le | date: 'short') : '—' }}</td>
-                <td>{{ s.fonds_initial }}</td>
-                <td>{{ s.montant_theorique ?? '—' }}</td>
-                <td>{{ s.montant_reel ?? '—' }}</td>
+                <td>{{ s.fonds_initial | montant }}</td>
+                <td>{{ s.montant_theorique | montant }}</td>
+                <td>{{ s.montant_reel | montant }}</td>
+                <!-- Encaissé sans passer par le tiroir : c'est ce qui explique
+                     qu'une caisse presque vide affiche un écart nul. -->
+                <td class="td-mono">{{ s.montant_hors_caisse | montant }}</td>
                 <td>
-                  @if (s.ecart !== null) {
-                    <span
-                      class="badge"
-                      [class.badge-success]="+s.ecart === 0"
-                      [class.badge-danger]="+s.ecart !== 0"
-                      >{{ s.ecart }}</span
-                    >
+                  <!-- Ce qui manque entre le compte de la session précédente et
+                       l'ouverture de celle-ci, versements déduits. Signalé,
+                       jamais bloquant : on n'impose pas de montant d'ouverture. -->
+                  @if (s.ecart_ouverture === null) {
+                    —
+                  } @else if (+s.ecart_ouverture === 0) {
+                    <span class="badge badge-success">Conforme</span>
+                  } @else {
+                    <span class="ecart-cellule">
+                      <span class="badge badge-danger">À justifier</span>
+                      <span class="td-mono">{{ s.ecart_ouverture | montantSigne }}</span>
+                    </span>
+                  }
+                </td>
+                <td>
+                  <!-- Le sens vient de l'API : il dépend de la tolérance du
+                       site. Un excédent et un manquant n'appellent pas les
+                       mêmes vérifications, les afficher du même rouge revenait
+                       à ne rien dire. -->
+                  @if (s.ecart_sens; as sens) {
+                    <span class="ecart-cellule">
+                      <span
+                        class="badge"
+                        [class.badge-success]="sens === 'juste'"
+                        [class.badge-warning]="sens === 'tolere'"
+                        [class.badge-danger]="sens === 'manquant' || sens === 'excedent'"
+                        >{{ libelleEcart[sens] }}</span
+                      >
+                      @if (sens !== 'juste') {
+                        <span class="td-mono">{{ s.ecart | montantSigne }}</span>
+                      }
+                    </span>
                   } @else {
                     —
                   }
@@ -117,8 +165,26 @@
                 <td>
                   @if (s.statut === 'ouverte') {
                     <span class="badge badge-success">Ouverte</span>
+                  } @else if (s.motif_forcage) {
+                    <!-- Fermée sans que tout soit compté : ça doit se voir dans
+                         la liste, pas seulement sur le rapport. -->
+                    <span class="badge badge-warning" [title]="s.motif_forcage">Forcée</span>
                   } @else {
                     <span class="badge badge-neutral">Fermée</span>
+                  }
+                </td>
+                <td class="td-actions">
+                  @if (s.statut === 'fermee') {
+                    <!-- Un ticket se perd : le rapprochement doit rester
+                         consultable après coup. -->
+                    <button
+                      class="btn btn-secondary"
+                      type="button"
+                      [disabled]="pdfBusy()"
+                      (click)="imprimerRapport(s)"
+                    >
+                      Rapport
+                    </button>
                   }
                 </td>
               </tr>
@@ -126,6 +192,73 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Ce qui est sorti du tiroir, en face des sessions : c'est la moitié
+           manquante de la lecture d'un écart. Un manquant de 200 000 s'explique
+           en une ligne quand le versement au coffre est là, et se cherche une
+           heure quand il ne l'est pas. Cadré sur la même permission que le
+           geste : sans `versement.create`, la liste n'est pas chargée. -->
+      @if (peutVerser()) {
+        <h2 class="page-subtitle" style="margin: var(--space-6) 0 12px">
+          Sorties de tiroir — 100 dernières
+        </h2>
+
+        @if (versements().length === 0) {
+          <div class="empty-state">
+            <span class="empty-title">Aucune sortie</span>
+            <span class="empty-message">
+              Rien n'est sorti du tiroir de cette caisse. Un versement au coffre ou en banque
+              s'enregistre avec le bouton « Verser ».
+            </span>
+          </div>
+        } @else {
+          <div class="card">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Montant</th>
+                  <th>Destination</th>
+                  <th>Remis à</th>
+                  <th>Référence</th>
+                  <th>Moment</th>
+                  <th>Auteur</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (v of versements(); track v.id) {
+                  <tr>
+                    <td>{{ v.date_heure | date: 'short' }}</td>
+                    <td class="td-mono">{{ v.montant | montant }}</td>
+                    <td>{{ v.destination_libelle }}</td>
+                    <td>
+                      <!-- Un reversement de pourboires désigne un bénéficiaire,
+                           un versement au coffre une personne qui emporte : la
+                           colonne répond à la même question, « qui a pris
+                           l'argent ». -->
+                      {{ v.beneficiaire || v.remis_a || '—' }}
+                    </td>
+                    <td class="td-mono">{{ v.reference || '—' }}</td>
+                    <td>
+                      <!-- Pendant le service le versement se retranche du
+                           théorique ; après la clôture il explique l'écart
+                           d'ouverture de la session suivante. -->
+                      @if (v.en_service === undefined) {
+                        —
+                      } @else if (v.en_service) {
+                        <span class="badge badge-neutral">En service</span>
+                      } @else {
+                        <span class="badge badge-warning">Après fermeture</span>
+                      }
+                    </td>
+                    <td>{{ v.auteur || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
     }
   }
 </div>
@@ -164,30 +297,63 @@
   </div>
 }
 
-@if (drawerMode() === 'fermer') {
+@if (drawerMode() === 'verser') {
   <div class="drawer-overlay" (click)="closeDrawer()"></div>
-  <div class="drawer" role="dialog" aria-modal="true">
+  <div class="drawer" role="dialog" aria-modal="true" aria-label="Verser">
     <div class="drawer-header">
-      <h2 class="drawer-title">Fermer la session</h2>
+      <h2 class="drawer-title">
+        Verser
+        <span class="drawer-sous-titre">Sortir de l'argent du tiroir</span>
+      </h2>
       <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
     </div>
-    <form class="drawer-body" [formGroup]="fermerForm" (ngSubmit)="fermer()" novalidate>
+    <form class="drawer-body" [formGroup]="verserForm" (ngSubmit)="verser()" novalidate>
       @if (formError()) {
         <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
       }
+
+      @if (sessionOuverte() === null) {
+        <!-- Le versement se rattache quand même à la dernière session fermée :
+             le dire ici évite de croire que le geste s'est perdu. -->
+        <p class="field-hint" style="margin: 0 0 16px">
+          Aucune session ouverte : ce versement se rattachera à la dernière session fermée et
+          expliquera l'écart d'ouverture de la suivante.
+        </p>
+      }
+
+      <!-- Ce montant se retranche du théorique de la session en cours : sans
+           lui, la fermeture sortirait un manquant égal à ce qu'on a sorti. -->
       <label class="field-label">
-        <span class="field-text">Montant réel compté <span class="required">*</span></span>
+        <span class="field-text">Montant versé <span class="required">*</span></span>
+        <input class="field-input" type="number" min="0.01" step="0.01" formControlName="montant" />
+      </label>
+
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Destination <span class="required">*</span></span>
+        <select class="field-select" formControlName="destination">
+          @for (d of destinations; track d.valeur) {
+            <option [value]="d.valeur">{{ d.libelle }}</option>
+          }
+        </select>
+      </label>
+
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Remis à</span>
+        <input class="field-input" type="text" formControlName="remis_a" autocomplete="off" />
+        <span class="field-hint"> Un coffre ne signe pas de reçu ; une personne, si. </span>
+      </label>
+
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Référence</span>
         <input
           class="field-input"
-          type="number"
-          min="0"
-          step="0.01"
-          formControlName="montant_reel"
+          type="text"
+          formControlName="reference"
+          placeholder="Bordereau de dépôt, pour la banque"
+          autocomplete="off"
         />
-        @if (fermerForm.controls.montant_reel.touched && fermerForm.controls.montant_reel.invalid) {
-          <span class="field-error">Le montant réel est requis (0 accepté).</span>
-        }
       </label>
+
       <label class="field-label" style="margin-top: 16px">
         <span class="field-text">Notes</span>
         <textarea
@@ -200,7 +366,112 @@
     </form>
     <div class="drawer-footer">
       <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
-      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="fermer()">
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="verser()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Enregistrer le versement
+      </button>
+    </div>
+  </div>
+}
+
+@if (drawerMode() === 'fermer') {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Fermer la session</h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="fermerForm" (ngSubmit)="fermer()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+      <!-- Un contenant par mode de paiement : le tiroir pour les espèces, le
+           terminal pour la carte, la pochette pour les chèques. Chacun se
+           compare à ce qu'on y constate.
+
+           Aucun montant attendu n'est affiché ici, volontairement : le souffler
+           inviterait à le recopier au lieu de compter, et le rapprochement ne
+           vaudrait plus rien. Le verdict s'affiche après la fermeture. -->
+      <p class="field-hint" style="margin-bottom: 12px">
+        Comptez chaque moyen de paiement et reportez ce que vous trouvez : les espèces du tiroir, le
+        total du terminal. Zéro est une réponse valide.
+      </p>
+
+      @for (mode of modes(); track mode.id) {
+        <label class="field-label" style="margin-top: 12px">
+          <span class="field-text">
+            {{ mode.libelle }} <span class="required">*</span>
+            @if (!mode.compte_en_caisse) {
+              <span class="mode-note">hors tiroir</span>
+            }
+          </span>
+          <input
+            class="field-input"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="À compter"
+            [value]="constats()[mode.id] ?? ''"
+            (input)="onConstat(mode.id, $any($event.target).value)"
+          />
+        </label>
+      } @empty {
+        <div class="alert-error">Aucun mode de paiement actif : rien à rapprocher.</div>
+      }
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Notes</span>
+        <textarea
+          class="field-textarea"
+          formControlName="notes"
+          rows="2"
+          placeholder="Optionnel"
+        ></textarea>
+      </label>
+
+      <!-- La porte de sortie, et elle est étroite : un terminal en panne ne doit
+           pas immobiliser la caisse, mais passer outre le contrôle se signe. -->
+      @if (peutForcer() && contenantsNonComptes().length > 0) {
+        <label
+          class="field-check"
+          style="margin-top: 20px; display: flex; align-items: flex-start; gap: 8px"
+        >
+          <input type="checkbox" formControlName="forcer" style="margin-top: 3px" />
+          <span>
+            <span class="field-text">Fermer sans tout compter</span>
+            <span class="field-hint">
+              Pour un moyen de paiement qu'on ne peut pas vérifier ce soir. Il restera « non
+              rapproché » sur le rapport.
+            </span>
+          </span>
+        </label>
+
+        @if (fermerForm.controls.forcer.value) {
+          <label class="field-label" style="margin-top: 12px">
+            <span class="field-text">Motif du forçage <span class="required">*</span></span>
+            <textarea
+              class="field-textarea"
+              formControlName="motif_forcage"
+              rows="2"
+              placeholder="Ex : le terminal ne sort pas son ticket"
+            ></textarea>
+          </label>
+        }
+      }
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <!-- Désactivé tant qu'un contenant n'est pas compté : fermer sans avoir
+           tout contrôlé laisserait son écart invisible à jamais. -->
+      <button
+        class="btn btn-primary"
+        type="button"
+        [disabled]="
+          saving() || (contenantsNonComptes().length > 0 && !fermerForm.controls.forcer.value)
+        "
+        (click)="fermer()"
+      >
         @if (saving()) {
           <span class="spinner" style="width: 14px; height: 14px"></span>
         }

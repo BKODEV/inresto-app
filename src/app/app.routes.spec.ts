@@ -4,6 +4,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideLocationMocks } from '@angular/common/testing';
 
 import { routes } from './app.routes';
+import { MENU } from './core/navigation/menu.config';
 import { AUTH_TOKEN_STORAGE_KEY, AUTH_USER_STORAGE_KEY } from './core/auth/auth.tokens';
 
 /**
@@ -96,5 +97,30 @@ describe('routes cuisine/commandes', () => {
     await router.navigateByUrl('/cuisine/stock/mouvements');
 
     expect(router.url).toBe('/cuisine/stock/mouvements');
+  });
+
+  /**
+   * Le menu et les routes sont deux fichiers qui doivent rester d'accord.
+   * Déplacer « Postes de production » sous CUISINE a pointé l'entrée sur
+   * `/cuisine/postes` une bonne minute avant que la route n'existe : l'entrée
+   * s'affichait et menait au `**`, c'est-à-dire ailleurs, en silence.
+   *
+   * La session super-admin posée ci-dessus passe toutes les permissions, donc
+   * chaque entrée est traversée.
+   */
+  it('résout chaque entrée de menu vers une vraie route', async () => {
+    const entrees = MENU.flatMap((section) => section.items).filter(
+      (item) => item.enabled !== false,
+    );
+
+    expect(entrees.length).toBeGreaterThan(0);
+
+    for (const entree of entrees) {
+      await router.navigateByUrl(entree.route);
+
+      // `startsWith` et non l'égalité : un layout à onglets redirige vers son
+      // premier onglet, ce qui est une résolution réussie.
+      expect(router.url.startsWith(entree.route), `${entree.label} → ${entree.route}`).toBe(true);
+    }
   });
 });

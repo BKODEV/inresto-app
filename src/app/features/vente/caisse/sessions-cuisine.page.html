@@ -1,0 +1,371 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Services de cuisine</h1>
+      <p class="page-subtitle">
+        Le service de la brigade, ouvert à la mise en place et clos après le nettoyage. Indépendant
+        des sessions de caisse.
+      </p>
+    </div>
+    @if (peutOuvrir()) {
+      <button
+        class="btn btn-primary"
+        type="button"
+        (click)="openOuvrir()"
+        [disabled]="selectedPdvId() === null || sessionOuverte() !== null"
+      >
+        + Ouvrir un service
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (estConsolide()) {
+    <app-site-requis
+      message="Une cuisine appartient à un point de vente. Choisissez le site sur lequel travailler."
+    />
+  } @else if (pointsDeVente().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun point de vente</span>
+      <span class="empty-message">
+        @if (currentSite(); as site) {
+          Le site « {{ site.nom }} » n'a pas de point de vente.
+        } @else {
+          Sélectionnez un site dans la barre du haut.
+        }
+      </span>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <label class="field-label">
+        <span class="field-text">Point de vente</span>
+        <select class="field-select" (change)="onPdvChange($any($event.target).value)">
+          @for (pdv of pointsDeVente(); track pdv.id) {
+            <option [value]="pdv.id" [selected]="selectedPdvId() === pdv.id">{{ pdv.nom }}</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    @if (sessionOuverte(); as ouverte) {
+      <div class="card" style="padding: var(--space-4); margin-bottom: var(--space-4)">
+        <div class="statut-badges" style="margin-bottom: 12px">
+          <span class="badge badge-success">Service ouvert</span>
+          @if (ouverte.libelle) {
+            <span class="badge badge-neutral">{{ ouverte.libelle }}</span>
+          }
+          <span class="field-text">Depuis le {{ ouverte.ouvert_le | date: 'short' }}</span>
+        </div>
+        <div class="sub-list">
+          <div class="sub-row">
+            <span>Brigade</span>
+            <strong>{{ brigadeLibelle(ouverte) }}</strong>
+          </div>
+          <div class="sub-row">
+            <span>Plats envoyés</span>
+            <strong>{{ ouverte.lignes_count ?? 0 }}</strong>
+          </div>
+        </div>
+        <div class="actions-row">
+          <button class="btn btn-secondary" type="button" (click)="openProduction(ouverte)">
+            Production
+          </button>
+          @if (peutFermer()) {
+            <button class="btn btn-primary" type="button" (click)="openFermer(ouverte)">
+              Fermer le service
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    @if (loadingSessions()) {
+      <div class="loading-row">
+        <div class="spinner"></div>
+        <span>Chargement…</span>
+      </div>
+    } @else if (sessions().length === 0) {
+      <div class="empty-state">
+        <span class="empty-title">Aucun service</span>
+        <span class="empty-message">
+          Cette cuisine n'a jamais ouvert de service. Sans service ouvert, les plats partent quand
+          même — ils ne sont simplement imputés à aucune équipe.
+        </span>
+      </div>
+    } @else {
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Service</th>
+              <th>Ouvert le</th>
+              <th>Fermé le</th>
+              <th>Brigade</th>
+              <th class="td-mono">Plats</th>
+              <th>Statut</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (s of sessions(); track s.id) {
+              <tr>
+                <td class="td-mono">{{ s.id }}</td>
+                <td class="td-primary">{{ s.libelle ?? '—' }}</td>
+                <td>{{ s.ouvert_le | date: 'short' }}</td>
+                <td>{{ s.ferme_le ? (s.ferme_le | date: 'short') : '—' }}</td>
+                <!-- L'équipe, pas seulement qui a tourné la clé : c'est elle
+                     qu'on veut lire en face de la production. -->
+                <td>{{ brigadeLibelle(s) }}</td>
+                <td class="td-mono">{{ s.lignes_count ?? 0 }}</td>
+                <td>
+                  @if (s.statut === 'ouverte') {
+                    <span class="badge badge-success">Ouvert</span>
+                  } @else {
+                    <span class="badge badge-neutral">Fermé</span>
+                  }
+                </td>
+                <td class="td-actions">
+                  <button class="btn btn-secondary" type="button" (click)="openProduction(s)">
+                    Production
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>
+
+@if (drawerMode() === 'ouvrir') {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true" aria-label="Ouvrir un service">
+    <div class="drawer-header">
+      <h2 class="drawer-title">
+        Ouvrir un service
+        <span class="drawer-sous-titre">La brigade prend son poste</span>
+      </h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="ouvrirForm" (ngSubmit)="ouvrir()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+
+      <label class="field-label">
+        <span class="field-text">Libellé du service</span>
+        <input
+          class="field-input"
+          type="text"
+          formControlName="libelle"
+          placeholder="Midi, Soir…"
+        />
+        <span class="field-hint">
+          La même brigade tient rarement les deux services d'une journée.
+        </span>
+      </label>
+
+      <div class="field-label" style="margin-top: 16px">
+        <span class="field-text">Brigade</span>
+        <!-- Facultative ici : on lance le service et on complète quand les
+             commis arrivent. Qui ouvre y est ajouté d'office par l'API. -->
+        <span class="field-hint">
+          Vous serez ajouté d'office. L'équipe se corrige à la fermeture, quand on sait qui a
+          réellement tenu le service.
+        </span>
+        <ng-container [ngTemplateOutlet]="listeBrigade" />
+      </div>
+
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Notes</span>
+        <textarea
+          class="field-textarea"
+          formControlName="notes"
+          rows="2"
+          placeholder="Optionnel"
+        ></textarea>
+      </label>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="ouvrir()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Ouvrir
+      </button>
+    </div>
+  </div>
+}
+
+@if (drawerMode() === 'fermer') {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer" role="dialog" aria-modal="true" aria-label="Fermer le service">
+    <div class="drawer-header">
+      <h2 class="drawer-title">
+        Fermer le service
+        <span class="drawer-sous-titre">Fige ce que la brigade a produit</span>
+      </h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <form class="drawer-body" [formGroup]="fermerForm" (ngSubmit)="fermer()" novalidate>
+      @if (formError()) {
+        <!-- Le refus le plus fréquent nomme les plats encore en production :
+             c'est une consigne, pas une panne. -->
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+
+      <p class="field-hint" style="margin: 0 0 16px">
+        La fermeture est refusée tant que des plats envoyés n'ont pas été annoncés au pass : les
+        laisser rattachés à un service clos les ferait disparaître de la file.
+      </p>
+
+      <div class="field-label">
+        <span class="field-text">Brigade du service</span>
+        <span class="field-hint">
+          C'est ici qu'on corrige l'équipe : remplacements et renforts compris.
+        </span>
+        <ng-container [ngTemplateOutlet]="listeBrigade" />
+      </div>
+
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Notes</span>
+        <textarea
+          class="field-textarea"
+          formControlName="notes"
+          rows="2"
+          placeholder="Optionnel"
+        ></textarea>
+      </label>
+    </form>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="fermer()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Fermer le service
+      </button>
+    </div>
+  </div>
+}
+
+@if (drawerMode() === 'production') {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer drawer-wide" role="dialog" aria-modal="true" aria-label="Production">
+    <div class="drawer-header">
+      <h2 class="drawer-title">
+        Production du service
+        @if (cible(); as s) {
+          <span class="drawer-sous-titre">{{ brigadeLibelle(s) }}</span>
+        }
+      </h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body">
+      @if (productionLoading()) {
+        <div class="loading-row">
+          <div class="spinner"></div>
+          <span>Chargement…</span>
+        </div>
+      } @else if (production().length === 0) {
+        <div class="empty-state">
+          <span class="empty-title">Rien de produit</span>
+          <span class="empty-message">
+            Aucun plat n'a été envoyé en cuisine pendant ce service.
+          </span>
+        </div>
+      } @else {
+        <div class="totaux" style="padding: 0; margin-bottom: 16px">
+          <div class="total-item">
+            <span class="total-label">Plats produits</span>
+            <span class="total-value">{{ totalProduit() }}</span>
+          </div>
+          <div class="total-item">
+            <span class="total-label">Chiffre d'affaires</span>
+            <span class="total-value">{{ caProduit() | montant }}</span>
+          </div>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Produit</th>
+              <th>Catégorie</th>
+              <th class="td-mono">Quantité</th>
+              <th class="td-mono">CA</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Le plus produit en tête : c'est ce qu'un chef regarde d'abord. -->
+            @for (l of production(); track l.produit_id) {
+              <tr>
+                <td class="td-primary">{{ l.produit }}</td>
+                <td>{{ l.categorie ?? '—' }}</td>
+                <td class="td-mono">{{ l.quantite }}</td>
+                <td class="td-mono">{{ l.ca | montant }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Fermer</button>
+    </div>
+  </div>
+}
+
+<!--
+  La liste des personnes inscriptibles, partagée par l'ouverture et la
+  fermeture : c'est le même geste, il ne doit pas exister en deux versions qui
+  divergeront.
+
+  Par défaut la cuisine de CE point de vente — les gens rattachés à l'un de ses
+  postes de production. La bascule élargit à tout le personnel du site, pour
+  l'extra qui ne figure dans aucun poste.
+-->
+<ng-template #listeBrigade>
+  <label class="check-inline" style="margin-top: 8px">
+    <input
+      type="checkbox"
+      [checked]="toutLePersonnel()"
+      (change)="basculerToutLePersonnel($any($event.target).checked)"
+    />
+    <span>Afficher tout le personnel du site</span>
+  </label>
+
+  @if (personnelLoading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else {
+    <div class="brigade-liste">
+      @for (u of personnel(); track u.id) {
+        <label class="check-membre">
+          <input type="checkbox" [checked]="estDansBrigade(u.id)" (change)="basculerMembre(u.id)" />
+          <span>{{ u.nom }}</span>
+        </label>
+      } @empty {
+        <span class="field-hint">
+          @if (toutLePersonnel()) {
+            Aucun personnel rattaché à ce site.
+          } @else {
+            <!-- Le cas le plus probable au premier usage : les postes existent
+                 mais personne n'y est encore rattaché. -->
+            Personne n'est rattaché aux postes de production de ce point de vente. Composez-les
+            depuis CUISINE › Postes de production, ou cochez ci-dessus pour voir tout le personnel
+            du site.
+          }
+        </span>
+      }
+    </div>
+  }
+</ng-template>

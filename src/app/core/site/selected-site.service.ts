@@ -1,6 +1,7 @@
 import { isPlatformBrowser } from '@angular/common';
-import { Injectable, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { Injectable, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
 
+import { AuthService } from '../auth/auth.service';
 import { Site } from '../api/site/site.model';
 import { SiteService } from '../api/site/site.service';
 
@@ -31,6 +32,7 @@ export class SelectedSiteService {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
   private readonly siteApi = inject(SiteService);
+  private readonly auth = inject(AuthService);
 
   private readonly _sites = signal<Site[]>([]);
   /** Sites du périmètre de l'utilisateur (tous les sites actifs pour un super-admin). */
@@ -87,6 +89,27 @@ export class SelectedSiteService {
    */
   private readonly _epoch = signal(0);
   readonly epoch = this._epoch.asReadonly();
+
+  /**
+   * Le périmètre appartient à la session, pas au poste : dès qu'il n'y a plus
+   * de session (déconnexion explicite ou 401 qui invalide le token), la portée
+   * et son entrée `localStorage` sont effacées. Sans cela, l'utilisateur suivant
+   * sur le même navigateur reprendrait le site du précédent chaque fois que ce
+   * site figure aussi dans son propre périmètre — `syncScope()` ne rattrape que
+   * les sites devenus interdits, pas ceux communs aux deux comptes.
+   */
+  private readonly resetALaDeconnexion = effect(() => {
+    if (!this.auth.isAuthenticated()) {
+      this.reset();
+    }
+  });
+
+  /** Oublie le périmètre courant : portée à choisir et stockage vidé. */
+  reset(): void {
+    this._sites.set([]);
+    this._scope.set('pending');
+    this.persister('pending');
+  }
 
   /**
    * Charge le périmètre de l'utilisateur et aligne la portée courante.

@@ -30,11 +30,12 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
 import { STATUT_COMMANDE_BADGE, STATUT_COMMANDE_LABEL } from './statut-commande.labels';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { QuantitePipe } from '../../../shared/format/nombre.pipes';
 
 @Component({
   selector: 'app-commande-detail-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, QuantitePipe],
   templateUrl: './commande-detail.page.html',
   styleUrl: './commande-detail.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

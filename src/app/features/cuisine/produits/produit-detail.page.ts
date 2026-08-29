@@ -16,9 +16,12 @@ import { ProduitService } from '../../../core/api/produit/produit.service';
 import { Produit } from '../../../core/api/produit/produit.model';
 import { FicheTechniqueService } from '../../../core/api/fiche-technique/fiche-technique.service';
 import {
+  EtapeFicheTechnique,
   FicheTechnique,
   LigneFicheTechnique,
   LigneFicheTechniqueSousRecette,
+  PointCritiqueFicheTechnique,
+  TypePointCritique,
 } from '../../../core/api/fiche-technique/fiche-technique.model';
 import { SousRecetteService } from '../../../core/api/sous-recette/sous-recette.service';
 import { SousRecette } from '../../../core/api/sous-recette/sous-recette.model';
@@ -30,6 +33,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { QuantitePipe } from '../../../shared/format/nombre.pipes';
 
 /**
  * Détail d'un produit = point d'entrée unique de la recette : informations
@@ -40,7 +44,7 @@ import { SelectedSiteService } from '../../../core/site/selected-site.service';
 @Component({
   selector: 'app-produit-detail-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, QuantitePipe],
   templateUrl: './produit-detail.page.html',
   styleUrl: './produit-detail.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,6 +77,24 @@ export class ProduitDetailPage implements OnInit {
   readonly formError = signal<string | null>(null);
   readonly lignesMatieres = signal<FormGroup[]>([]);
   readonly lignesSousRecettes = signal<FormGroup[]>([]);
+
+  /**
+   * Méthodologie. L'ordre est celui des tableaux : le serveur numérote d'après
+   * la position, il n'y a donc aucun champ `ordre` à saisir — mais déplacer une
+   * ligne change réellement la recette, d'où `monter` / `descendre`.
+   */
+  readonly etapes = signal<FormGroup[]>([]);
+  readonly materiels = signal<FormGroup[]>([]);
+  readonly pointsCritiques = signal<FormGroup[]>([]);
+
+  readonly typesPointCritique: { valeur: TypePointCritique; libelle: string }[] = [
+    { valeur: 'cuisson', libelle: 'Cuisson' },
+    { valeur: 'refroidissement', libelle: 'Refroidissement' },
+    { valeur: 'conservation', libelle: 'Conservation' },
+    { valeur: 'allergene', libelle: 'Allergène' },
+    { valeur: 'hygiene', libelle: 'Hygiène' },
+    { valeur: 'autre', libelle: 'Autre' },
+  ];
 
   // Impression de la fiche (PDF servi par le back)
   readonly pdfBusy = signal(false);
@@ -229,6 +251,75 @@ export class ProduitDetailPage implements OnInit {
     });
   }
 
+  private etapeGroup(etape?: EtapeFicheTechnique): FormGroup {
+    return this.fb.group({
+      description: [etape?.description ?? '', [Validators.required, Validators.maxLength(1000)]],
+      // Facultative : « laisser reposer » n'a pas toujours une durée qu'on
+      // veuille chiffrer, et un zéro imposé se lirait comme « immédiat ».
+      duree_minutes: [etape?.duree_minutes ?? null, [Validators.min(1), Validators.max(1440)]],
+    });
+  }
+
+  private materielGroup(libelle = ''): FormGroup {
+    return this.fb.group({
+      libelle: [libelle, [Validators.required, Validators.maxLength(120)]],
+    });
+  }
+
+  private pointCritiqueGroup(point?: PointCritiqueFicheTechnique): FormGroup {
+    return this.fb.group({
+      type: [point?.type ?? ('cuisson' as TypePointCritique), [Validators.required]],
+      description: [point?.description ?? '', [Validators.required, Validators.maxLength(500)]],
+    });
+  }
+
+  /** Le matériel se lit d'un trait, pas en liste à puces sur trois lignes. */
+  materielLibelles(fiche: FicheTechnique): string {
+    return (fiche.materiels ?? []).map((m) => m.libelle).join(' · ');
+  }
+
+  addEtape(): void {
+    this.etapes.update((list) => [...list, this.etapeGroup()]);
+  }
+
+  removeEtape(group: FormGroup): void {
+    this.etapes.update((list) => list.filter((g) => g !== group));
+  }
+
+  /**
+   * Déplacer une étape n'est pas cosmétique : l'ordre EST la recette. Mariner
+   * après avoir servi n'est pas la même chose que mariner avant.
+   */
+  deplacerEtape(group: FormGroup, sens: -1 | 1): void {
+    this.etapes.update((list) => {
+      const index = list.indexOf(group);
+      const cible = index + sens;
+      if (index === -1 || cible < 0 || cible >= list.length) {
+        return list;
+      }
+      const suivant = [...list];
+      [suivant[index], suivant[cible]] = [suivant[cible], suivant[index]];
+
+      return suivant;
+    });
+  }
+
+  addMateriel(): void {
+    this.materiels.update((list) => [...list, this.materielGroup()]);
+  }
+
+  removeMateriel(group: FormGroup): void {
+    this.materiels.update((list) => list.filter((g) => g !== group));
+  }
+
+  addPointCritique(): void {
+    this.pointsCritiques.update((list) => [...list, this.pointCritiqueGroup()]);
+  }
+
+  removePointCritique(group: FormGroup): void {
+    this.pointsCritiques.update((list) => list.filter((g) => g !== group));
+  }
+
   addMatiere(): void {
     this.lignesMatieres.update((list) => [...list, this.matiereGroup()]);
   }
@@ -254,6 +345,13 @@ export class ProduitDetailPage implements OnInit {
     if (this.lignesMatieres().length === 0 && this.lignesSousRecettes().length === 0) {
       this.lignesMatieres.set([this.matiereGroup()]);
     }
+    // Reprise de la méthodologie de la version active : une nouvelle version
+    // part de la précédente, sinon corriger une quantité effacerait la recette.
+    this.etapes.set((fiche?.etapes ?? []).map((e) => this.etapeGroup(e)));
+    this.materiels.set((fiche?.materiels ?? []).map((m) => this.materielGroup(m.libelle)));
+    this.pointsCritiques.set(
+      (fiche?.points_critiques ?? []).map((p) => this.pointCritiqueGroup(p)),
+    );
     this.formError.set(null);
     this.drawerOpen.set(true);
   }
@@ -267,14 +365,18 @@ export class ProduitDetailPage implements OnInit {
     const sousRecettes = this.lignesSousRecettes();
     const totalLignes = matieres.length + sousRecettes.length;
 
+    const methodologie = [...this.etapes(), ...this.materiels(), ...this.pointsCritiques()];
+
     if (
       totalLignes === 0 ||
       matieres.some((g) => g.invalid) ||
       sousRecettes.some((g) => g.invalid) ||
+      methodologie.some((g) => g.invalid) ||
       this.saving()
     ) {
       matieres.forEach((g) => g.markAllAsTouched());
       sousRecettes.forEach((g) => g.markAllAsTouched());
+      methodologie.forEach((g) => g.markAllAsTouched());
       if (totalLignes === 0) {
         this.formError.set('Ajoutez au moins une matière ou une sous-recette.');
       }
@@ -292,6 +394,18 @@ export class ProduitDetailPage implements OnInit {
       lignes_sous_recettes: sousRecettes.map((g) => ({
         sous_recette_id: g.value.sous_recette_id as number,
         quantite: g.value.quantite as number,
+      })),
+      // Aucun `ordre` envoyé : le serveur numérote d'après la position, ce qui
+      // interdit deux lignes au même rang et rend la fiche imprimée
+      // déterministe.
+      etapes: this.etapes().map((g) => ({
+        description: (g.value.description as string).trim(),
+        duree_minutes: (g.value.duree_minutes as number | null) || null,
+      })),
+      materiels: this.materiels().map((g) => (g.value.libelle as string).trim()),
+      points_critiques: this.pointsCritiques().map((g) => ({
+        type: g.value.type as TypePointCritique,
+        description: (g.value.description as string).trim(),
       })),
     };
 

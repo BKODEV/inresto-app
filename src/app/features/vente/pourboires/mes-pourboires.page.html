@@ -1,0 +1,73 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Mes pourboires</h1>
+      <p class="page-subtitle">
+        Ce qui a été encaissé au comptoir sur vos tables, et ce qui vous a été reversé.
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (donnees(); as d) {
+    <div class="cumul-grille">
+      <div class="cumul-carte">
+        <span class="field-text">Encaissé au comptoir</span>
+        <strong>{{ d.solde.encaisse | montant }}</strong>
+      </div>
+      <div class="cumul-carte">
+        <span class="field-text">Déjà reversé</span>
+        <strong>{{ d.solde.reverse | montant }}</strong>
+      </div>
+      <div class="cumul-carte cumul-carte-fort">
+        <span class="field-text">Reste dû</span>
+        <strong>{{ d.solde.solde | montant }}</strong>
+      </div>
+    </div>
+
+    <!-- Un pourboire donné de la main à la main ne passe pas par la caisse :
+         il n'a pas à figurer ici, et l'écrire évite de le croire perdu. -->
+    <p class="field-hint" style="margin-bottom: 20px">
+      Seuls les pourboires encaissés au comptoir apparaissent ici. Ceux qui vous sont remis
+      directement ne passent pas par la caisse.
+    </p>
+
+    @if (d.reversements.length === 0) {
+      <div class="empty-state">
+        <span class="empty-title">Aucun reversement</span>
+        <span class="empty-message">Rien ne vous a encore été reversé.</span>
+      </div>
+    } @else {
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th class="num">Montant reçu</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of d.reversements; track r.date_heure) {
+              <tr>
+                <td>{{ r.date_heure | date: 'short' }}</td>
+                <td class="num td-mono">
+                  <strong>{{ r.montant | montant }}</strong>
+                </td>
+                <td>{{ r.notes ?? '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  } @else {
+    <div class="empty-state">
+      <span class="empty-title">Rien à afficher</span>
+    </div>
+  }
+</div>

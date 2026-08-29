@@ -1,0 +1,110 @@
+// Le tiroir de règlement, partagé par les deux écrans qui encaissent : le poste
+// de caisse et la fiche de commande. Boutons de mode, monnaie à rendre,
+// pourboire. Hors de caisse.page.scss, que se partagent cinq écrans — le plan
+// de salle, le KDS et les sessions n'ont pas à embarquer ces règles.
+
+// Le mode de paiement se tape d'un doigt : à un comptoir, ouvrir une liste
+// déroulante pour choisir « Espèces » est un geste de trop. Le mode retenu
+// reste visible pendant la saisie du montant, ce qui rend une erreur de mode
+// bien plus difficile — c'est lui qui décide où l'argent est compté.
+.modes-boutons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: 6px;
+}
+
+.mode-bouton {
+  flex: 1 1 auto;
+  min-width: 96px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+
+  &:hover {
+    border-color: var(--border-strong);
+  }
+
+  &.mode-bouton-actif {
+    border-color: var(--amber);
+    background: rgba(var(--amber-rgb), 0.12);
+    color: var(--amber);
+  }
+}
+
+.mode-libelle {
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+// Repère discret : cet argent ne sera pas dans le tiroir compté ce soir.
+.mode-note {
+  font-size: var(--text-xs);
+  color: var(--text-dim);
+}
+
+.reglement-apres {
+  margin: var(--space-4) 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text-dim);
+
+  strong {
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+  }
+
+  &.reglement-apres-solde {
+    color: var(--green-soft);
+  }
+}
+
+// La monnaie est le chiffre que le caissier lit pour ouvrir son tiroir : il ne
+// se cherche pas dans une liste de totaux.
+.monnaie-bloc {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+
+  strong {
+    font-size: var(--text-lg);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &.monnaie-bloc-fort {
+    margin-top: 0;
+    border-color: var(--amber);
+    background: rgba(var(--amber-rgb), 0.1);
+
+    strong {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--amber);
+    }
+  }
+}
+
+.reglement-apres-alerte {
+  color: var(--red-soft);
+}
+
+.btn-bloc {
+  width: 100%;
+  margin-top: var(--space-4);
+}

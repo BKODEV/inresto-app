@@ -15,6 +15,7 @@ import {
   AlerteStock,
   ConsommationMatiere,
   EcartInventaire,
+  EcartInventaireMatiere,
   ReportingFilter,
   StockValorisation,
 } from '../../../core/api/reporting/reporting.model';
@@ -62,6 +63,17 @@ export class StockReportingPage {
   readonly ecarts = signal<EcartInventaire[]>([]);
   readonly alertes = signal<AlerteStock[]>([]);
 
+  /**
+   * `detail` fait servir à l'API le ligne à ligne de chaque inventaire. Il est
+   * demandé à la demande et non par défaut : sur une période large, c'est une
+   * ligne par matière comptée et par inventaire, pour une question qu'on ne
+   * pose qu'une fois l'écart repéré.
+   */
+  readonly detailEcarts = signal(false);
+
+  /** Inventaires dépliés, par identifiant. */
+  readonly ecartsOuverts = signal<ReadonlySet<number>>(new Set());
+
   // ── Graphes ────────────────────────────────────────────────────────────────
 
   /** Valorisation : top matières (toutes sites confondues) par valeur. */
@@ -101,8 +113,9 @@ export class StockReportingPage {
     effect(() => {
       const filter = this.filter();
       const siteId = this.selectedSite.selectedId();
+      const detail = this.detailEcarts();
       if (filter) {
-        this.load(filter, siteId);
+        this.load(filter, siteId, detail);
       }
     });
   }
@@ -115,7 +128,42 @@ export class StockReportingPage {
     return m.ventilation[type]?.valeur ?? 0;
   }
 
-  private load(filter: ReportingFilter, siteId: number | null): void {
+  basculerDetail(actif: boolean): void {
+    this.detailEcarts.set(actif);
+    if (!actif) {
+      this.ecartsOuverts.set(new Set());
+    }
+  }
+
+  basculerInventaire(id: number): void {
+    this.ecartsOuverts.update((ouverts) => {
+      const suivant = new Set(ouverts);
+      if (!suivant.delete(id)) {
+        suivant.add(id);
+      }
+
+      return suivant;
+    });
+  }
+
+  estOuvert(id: number): boolean {
+    return this.ecartsOuverts().has(id);
+  }
+
+  /**
+   * Les matières qui EXPLIQUENT l'écart, de la plus lourde à la plus légère.
+   *
+   * Une ligne comptée juste vaut zéro et ne dit rien : la laisser noierait les
+   * trois lignes qui comptent au milieu des quarante qui ne disent rien.
+   * `nb_lignes` porte déjà le volume compté.
+   */
+  matieresEnEcart(e: EcartInventaire): EcartInventaireMatiere[] {
+    return [...(e.matieres ?? [])]
+      .filter((m) => m.ecart_valeur !== 0)
+      .sort((a, b) => Math.abs(b.ecart_valeur) - Math.abs(a.ecart_valeur));
+  }
+
+  private load(filter: ReportingFilter, siteId: number | null, detail: boolean): void {
     const scoped: ReportingFilter = siteId ? { ...filter, site_id: siteId } : filter;
     this.loading.set(true);
     this.error.set(null);
@@ -123,7 +171,7 @@ export class StockReportingPage {
     forkJoin({
       valorisation: this.service.stockValorisation(scoped),
       consommation: this.service.stockConsommation(scoped),
-      ecarts: this.service.stockEcartsInventaire(scoped),
+      ecarts: this.service.stockEcartsInventaire(scoped, detail),
       alertes: this.service.stockAlertes(scoped),
     })
       .pipe(takeUntilDestroyed(this.destroyRef))

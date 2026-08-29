@@ -1,0 +1,127 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Journal d'activité</h1>
+      <p class="page-subtitle">
+        Annulations, remises, paiements, clôtures de note, versements et impressions, par ordre
+        chronologique.
+      </p>
+    </div>
+  </div>
+
+  <div class="filters">
+    <label class="field-label">
+      <span class="field-text">Du</span>
+      <input
+        class="field-input"
+        type="date"
+        [value]="dateDebut()"
+        (change)="onDateDebut($any($event.target).value)"
+      />
+    </label>
+    <label class="field-label">
+      <span class="field-text">Au</span>
+      <input
+        class="field-input"
+        type="date"
+        [value]="dateFin()"
+        (change)="onDateFin($any($event.target).value)"
+      />
+    </label>
+
+    @if (pointsDeVente().length > 1) {
+      <!-- Un site porte plusieurs comptoirs, et une anomalie se cherche sur
+           celui où elle a eu lieu. Masqué s'il n'y en a qu'un : le choix
+           n'existerait pas. -->
+      <label class="field-label">
+        <span class="field-text">Point de vente</span>
+        <select
+          class="field-select"
+          [value]="pointDeVenteId() ?? ''"
+          (change)="onPointDeVente($any($event.target).value)"
+        >
+          <option value="">Tous</option>
+          @for (p of pointsDeVente(); track p.id) {
+            <option [value]="p.id" [selected]="pointDeVenteId() === p.id">{{ p.nom }}</option>
+          }
+        </select>
+      </label>
+    }
+
+    <!-- Aucun type coché = tous les types. Cocher restreint, ce qui évite un
+         état « rien de sélectionné » qui n'afficherait rien. -->
+    <div class="type-filtres">
+      @for (t of types; track t.value) {
+        <button
+          type="button"
+          class="type-chip"
+          [class.active]="estActif(t.value)"
+          (click)="basculerType(t.value)"
+        >
+          {{ t.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (evenements().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucune activité</span>
+      <span class="empty-message">
+        @if (aDesFiltres()) {
+          Aucun événement de ce type sur la période. Élargissez les dates ou les types.
+        } @else {
+          Rien ne s'est passé sur cette période.
+        }
+      </span>
+    </div>
+  } @else {
+    <!-- Chaque source est plafonnée côté API : dire ce qui a été lu évite de
+         prendre cette table pour l'historique complet de la période. -->
+    @if (periode(); as p) {
+      <p class="panel-note">
+        {{ total() }} événement{{ total() > 1 ? 's' : '' }} du {{ horodate(p.debut) }} au
+        {{ horodate(p.fin) }}.
+      </p>
+    }
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Horodatage</th>
+          <th>Type</th>
+          <th>Événement</th>
+          <th>Auteur</th>
+          <th>Référence</th>
+          <th class="num">Montant</th>
+          <th>Motif</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (e of evenements(); track $index) {
+          <tr>
+            <td class="td-mono">{{ horodate(e.date_heure) }}</td>
+            <td>
+              <span class="badge" [class]="'badge--' + e.type">{{ typeLabel[e.type] }}</span>
+            </td>
+            <td class="td-primary">
+              {{ e.libelle }}
+              @if (e.detail) {
+                <span class="detail">· {{ e.detail }}</span>
+              }
+            </td>
+            <td>{{ e.auteur ?? '—' }}</td>
+            <td class="td-mono">{{ e.reference ?? '—' }}</td>
+            <td class="num td-mono">{{ montant(e.montant) }}</td>
+            <td class="motif">{{ e.motif ?? '' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>

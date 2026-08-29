@@ -1,0 +1,144 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Pass — à emporter en salle</h1>
+      <p class="page-subtitle">
+        Plats annoncés prêts par la cuisine, à porter puis marquer servis.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" type="button" [disabled]="refreshing()" (click)="refresh()">
+        @if (refreshing()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Rafraîchir
+      </button>
+      <!-- Seule sortie de l'écran : sans barre latérale, on serait enfermé. -->
+      <a class="btn btn-secondary" routerLink="/dashboard">Quitter</a>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (pdvs().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun point de vente</span>
+      <span class="empty-message">
+        @if (currentSite(); as site) {
+          Le site « {{ site.nom }} » n'a pas de point de vente.
+        } @else {
+          Choisissez le site à afficher.
+        }
+      </span>
+    </div>
+  } @else {
+    <div class="toolbar">
+      @if (sites().length > 1) {
+        <label class="field-label">
+          <span class="field-text">Site</span>
+          <select
+            class="field-select"
+            [value]="selectedSiteId()"
+            (change)="onSiteChange($any($event.target).value)"
+          >
+            @for (site of sites(); track site.id) {
+              <option [value]="site.id">{{ site.nom }}</option>
+            }
+          </select>
+        </label>
+      }
+
+      <label class="field-label">
+        <span class="field-text">Point de vente</span>
+        <select
+          class="field-select"
+          [value]="selectedPdvId()"
+          (change)="onPdvChange($any($event.target).value)"
+        >
+          @for (pdv of pdvs(); track pdv.id) {
+            <option [value]="pdv.id">{{ pdv.nom }}</option>
+          }
+        </select>
+      </label>
+
+      <!-- Le poste n'apparaît que si l'établissement en a déclaré : une maison
+           sans brigade séparée ne doit pas voir un filtre qui ne filtre rien.
+           « Tous » reste offert — un plat non affecté à un poste s'y trouve
+           forcément, mais la vue d'ensemble reste celle du chef. -->
+      @if (postes().length > 0) {
+        <label class="field-label">
+          <span class="field-text">Poste</span>
+          <select
+            class="field-select"
+            [value]="selectedPosteId() ?? ''"
+            (change)="onPosteChange($any($event.target).value)"
+          >
+            <option value="">Tous les postes</option>
+            @for (poste of postes(); track poste.id) {
+              <option [value]="poste.id">{{ poste.libelle }}</option>
+            }
+          </select>
+        </label>
+      }
+    </div>
+
+    @if (services().length === 0) {
+      <div class="empty-state">
+        <span class="empty-title">Rien au pass</span>
+        <span class="empty-message">Aucun plat annoncé prêt pour ce point de vente.</span>
+      </div>
+    } @else {
+      <!-- Une carte = une NOTE, pas un tour : le runner fait un voyage vers une
+           table, et deux tours prêts pour la table 12 se prennent ensemble. -->
+      <div class="kds-grid">
+        @for (service of services(); track service.commande_id) {
+          <div class="kds-card" [class]="urgence(service)">
+            <div class="kds-head">
+              <span class="kds-table">Table {{ service.table?.numero ?? '—' }}</span>
+              <!-- Depuis l'annonce : depuis combien de temps ça refroidit. -->
+              <span class="kds-attente">{{ attente(service) }}</span>
+            </div>
+            <div class="kds-ref">Commande #{{ service.commande_id }}</div>
+            <div class="kds-lignes">
+              @for (l of service.lignes; track l.id) {
+                <!-- Toucher le plat l'emporte seul : le runner qui ne prend que
+                     les entrées ne doit pas déstocker les plats restés sous la
+                     lampe. Le bouton du bas prend toute la note. -->
+                <button
+                  class="kds-ligne kds-ligne--action"
+                  type="button"
+                  [disabled]="ligneEnAttente(service, l) || !peutServir()"
+                  (click)="servirLigne(service, l)"
+                >
+                  <span class="q">{{ l.quantite }}×</span>
+                  <span class="kds-nom">{{ l.produit?.libelle ?? '#' + l.produit_id }}</span>
+                  @if (categorie(l); as cat) {
+                    <span class="kds-cat">{{ cat }}</span>
+                  }
+                </button>
+                @if (l.commentaire) {
+                  <div class="kds-time" style="margin-left: 24px">↳ {{ l.commentaire }}</div>
+                }
+              }
+            </div>
+            <!-- LE geste irréversible : c'est lui qui décharge le stock. -->
+            <button
+              class="btn btn-primary btn-service"
+              type="button"
+              [disabled]="actionEnCours() === cleNote(service) || !peutServir()"
+              (click)="servir(service)"
+            >
+              @if (actionEnCours() === cleNote(service)) {
+                <span class="spinner" style="width: 14px; height: 14px"></span>
+              }
+              {{ libelleNote(service) }}
+            </button>
+          </div>
+        }
+      </div>
+    }
+  }
+</div>

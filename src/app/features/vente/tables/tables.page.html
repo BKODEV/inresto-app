@@ -4,14 +4,29 @@
       <h1 class="page-title">Plan de tables</h1>
       <p class="page-subtitle">Tables physiques par point de vente et leur état en temps réel.</p>
     </div>
-    <button
-      class="btn btn-primary"
-      type="button"
-      (click)="openCreate()"
-      [disabled]="selectedPdvId() === null"
-    >
-      + Nouvelle table
-    </button>
+    @if (canCreate()) {
+      <div class="header-actions">
+        <!-- Saisir une salle entière table par table est le vrai coût à
+             l'ouverture d'un site ; l'ajout unitaire reste pour la table
+             qu'on rajoute six mois plus tard. -->
+        <button
+          class="btn btn-secondary"
+          type="button"
+          (click)="openLot()"
+          [disabled]="selectedPdvId() === null"
+        >
+          Créer une série
+        </button>
+        <button
+          class="btn btn-primary"
+          type="button"
+          (click)="openCreate()"
+          [disabled]="selectedPdvId() === null"
+        >
+          + Nouvelle table
+        </button>
+      </div>
+    }
   </div>
 
   @if (loading()) {
@@ -45,6 +60,15 @@
             <option [value]="pdv.id">{{ pdv.nom }}</option>
           }
         </select>
+      </label>
+
+      <label class="field-checkbox" title="Tables retirées du service">
+        <input
+          type="checkbox"
+          [checked]="afficherArchivees()"
+          (change)="basculerArchivees($any($event.target).checked)"
+        />
+        <span class="field-text">Afficher les archivées</span>
       </label>
 
       <button
@@ -85,11 +109,14 @@
             type="button"
             class="table-card"
             [class]="'table-card--' + table.statut"
+            [class.table-card--archivee]="table.archivee_le !== null"
             (click)="openEdit(table)"
           >
             <span class="table-num">{{ table.numero }}</span>
             <span class="table-cap">{{ table.capacite }} couverts</span>
-            <span class="table-statut">{{ statutLabel[table.statut] }}</span>
+            <span class="table-statut">
+              {{ table.archivee_le !== null ? 'Archivée' : statutLabel[table.statut] }}
+            </span>
           </button>
         }
       </div>
@@ -126,109 +153,286 @@
         <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
       }
 
+      <!-- Une table archivée n'est plus pilotable : ni statut, ni QR, ni édition.
+           Le tiroir se réduit au constat et au bouton Réactiver du pied. -->
       @if (editingTable(); as table) {
-        <div class="field-text" style="margin-bottom: 8px">État de la table</div>
-        <div class="statut-grid">
-          @for (s of statuts; track s.value) {
-            <button
-              type="button"
-              [class]="
-                'statut-btn statut-btn--' + s.value + (table.statut === s.value ? ' active' : '')
-              "
-              (click)="changerStatut(table, s.value)"
-            >
-              {{ s.label }}
-            </button>
-          }
-        </div>
-        <hr class="sep" />
+        @if (table.archivee_le !== null) {
+          <div class="alert-info">
+            Table archivée : elle ne figure plus dans le plan de salle ni en caisse, et son QR ne
+            sert plus de menu. Son historique de commandes est conservé.
+          </div>
+        } @else {
+          <div class="field-text" style="margin-bottom: 8px">État de la table</div>
+          <div class="statut-grid">
+            @for (s of statuts; track s.value) {
+              <button
+                type="button"
+                [class]="
+                  'statut-btn statut-btn--' + s.value + (table.statut === s.value ? ' active' : '')
+                "
+                (click)="changerStatut(table, s.value)"
+              >
+                {{ s.label }}
+              </button>
+            }
+          </div>
+          <hr class="sep" />
+        }
       }
 
-      <form [formGroup]="form" (ngSubmit)="save()" novalidate>
-        <label class="field-label">
-          <span class="field-text">Numéro <span class="required">*</span></span>
-          <input
-            class="field-input"
-            type="text"
-            formControlName="numero"
-            placeholder="Ex : 12 ou T3"
-            autocomplete="off"
-          />
-          @if (form.controls.numero.touched && form.controls.numero.invalid) {
-            <span class="field-error">Le numéro est requis.</span>
-          }
-        </label>
-        <label class="field-label" style="margin-top: 16px">
-          <span class="field-text">Capacité (couverts) <span class="required">*</span></span>
-          <input class="field-input" type="number" min="1" formControlName="capacite" />
-          @if (form.controls.capacite.touched && form.controls.capacite.invalid) {
-            <span class="field-error">Capacité minimale : 1.</span>
-          }
-        </label>
-      </form>
+      @if (!editingTable() || editingTable()!.archivee_le === null) {
+        <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+          <label class="field-label">
+            <span class="field-text">Numéro <span class="required">*</span></span>
+            <input
+              class="field-input"
+              type="text"
+              formControlName="numero"
+              placeholder="Ex : 12 ou T3"
+              autocomplete="off"
+            />
+            @if (form.controls.numero.touched && form.controls.numero.invalid) {
+              <span class="field-error">Le numéro est requis.</span>
+            }
+          </label>
+          <label class="field-label" style="margin-top: 16px">
+            <span class="field-text">Capacité (couverts) <span class="required">*</span></span>
+            <input class="field-input" type="number" min="1" formControlName="capacite" />
+            @if (form.controls.capacite.touched && form.controls.capacite.invalid) {
+              <span class="field-error">Capacité minimale : 1.</span>
+            }
+          </label>
+        </form>
+      }
 
       <!-- QR du menu public. Rendu ici plutôt que sur les cartes du plan : le
            plan de salle doit rester lisible d'un coup d'œil pendant le service. -->
       @if (editingTable(); as table) {
-        <hr class="sep" />
-        <div class="qr-bloc">
-          <div class="field-text">QR du menu client</div>
+        @if (table.archivee_le === null) {
+          <hr class="sep" />
+          <div class="qr-bloc">
+            <div class="field-text">QR du menu client</div>
 
-          @if (table.menu_url; as url) {
-            <div class="qr-vignette">
-              <qr-code [value]="url" [size]="150" errorCorrectionLevel="H" margin="1" />
-            </div>
+            @if (table.menu_url; as url) {
+              <div class="qr-vignette">
+                <qr-code [value]="url" [size]="150" errorCorrectionLevel="H" margin="1" />
+              </div>
 
-            <p class="qr-aide">Le client scanne et consulte la carte de ce point de vente.</p>
+              <p class="qr-aide">Le client scanne et consulte la carte de ce point de vente.</p>
 
-            <div class="qr-lien" title="{{ url }}">{{ url }}</div>
+              <div class="qr-lien" title="{{ url }}">{{ url }}</div>
 
-            <div class="qr-actions">
-              <button class="btn btn-secondary" type="button" (click)="copierLien(table)">
-                {{ lienCopie() ? 'Lien copié ✓' : 'Copier le lien' }}
-              </button>
-              <button
-                class="btn btn-secondary"
-                type="button"
-                [disabled]="qrBusy()"
-                (click)="telechargerQr(table)"
-              >
-                @if (qrBusy()) {
-                  <span class="spinner" style="width: 14px; height: 14px"></span>
-                }
-                Télécharger le QR (PDF)
-              </button>
-              <button class="btn btn-danger" type="button" (click)="regenererToken(table)">
-                Régénérer
-              </button>
-            </div>
-          } @else {
-            <p class="qr-aide">
-              Cette table n'a pas encore de QR. Lancez
-              <code>php artisan inresto:backfill-table-tokens</code> côté serveur.
-            </p>
-          }
-        </div>
+              <div class="qr-actions">
+                <button class="btn btn-secondary" type="button" (click)="copierLien(table)">
+                  {{ lienCopie() ? 'Lien copié ✓' : 'Copier le lien' }}
+                </button>
+                <button
+                  class="btn btn-secondary"
+                  type="button"
+                  [disabled]="qrBusy()"
+                  (click)="telechargerQr(table)"
+                >
+                  @if (qrBusy()) {
+                    <span class="spinner" style="width: 14px; height: 14px"></span>
+                  }
+                  Télécharger le QR (PDF)
+                </button>
+                <button class="btn btn-danger" type="button" (click)="regenererToken(table)">
+                  Régénérer
+                </button>
+              </div>
+            } @else {
+              <p class="qr-aide">
+                Cette table n'a pas encore de QR. Lancez
+                <code>php artisan inresto:backfill-table-tokens</code> côté serveur.
+              </p>
+            }
+          </div>
+        }
       }
     </div>
 
     <div class="drawer-footer">
       @if (editingTable(); as table) {
-        <button
-          class="btn btn-danger"
-          type="button"
-          [disabled]="deleting()"
-          (click)="delete(table)"
-        >
-          Supprimer
-        </button>
+        @if (canDelete()) {
+          @if (table.archivee_le !== null) {
+            <button
+              class="btn btn-secondary"
+              type="button"
+              [disabled]="archiving()"
+              (click)="reactiver(table)"
+            >
+              Réactiver
+            </button>
+          } @else {
+            <!-- La suppression échoue dès que la table a servi ; l'archivage est
+                 alors la seule sortie, d'où les deux boutons côte à côte. -->
+            <button
+              class="btn btn-secondary"
+              type="button"
+              [disabled]="archiving()"
+              (click)="archiver(table)"
+            >
+              Archiver
+            </button>
+            <button
+              class="btn btn-danger"
+              type="button"
+              [disabled]="deleting()"
+              (click)="delete(table)"
+            >
+              Supprimer
+            </button>
+          }
+        }
       }
       <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
-      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="save()">
-        @if (saving()) {
+      @if (editingTable() ? canUpdate() : canCreate()) {
+        @if (!editingTable() || editingTable()!.archivee_le === null) {
+          <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="save()">
+            @if (saving()) {
+              <span class="spinner" style="width: 14px; height: 14px"></span>
+            }
+            {{ editingTable() ? 'Enregistrer' : 'Créer' }}
+          </button>
+        }
+      }
+    </div>
+  </div>
+}
+
+@if (lotDrawerOpen()) {
+  <div class="drawer-overlay" (click)="closeLot()"></div>
+  <div class="drawer drawer-wide" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">Créer une série de tables</h2>
+      <button class="btn-icon" type="button" (click)="closeLot()">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="drawer-body">
+      @if (lotError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ lotError() }}</div>
+      }
+
+      <!-- En-tête vivant : la grille suit la saisie. Chaque ligne reste
+           corrigeable, et une correction survit à une régénération. -->
+      <div class="lot-toolbar" [formGroup]="lotParams">
+        <label class="field-label">
+          <span class="field-text">Préfixe</span>
+          <input class="field-input" type="text" formControlName="prefixe" placeholder="T" />
+        </label>
+        <label class="field-label">
+          <span class="field-text">De</span>
+          <input class="field-input" type="number" min="0" formControlName="debut" />
+        </label>
+        <label class="field-label">
+          <span class="field-text">À</span>
+          <input class="field-input" type="number" min="0" formControlName="fin" />
+        </label>
+        <label class="field-label">
+          <span class="field-text">Chiffres</span>
+          <input class="field-input" type="number" min="1" max="6" formControlName="chiffres" />
+        </label>
+        <label class="field-label">
+          <span class="field-text">Capacité</span>
+          <input class="field-input" type="number" min="1" formControlName="capacite" />
+        </label>
+      </div>
+
+      @if (lotLignes().length === 0) {
+        <div class="empty-state">
+          <span class="empty-title">Aucune table à créer</span>
+          <span class="empty-message">
+            Vérifiez la plage : elle doit être croissante et ne pas dépasser {{ lotMax }} tables.
+          </span>
+        </div>
+      } @else {
+        <div class="lot-grid">
+          @for (group of lotLignes(); track group; let i = $index) {
+            <div
+              class="lot-ligne"
+              [class.lot-ligne--erreur]="!!lotLineErrors()[i] || lotDoublons().has(i)"
+              [formGroup]="group"
+            >
+              <input
+                class="field-input"
+                type="text"
+                formControlName="numero"
+                placeholder="Numéro"
+                autocomplete="off"
+                aria-label="Numéro de la table"
+                (input)="onLigneLotSaisie(i)"
+              />
+              <input
+                class="field-input"
+                type="number"
+                min="1"
+                formControlName="capacite"
+                aria-label="Capacité en couverts"
+                (input)="onLigneLotSaisie(i)"
+              />
+              <button
+                class="btn-icon"
+                type="button"
+                title="Retirer cette ligne"
+                (click)="retirerLigneLot(group)"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+              @if (lotLineErrors()[i]; as erreur) {
+                <span class="field-error lot-ligne-erreur">{{ erreur }}</span>
+              } @else if (lotDoublons().has(i)) {
+                <span class="field-error lot-ligne-erreur">Ce numéro apparaît deux fois.</span>
+              }
+            </div>
+          }
+        </div>
+
+        <button class="add-line" type="button" (click)="ajouterLigneLot()">
+          + Ajouter une ligne
+        </button>
+      }
+    </div>
+
+    <div class="drawer-footer">
+      <span class="lot-compteur">{{ lotLignes().length }} table(s)</span>
+      <button class="btn btn-secondary" type="button" (click)="closeLot()">Annuler</button>
+      <button
+        class="btn btn-primary"
+        type="button"
+        [disabled]="!lotPret() || lotSaving()"
+        (click)="enregistrerLot()"
+      >
+        @if (lotSaving()) {
           <span class="spinner" style="width: 14px; height: 14px"></span>
         }
-        {{ editingTable() ? 'Enregistrer' : 'Créer' }}
+        Créer {{ lotLignes().length }} table(s)
       </button>
     </div>
   </div>

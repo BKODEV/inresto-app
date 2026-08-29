@@ -1,0 +1,83 @@
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.type-filtres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+// Filtres en bascule plutôt qu'en liste déroulante : on croise souvent deux ou
+// trois types (annulations + remises) pour lire une anomalie.
+.type-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+
+  &:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+
+  &.active {
+    border-color: var(--amber);
+    background: var(--amber-soft);
+    color: var(--amber);
+    font-weight: 600;
+  }
+}
+
+// Couleur par nature du geste : l'œil doit repérer une annulation sans lire.
+.badge {
+  &--annulation {
+    background: rgba(var(--red-rgb), 0.12);
+    color: var(--red-soft);
+  }
+  &--remise {
+    background: rgba(var(--amber-rgb), 0.12);
+    color: var(--amber);
+  }
+  &--paiement,
+  &--encaissement {
+    background: rgba(var(--green-rgb), 0.12);
+    color: var(--green-soft);
+  }
+  // L'argent qui SORT du tiroir : même famille visuelle qu'une remise, ce
+  // sont les deux gestes qui diminuent la caisse sans être une vente.
+  &--versement {
+    background: rgba(var(--amber-2-rgb), 0.12);
+    color: var(--amber);
+  }
+  &--impression {
+    background: rgba(var(--blue-rgb), 0.12);
+    color: var(--text-dim);
+  }
+}
+
+.detail {
+  color: var(--text-dim);
+  font-size: var(--text-sm);
+}
+
+.motif {
+  color: var(--text-dim);
+  font-size: var(--text-sm);
+  max-width: 280px;
+}
+
+.panel-note {
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  margin: 0 0 var(--space-3);
+}

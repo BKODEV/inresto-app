@@ -13,6 +13,7 @@ import { forkJoin } from 'rxjs';
 import { ReportingService } from '../../../core/api/reporting/reporting.service';
 import {
   EvolutionPoint,
+  OrdreTri,
   ReportingFilter,
   TriProduit,
   VenteModePaiement,
@@ -49,8 +50,24 @@ export class VentesPage {
 
   readonly filter = signal<ReportingFilter | null>(null);
   readonly tri = signal<TriProduit>('ca');
+  /**
+   * Le sens du classement, et donc la question posée : `desc` sort ce qui
+   * porte le chiffre, `asc` ce qui traîne — les candidats au retrait de la
+   * carte. L'API sert les deux depuis toujours ; l'écran ne demandait que le
+   * premier.
+   */
+  readonly sens = signal<OrdreTri>('desc');
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+
+  /**
+   * Un flop se lit parmi CE QUI S'EST VENDU : la requête part des lignes
+   * vendues, un produit à zéro vente n'a aucune ligne et ne peut donc pas
+   * apparaître. Le dire, sans quoi on croit tenir la liste des invendus.
+   */
+  readonly titreProduits = computed(() =>
+    this.sens() === 'asc' ? 'Flop produits' : 'Top produits',
+  );
 
   readonly parPdv = signal<VenteParPdv[]>([]);
   readonly produits = signal<VenteProduit[]>([]);
@@ -105,8 +122,9 @@ export class VentesPage {
       const filter = this.filter();
       const siteId = this.selectedSite.selectedId();
       const tri = this.tri();
+      const sens = this.sens();
       if (filter) {
-        this.load(filter, siteId, tri);
+        this.load(filter, siteId, tri, sens);
       }
     });
   }
@@ -119,14 +137,23 @@ export class VentesPage {
     this.tri.set(value as TriProduit);
   }
 
-  private load(filter: ReportingFilter, siteId: number | null, tri: TriProduit): void {
+  setSens(value: string): void {
+    this.sens.set(value as OrdreTri);
+  }
+
+  private load(
+    filter: ReportingFilter,
+    siteId: number | null,
+    tri: TriProduit,
+    sens: OrdreTri,
+  ): void {
     const scoped: ReportingFilter = siteId ? { ...filter, site_id: siteId } : filter;
     this.loading.set(true);
     this.error.set(null);
 
     forkJoin({
       parPdv: this.service.ventesParPointDeVente(scoped),
-      produits: this.service.ventesProduits(scoped, { tri, ordre: 'desc', limit: 20 }),
+      produits: this.service.ventesProduits(scoped, { tri, ordre: sens, limit: 20 }),
       modes: this.service.ventesModesPaiement(scoped),
       serveurs: this.service.ventesServeurs(scoped),
       evolution: this.service.ventesEvolution(scoped),

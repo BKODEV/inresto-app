@@ -45,6 +45,12 @@ export class ParametresLayout {
     { label: 'Modes de paiement', route: 'modes-de-paiement' },
     { label: 'Utilisateurs', route: 'utilisateurs', permission: 'utilisateur.view' },
     { label: 'Rôles', route: 'roles', permission: 'role.view' },
+    { label: "Journal d'activité", route: 'journal', permission: 'journal.view' },
+    // Relectures de contrôle. Distinctes du journal, qui répond à « ce soir » en
+    // plafonnant chaque source : ici on interroge une période, avec les filtres
+    // propres à chaque nature de geste.
+    { label: 'Remises', route: 'remises', permission: 'remise.view' },
+    { label: 'Annulations', route: 'annulations', permission: 'annulation.view' },
   ];
 
   /** Onglets visibles selon les permissions de l'utilisateur connecté. */

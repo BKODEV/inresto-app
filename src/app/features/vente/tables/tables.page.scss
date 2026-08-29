@@ -113,6 +113,14 @@
   &--a_debarrasser {
     border-left-color: var(--text-mute);
   }
+
+  // Table retirée du service : lisible mais visiblement hors-jeu, pour qu'elle
+  // ne se confonde pas avec une table libre quand la bascule est ouverte.
+  &--archivee {
+    opacity: 0.55;
+    border-left-color: var(--text-mute);
+    border-style: dashed;
+  }
 }
 .table-num {
   font-size: var(--text-xl);
@@ -237,5 +245,99 @@
 
   .legend {
     flex-wrap: wrap;
+  }
+}
+
+.field-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+
+  input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--blue);
+  }
+}
+
+// ─────────────────────────── Création en série ───────────────────────────
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.drawer-wide {
+  width: min(620px, 100vw);
+}
+
+// En-tête vivant du lot : les cinq paramètres tiennent sur une ligne en large,
+// et se replient sur deux colonnes quand le tiroir passe en pleine largeur.
+.lot-toolbar {
+  display: grid;
+  grid-template-columns: 1.4fr repeat(4, 1fr);
+  gap: var(--space-2);
+  align-items: end;
+  margin-bottom: var(--space-4);
+}
+
+.lot-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+// Numéro large, capacité étroite, bouton de retrait : la grille se lit en
+// colonnes alignées, comme un tableur.
+.lot-ligne {
+  display: grid;
+  grid-template-columns: 1fr 90px 32px;
+  gap: 8px;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px;
+
+  &--erreur {
+    border-color: var(--red-soft);
+    box-shadow: 0 0 0 1px var(--red-soft) inset;
+  }
+}
+
+.lot-ligne-erreur {
+  grid-column: 1 / -1;
+}
+
+.add-line {
+  width: 100%;
+  height: 44px;
+  border-radius: var(--radius-md);
+  border: 1.5px dashed var(--border-strong);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+
+  &:hover {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+}
+
+.lot-compteur {
+  margin-right: auto;
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+}
+
+@media (max-width: 600px) {
+  .lot-toolbar {
+    grid-template-columns: 1fr 1fr;
   }
 }

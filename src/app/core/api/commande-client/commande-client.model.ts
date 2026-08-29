@@ -5,11 +5,7 @@ import { SessionCaisse } from '../session-caisse/session-caisse.model';
 import { TableSalle } from '../table/table.model';
 
 export type StatutCommandeClient =
-  | 'ouverte'
-  | 'envoyee_en_cuisine'
-  | 'servie'
-  | 'encaissee'
-  | 'annulee';
+  'ouverte' | 'envoyee_en_cuisine' | 'servie' | 'encaissee' | 'annulee';
 
 export type TypeRemise = 'pourcentage' | 'montant_fixe';
 export type SortAnnulation = 'remise_en_stock' | 'perte';
@@ -23,6 +19,21 @@ export interface LigneCommandeClient {
   prix_unitaire: string;
   commentaire: string | null;
   statut: Statut;
+  /**
+   * Horodatage du départ en cuisine, et identifiant du tour : les lignes d'un
+   * même envoi le partagent. Null = encore au brouillon.
+   */
+  envoyee_le: string | null;
+  /**
+   * Annoncée prête au pass par la cuisine, pas encore emportée. Sépare le temps
+   * du chef (`envoyee_le → prete_le`) de l'attente sous la lampe
+   * (`prete_le → servie_le`). Réversible tant que la ligne n'est pas servie.
+   */
+  prete_le: string | null;
+  /** Servie et déstockée. Un second service ne la reprend pas. */
+  servie_le: string | null;
+  /** Jamais partie en cuisine : se retire sans motif d'annulation. */
+  retirable_sans_motif: boolean;
   produit?: Produit;
 }
 
@@ -31,7 +42,15 @@ export interface Paiement {
   commande_client_id: number;
   mode_de_paiement_id: number;
   user_id: string;
+  /** Ce qui reste en tiroir, et qui compte dans le théorique de la session. */
   montant: string;
+  /**
+   * Ce que le client a laissé au serveur. Dans le tiroir, mais pas de la
+   * recette : le bénéficiaire est le serveur de la note.
+   */
+  pourboire: string;
+  /** Espèces tendues, quand il y a eu de la monnaie à rendre. */
+  montant_recu: string | null;
   date_heure: string;
   reference_externe: string | null;
   mode_de_paiement?: ModeDePaiement;
@@ -47,21 +66,78 @@ export interface Remise {
   date_heure: string;
 }
 
+/** Ligne du panier, telle qu'envoyée à l'API au moment de l'envoi en cuisine. */
+export interface LigneAEnvoyer {
+  produit_id: number;
+  quantite: number;
+  commentaire?: string | null;
+}
+
+/**
+ * Un ticket de cuisine : les lignes d'une note parties ensemble.
+ *
+ * `envoyee_le` identifie le tour — les lignes d'un même envoi le partagent. Le
+ * temps d'attente se compte depuis lui, et non depuis l'ouverture de la note :
+ * c'est la production qui traîne, pas le fait que la table soit installée.
+ */
+export interface TourKds {
+  commande_id: number;
+  table: TableSalle | null;
+  envoyee_le: string | null;
+  lignes: LigneCommandeClient[];
+}
+
+/**
+ * Un enlèvement au pass : ce qui est prêt pour UNE note et attend la salle.
+ *
+ * Groupé par note et non par tour, contrairement à {@link TourKds} : l'unité de
+ * travail du runner est un voyage vers une table, pas un ticket. Deux tours
+ * prêts pour la table 12 se prennent en un seul déplacement.
+ */
+export interface ServicePass {
+  commande_id: number;
+  table: TableSalle | null;
+  /** L'annonce la plus ancienne de la note : depuis quand ça attend. */
+  prete_le: string | null;
+  lignes: LigneCommandeClient[];
+}
+
 export interface CommandeClient {
   id: number;
   table_id: number;
+  /**
+   * Numéro figé à l'ouverture de la note : un renommage de table ne réécrit pas
+   * les documents déjà émis. À préférer à `table.numero` pour tout affichage
+   * qui doit rester fidèle à la commande.
+   */
+  table_numero: string | null;
   session_caisse_id: number;
   user_id: string;
+  /** Nom du serveur qui a ouvert la note. Présent quand la relation est chargée. */
+  serveur?: string;
   reservation_id: number | null;
   appartement_id: string | null;
   appartement_nom: string | null;
   appartement_a_verifier: boolean;
   date_heure: string;
   statut: StatutCommandeClient;
+  /**
+   * Depuis quand la table attend son addition. Le seul repère qui distingue un
+   * client au comptoir d'un client parti sans payer. Null tant que la note
+   * n'est pas servie, et effacé si elle repart en cuisine.
+   */
+  servie_le: string | null;
+  /** Qui a clôturé la note, et quand. Nuls tant qu'elle n'est pas encaissée. */
+  encaisse_par: string | null;
+  /** Nom du caissier. Présent quand la relation est chargée. */
+  encaisse_par_nom?: string | null;
+  encaisse_le: string | null;
   montant_total: string;
   montant_du: string;
   montant_paye: string;
   reste_a_payer: string;
+  /** Vrai tant que rien n'a jamais garni la commande : abandon sans motif. */
+  peut_etre_liberee: boolean;
   notes: string | null;
   table?: TableSalle;
   session_caisse?: SessionCaisse;
@@ -89,6 +165,14 @@ export interface AjouterLignePayload {
 export interface StorePaiementPayload {
   mode_de_paiement_id: number;
   montant: number;
+  /**
+   * Espèces tendues. Distinct de `montant`, qui est ce qui demeure en caisse :
+   * y inscrire le billet reçu gonflerait le fond théorique de la monnaie
+   * rendue, et ferait apparaître un manquant à la fermeture.
+   */
+  /** Laissé au serveur : dans le tiroir, jamais dans le chiffre d'affaires. */
+  pourboire?: number | null;
+  montant_recu?: number | null;
   reference_externe?: string | null;
 }
 

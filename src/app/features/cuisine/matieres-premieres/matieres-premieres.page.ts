@@ -18,11 +18,12 @@ import { UniteDeMesureService } from '../../../core/api/unite-de-mesure/unite-de
 import { UniteDeMesure } from '../../../core/api/unite-de-mesure/unite-de-mesure.model';
 import { Statut } from '../../../core/api/api.types';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { QuantitePipe, CoutUnitairePipe } from '../../../shared/format/nombre.pipes';
 
 @Component({
   selector: 'app-matieres-premieres-page',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, QuantitePipe, CoutUnitairePipe],
   templateUrl: './matieres-premieres.page.html',
   styleUrl: './matieres-premieres.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

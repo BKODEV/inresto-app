@@ -1,0 +1,207 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Postes de production</h1>
+      <p class="page-subtitle">
+        Déclarez les postes de votre pass — entrées froides, chaud, bar — et les catégories de carte
+        que chacun prend en charge.
+      </p>
+    </div>
+    <button class="btn btn-primary" type="button" (click)="openCreate()">+ Nouveau poste</button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun poste déclaré</span>
+      <span class="empty-message">
+        Sans poste, l'écran cuisine affiche toute la production d'un seul bloc — ce qui convient à
+        une brigade unique. Créez des postes si plusieurs équipes se partagent le pass.
+      </span>
+    </div>
+  } @else {
+    <div class="card">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="num">Ordre</th>
+            <th>Poste</th>
+            <th>Point de vente</th>
+            <th>Catégories prises en charge</th>
+            <th>Brigade</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track item.id) {
+            <tr>
+              <td class="num td-mono">{{ item.ordre }}</td>
+              <td class="td-primary">{{ item.libelle }}</td>
+              <td>{{ nomPdv(item.point_de_vente_id) }}</td>
+              <td>{{ libellesCategories(item) }}</td>
+              <td>{{ libellesMembres(item) }}</td>
+              <td class="td-actions">
+                <button class="btn-icon" type="button" title="Modifier" (click)="openEdit(item)">
+                  ✎
+                </button>
+                <button
+                  class="btn-icon"
+                  type="button"
+                  title="Supprimer"
+                  [disabled]="deletingId() === item.id"
+                  (click)="delete(item)"
+                >
+                  ✕
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>
+
+<!-- ═══ DRAWER ═══════════════════════════════════════════════════════════════ -->
+
+@if (drawerOpen()) {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+
+  <div class="drawer" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <h2 class="drawer-title">
+        {{ editingItem() ? 'Modifier le poste' : 'Nouveau poste' }}
+      </h2>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+
+    <form class="drawer-body" [formGroup]="form" (ngSubmit)="save()" novalidate>
+      @if (formError()) {
+        <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+
+      <label class="field-label">
+        <span class="field-text">Point de vente <span class="required">*</span></span>
+        <!-- Verrouillé en modification : déplacer un poste d'un pass à l'autre
+             emporterait ses catégories dans un contexte différent. -->
+        <select
+          class="field-select"
+          formControlName="point_de_vente_id"
+          [disabled]="!!editingItem()"
+          (change)="onPdvChoisi($any($event.target).value)"
+        >
+          @for (pdv of pdvs(); track pdv.id) {
+            <option [value]="pdv.id">{{ pdv.nom }}</option>
+          }
+        </select>
+        @if (editingItem()) {
+          <span class="field-hint">
+            Non modifiable : créez un poste sur l'autre point de vente.
+          </span>
+        }
+      </label>
+
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Nom du poste <span class="required">*</span></span>
+        <input
+          class="field-input"
+          type="text"
+          formControlName="libelle"
+          placeholder="Ex : Entrées froides"
+          autocomplete="off"
+        />
+        @if (form.controls.libelle.touched && form.controls.libelle.invalid) {
+          <span class="field-error">Le nom est requis.</span>
+        }
+      </label>
+
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">Ordre d'affichage</span>
+        <input class="field-input" type="number" min="0" step="1" formControlName="ordre" />
+        <span class="field-hint">Position dans le sélecteur de l'écran cuisine.</span>
+      </label>
+
+      <div class="field-label" style="margin-top: 16px">
+        <span class="field-text">Catégories prises en charge</span>
+        <span class="field-hint">
+          Ce poste ne verra que les plats de ces catégories. Une catégorie peut relever d'un seul
+          poste par point de vente.
+        </span>
+        <div class="cat-grille">
+          @for (cat of categories(); track cat.id) {
+            <label class="cat-case" [class.cat-case--choisie]="estChoisie(cat)">
+              <input
+                type="checkbox"
+                [checked]="estChoisie(cat)"
+                (change)="basculerCategorie(cat)"
+              />
+              <span>{{ cat.libelle }}</span>
+            </label>
+          }
+        </div>
+
+        @if (categoriesNonAffectees().length > 0) {
+          <!-- L'angle mort du paramétrage : ces plats s'affichent sur TOUS les
+               écrans. C'est la bonne dégradation — jamais un plat invisible —
+               mais elle se remarque mal, d'où ce rappel. -->
+          <div class="cat-orphelines">
+            <strong>Prises en charge par aucun poste :</strong>
+            @for (cat of categoriesNonAffectees(); track cat.id) {
+              {{ cat.libelle }}{{ $last ? '' : ', ' }}
+            }
+            <br />
+            Leurs plats apparaissent sur tous les écrans de ce point de vente — jamais dans le vide.
+          </div>
+        }
+      </div>
+
+      <!-- L'autre moitié de l'organisation du pass : les catégories disent ce
+           qu'on produit ici, la brigade dit qui le fait. C'est ce rattachement
+           qui alimente ensuite le sélecteur d'un service de cuisine. -->
+      <div class="field-label" style="margin-top: 16px">
+        <span class="field-text">Brigade du poste</span>
+        <span class="field-hint">
+          Les personnes rattachées à un poste de ce point de vente sont celles que l'ouverture d'un
+          service proposera. Facultatif : un poste sans personne reste un poste de production, il
+          n'apporte simplement personne à la brigade.
+        </span>
+
+        @if (personnelLoading()) {
+          <div class="loading-row">
+            <div class="spinner"></div>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          <div class="cat-grille">
+            @for (u of personnel(); track u.id) {
+              <label class="cat-case" [class.cat-case--choisie]="estMembre(u.id)">
+                <input
+                  type="checkbox"
+                  [checked]="estMembre(u.id)"
+                  (change)="basculerMembre(u.id)"
+                />
+                <span>{{ u.nom }}</span>
+              </label>
+            } @empty {
+              <span class="field-hint">Aucun personnel rattaché au site de ce point de vente.</span>
+            }
+          </div>
+        }
+      </div>
+    </form>
+
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Annuler</button>
+      <button class="btn btn-primary" type="button" [disabled]="saving()" (click)="save()">
+        @if (saving()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        {{ editingItem() ? 'Enregistrer' : 'Créer' }}
+      </button>
+    </div>
+  </div>
+}

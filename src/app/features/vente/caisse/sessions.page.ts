@@ -17,17 +17,25 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { CaisseService } from '../../../core/api/caisse/caisse.service';
 import { Caisse } from '../../../core/api/caisse/caisse.model';
 import { SessionCaisseService } from '../../../core/api/session-caisse/session-caisse.service';
-import { SessionCaisse } from '../../../core/api/session-caisse/session-caisse.model';
+import { EcartSens, SessionCaisse } from '../../../core/api/session-caisse/session-caisse.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
+import { ModeDePaiementService } from '../../../core/api/mode-de-paiement/mode-de-paiement.service';
+import { ModeDePaiement } from '../../../core/api/mode-de-paiement/mode-de-paiement.model';
+import { modesProposables } from '../../../core/api/mode-de-paiement/mode-de-paiement.util';
+import { VersementService } from '../../../core/api/versement/versement.service';
+import { DestinationVersement, Versement } from '../../../core/api/versement/versement.model';
+import { AuthService } from '../../../core/auth/auth.service';
+import { MontantPipe, MontantSignePipe } from '../../../shared/format/nombre.pipes';
 
-type DrawerMode = 'ouvrir' | 'fermer';
+type DrawerMode = 'ouvrir' | 'fermer' | 'verser';
 
 @Component({
   selector: 'app-sessions-page',
   standalone: true,
-  imports: [ReactiveFormsModule, DatePipe, SiteRequisComponent],
+  imports: [ReactiveFormsModule, DatePipe, SiteRequisComponent, MontantPipe, MontantSignePipe],
   templateUrl: './sessions.page.html',
   styleUrl: './caisse.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,6 +46,10 @@ export class SessionsPage implements OnInit {
   private readonly selectedSite = inject(SelectedSiteService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly pdfService = inject(PdfService);
+  private readonly modeService = inject(ModeDePaiementService);
+  private readonly versementService = inject(VersementService);
+  private readonly auth = inject(AuthService);
 
   // Toutes les caisses chargées, puis restreintes au site global (via leur PDV).
   private readonly allCaisses = signal<Caisse[]>([]);
@@ -58,6 +70,36 @@ export class SessionsPage implements OnInit {
   readonly saving = signal(false);
   readonly formError = signal<string | null>(null);
   readonly closingSession = signal<SessionCaisse | null>(null);
+  readonly pdfBusy = signal(false);
+
+  /**
+   * Sortir de l'argent du tiroir est un geste distinct de l'encaissement : il
+   * a sa propre permission, sans quoi tout caissier pourrait vider la caisse du
+   * seul fait qu'il sait y encaisser.
+   */
+  readonly peutVerser = computed(() => this.auth.hasPermission('versement.create'));
+  readonly versements = signal<Versement[]>([]);
+
+  readonly verserForm = this.fb.nonNullable.group({
+    montant: [0, [Validators.required, Validators.min(0.01)]],
+    destination: ['coffre' as DestinationVersement, Validators.required],
+    remis_a: [''],
+    reference: [''],
+    notes: [''],
+  });
+
+  /**
+   * « Personnel » n'y figure pas volontairement : un reversement de pourboires
+   * doit désigner de quel solde il se retire, et cela se fait depuis l'écran
+   * Pourboires où le bénéficiaire est la ligne cliquée. L'offrir ici obligerait
+   * à parcourir un sélecteur d'utilisateurs pour la même chose.
+   */
+  readonly destinations: { valeur: DestinationVersement; libelle: string }[] = [
+    { valeur: 'coffre', libelle: 'Coffre' },
+    { valeur: 'banque', libelle: 'Banque' },
+    { valeur: 'direction', libelle: 'Direction' },
+    { valeur: 'autre', libelle: 'Autre' },
+  ];
 
   readonly sessionOuverte = computed(
     () => this.sessions().find((s) => s.statut === 'ouverte') ?? null,
@@ -67,8 +109,44 @@ export class SessionsPage implements OnInit {
     fonds_initial: [0, [Validators.min(0)]],
   });
   readonly fermerForm = this.fb.nonNullable.group({
-    montant_reel: [0, [Validators.required, Validators.min(0)]],
     notes: [''],
+    // Passer outre le compte d'un contenant qu'on ne peut pas vérifier ce soir
+    // — un terminal en panne. Sans issue, la caisse resterait ouverte et le
+    // service suivant ne pourrait pas démarrer.
+    forcer: [false],
+    motif_forcage: [''],
+  });
+
+  readonly peutForcer = computed(() => this.auth.hasPermission('session_caisse.forcer_fermeture'));
+
+  /** Modes de paiement actifs : un contenant à rapprocher par mode. */
+  readonly modes = signal<ModeDePaiement[]>([]);
+
+  /**
+   * Ce que le caissier déclare, contenant par contenant. Une simple table
+   * plutôt qu'un formulaire réactif : les contrôles sont indexés par des
+   * identifiants de base qui changent d'un établissement à l'autre, et un
+   * `FormRecord` n'apporterait ici qu'une couche de plus.
+   *
+   * Absent de la table = non rapproché, ce qui est licite : un virement arrive
+   * à la banque quand il arrive.
+   */
+  readonly constats = signal<Record<number, number | null>>({});
+
+  /**
+   * Tout moyen de paiement accepté est vérifiable le soir même : on compte le
+   * tiroir, on lit le ticket du terminal. Fermer sans compter reviendrait à
+   * clôturer sans avoir contrôlé — un mode qu'on ne saurait pas vérifier se
+   * désactive dans les paramètres.
+   *
+   * Zéro est un compte valide ; c'est l'absence de saisie qui manque.
+   */
+  readonly contenantsNonComptes = computed(() => {
+    const constats = this.constats();
+
+    return this.modes().filter(
+      (mode) => constats[mode.id] === null || constats[mode.id] === undefined,
+    );
   });
 
   constructor() {
@@ -89,7 +167,27 @@ export class SessionsPage implements OnInit {
     });
   }
 
+  /**
+   * Ce que l'écart raconte, en toutes lettres. Le badge affichait un rouge
+   * unique dès que l'écart n'était pas nul : un excédent et un manquant s'y
+   * confondaient, alors qu'ils appellent des vérifications opposées.
+   */
+  readonly libelleEcart: Record<EcartSens, string> = {
+    // Personne n'a compté : on ne qualifie rien. Afficher « juste » laisserait
+    // croire à une vérification qui n'a pas eu lieu.
+    non_rapproche: 'Non rapproché',
+    juste: 'Caisse juste',
+    tolere: 'Écart toléré',
+    excedent: 'Excédent',
+    manquant: 'Manquant',
+  };
+
   ngOnInit(): void {
+    this.modeService
+      .list()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((modes) => this.modes.set(modesProposables(modes)));
+
     this.caisseService
       .list()
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -119,6 +217,16 @@ export class SessionsPage implements OnInit {
         },
         error: () => this.loadingSessions.set(false),
       });
+
+    if (this.peutVerser()) {
+      this.versementService
+        .list(id)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (versements) => this.versements.set(versements),
+          error: () => this.versements.set([]),
+        });
+    }
   }
 
   onCaisseChange(value: string): void {
@@ -131,11 +239,70 @@ export class SessionsPage implements OnInit {
     this.drawerMode.set('ouvrir');
   }
 
+  openVerser(): void {
+    this.verserForm.reset({
+      montant: 0,
+      destination: 'coffre',
+      remis_a: '',
+      reference: '',
+      notes: '',
+    });
+    this.formError.set(null);
+    this.drawerMode.set('verser');
+  }
+
+  verser(): void {
+    const caisseId = this.selectedCaisseId();
+    if (this.verserForm.invalid || this.saving() || caisseId === null) {
+      this.verserForm.markAllAsTouched();
+
+      return;
+    }
+    this.saving.set(true);
+    this.formError.set(null);
+
+    const raw = this.verserForm.getRawValue();
+    this.versementService
+      .create(caisseId, {
+        montant: raw.montant,
+        destination: raw.destination,
+        remis_a: raw.remis_a || null,
+        reference: raw.reference || null,
+        notes: raw.notes || null,
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (versement) => {
+          this.versements.update((list) => [versement, ...list]);
+          this.saving.set(false);
+          this.drawerMode.set(null);
+          // Le théorique de la session ouverte vient de baisser d'autant.
+          this.loadSessions(caisseId);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.saving.set(false);
+          this.formError.set(apiErrorMessage(err, 'Versement impossible.'));
+        },
+      });
+  }
+
   openFermer(session: SessionCaisse): void {
     this.closingSession.set(session);
-    this.fermerForm.reset({ montant_reel: 0, notes: '' });
+    this.fermerForm.reset({ notes: '', forcer: false, motif_forcage: '' });
+    // Toutes les cases vides : le formulaire ne souffle AUCUN montant attendu,
+    // ni pour le tiroir ni pour le terminal. Le montrer inviterait à le
+    // recopier au lieu de compter, et le rapprochement ne vaudrait plus rien.
+    this.constats.set({});
     this.formError.set(null);
     this.drawerMode.set('fermer');
+  }
+
+  onConstat(modeId: number, valeur: string): void {
+    const nombre = valeur.trim() === '' ? null : Number(valeur);
+    this.constats.update((actuels) => ({
+      ...actuels,
+      [modeId]: nombre === null || Number.isNaN(nombre) ? null : nombre,
+    }));
   }
 
   closeDrawer(): void {
@@ -165,22 +332,78 @@ export class SessionsPage implements OnInit {
       });
   }
 
+  /**
+   * Rapport de fermeture (ticket Z). Imprimable à nouveau depuis la liste : un
+   * ticket se perd, et le rapprochement doit rester consultable.
+   */
+  imprimerRapport(session: SessionCaisse): void {
+    if (this.pdfBusy()) {
+      return;
+    }
+    this.pdfBusy.set(true);
+    this.pdfService
+      .rapportFermeture(session.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (blob) => {
+          this.pdfBusy.set(false);
+          ouvrirPdfDansOnglet(blob, `rapport-fermeture-${session.id}.pdf`);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.pdfBusy.set(false);
+          this.formError.set(apiErrorMessage(err, 'Impression impossible.'));
+        },
+      });
+  }
+
   fermer(): void {
     const session = this.closingSession();
     if (this.fermerForm.invalid || this.saving() || !session) {
       this.fermerForm.markAllAsTouched();
       return;
     }
+    const forcer = this.fermerForm.getRawValue().forcer && this.peutForcer();
+
+    const manquants = this.contenantsNonComptes();
+    if (manquants.length > 0 && !forcer) {
+      this.formError.set(
+        `Comptez chaque moyen de paiement avant de fermer : ${manquants
+          .map((mode) => mode.libelle)
+          .join(', ')}.`,
+      );
+
+      return;
+    }
+    if (forcer && this.fermerForm.getRawValue().motif_forcage.trim() === '') {
+      // Un forçage sans explication ne vaut pas mieux qu'un trou.
+      this.formError.set('Expliquez pourquoi la fermeture est forcée.');
+
+      return;
+    }
     this.saving.set(true);
     this.formError.set(null);
+    const constats = this.constats();
+
     this.sessionService
-      .fermer(session.id, this.fermerForm.getRawValue())
+      .fermer(session.id, {
+        notes: this.fermerForm.getRawValue().notes,
+        ...(forcer
+          ? { forcer: true, motif_forcage: this.fermerForm.getRawValue().motif_forcage }
+          : {}),
+        rapprochements: this.modes().map((mode) => ({
+          mode_de_paiement_id: mode.id,
+          montant_constate: constats[mode.id] ?? null,
+        })),
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (updated) => {
           this.sessions.update((list) => list.map((s) => (s.id === updated.id ? updated : s)));
           this.saving.set(false);
           this.drawerMode.set(null);
+          // Le rapport sort dans la foulée, comme le reçu après un règlement :
+          // c'est le document qu'on classe dans le tiroir en le refermant.
+          this.imprimerRapport(updated);
         },
         error: (err: HttpErrorResponse) => {
           this.saving.set(false);

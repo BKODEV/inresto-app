@@ -36,6 +36,17 @@ export class PdfService {
     });
   }
 
+  /**
+   * Addition : le détail et le TOTAL À PAYER, présentés au client avant qu'il
+   * ne règle. Même gabarit 80mm que le reçu, sans rien affirmer sur l'argent.
+   */
+  additionClient(commandeId: number): Observable<Blob> {
+    return this.http.get(`${this.base}/commandes-client/${commandeId}/addition`, {
+      responseType: 'blob',
+    });
+  }
+
+  /** Reçu : la preuve du paiement, monnaie rendue comprise. */
   recuClient(commandeId: number): Observable<Blob> {
     return this.http.get(`${this.base}/commandes-client/${commandeId}/recu`, {
       responseType: 'blob',
@@ -53,6 +64,16 @@ export class PdfService {
     }
     return this.http.get(`${this.base}/fiches-techniques/${ficheId}/pdf`, {
       params,
+      responseType: 'blob',
+    });
+  }
+
+  /**
+   * Rapport de fermeture d'une session de caisse — le « ticket Z », qui sort de
+   * l'imprimante du comptoir et se classe dans le tiroir.
+   */
+  rapportFermeture(sessionId: number): Observable<Blob> {
+    return this.http.get(`${this.base}/sessions-caisse/${sessionId}/rapport-fermeture`, {
       responseType: 'blob',
     });
   }
