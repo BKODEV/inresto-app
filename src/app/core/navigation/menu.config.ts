@@ -5,6 +5,13 @@ export interface MenuItem {
   /** Une liste signifie « au moins une de ces permissions ». */
   permission?: string | string[];
   enabled?: boolean;
+  /**
+   * Écran servi HORS du shell : un afficheur mural ou une tablette posée au
+   * pass, sans barre latérale. L'entrée sert à l'ouvrir la première fois, mais
+   * ce n'est pas une destination de navigation — on n'y dépose personne au
+   * démarrage (cf. `premiereRouteAutorisee`).
+   */
+  horsShell?: boolean;
 }
 
 export interface MenuSection {
@@ -32,7 +39,9 @@ export const MENU: MenuSection[] = [
     ],
   },
   {
-    title: 'CUISINE & STOCK',
+    // Ce qui ENTRE dans la maison : on achète, on réceptionne, on stocke, on
+    // budgète. Séparé de CUISINE, qui est ce qu'on en fait pendant le service.
+    title: 'ACHATS & STOCK',
     items: [
       {
         label: 'Fournisseurs',
@@ -53,12 +62,6 @@ export const MENU: MenuSection[] = [
         permission: 'commande-fournisseur.view',
       },
       {
-        label: 'Produits & recettes',
-        icon: 'chef-hat',
-        route: '/cuisine/fiches-techniques',
-        permission: 'fichetechnique.view',
-      },
-      {
         label: 'Stock & inventaire',
         icon: 'boxes',
         route: '/cuisine/stock',
@@ -66,6 +69,49 @@ export const MENU: MenuSection[] = [
         permission: ['stock.view', 'inventaire.view'],
       },
       { label: 'Budget', icon: 'wallet', route: '/cuisine/budget', permission: 'budget.view' },
+    ],
+  },
+  {
+    // La PRODUCTION, tenue par le chef et sa brigade. Le service de cuisine
+    // était sous « Sessions de caisse » : ouvrir un tiroir-caisse et ouvrir un
+    // service de brigade sont deux responsabilités, tenues par deux personnes
+    // différentes, et les mélanger montrait au chef des écrans d'argent.
+    title: 'CUISINE',
+    items: [
+      {
+        label: 'Services de cuisine',
+        icon: 'chef-hat',
+        route: '/cuisine/services',
+        permission: 'session_cuisine.view',
+      },
+      {
+        // Les recettes sont le métier du chef, pas un réglage d'achat : elles
+        // rejoignent la production plutôt que le stock dont elles consomment.
+        label: 'Produits & recettes',
+        icon: 'chef-hat',
+        route: '/cuisine/fiches-techniques',
+        permission: 'fichetechnique.view',
+      },
+      {
+        // Afficheur mural, servi hors du shell : pas de barre latérale à côté
+        // de laquelle un coup de coude renverrait la cuisine sur les fonds de
+        // caisse. L'entrée reste ici pour l'ouvrir la première fois.
+        label: 'Écran cuisine (KDS)',
+        icon: 'chef-hat',
+        route: '/kds',
+        permission: 'commande_client.view',
+        horsShell: true,
+      },
+      {
+        // Le pendant salle : ce que la cuisine a annoncé et qu'il faut porter.
+        // Gouverné par `update`, la permission du service — c'est ici que le
+        // stock se décharge.
+        label: 'Pass (à emporter)',
+        icon: 'chef-hat',
+        route: '/pass',
+        permission: 'commande_client.update',
+        horsShell: true,
+      },
     ],
   },
   {
@@ -129,24 +175,6 @@ export const MENU: MenuSection[] = [
         icon: 'wallet',
         route: '/vente/mes-pourboires',
         permission: 'pourboire.suivre_les_siens',
-      },
-      {
-        // Afficheur mural, servi hors du shell : pas de barre latérale à côté
-        // de laquelle un coup de coude renverrait la cuisine sur les fonds de
-        // caisse. L'entrée reste ici pour l'ouvrir la première fois.
-        label: 'Écran cuisine (KDS)',
-        icon: 'chef-hat',
-        route: '/kds',
-        permission: 'commande_client.view',
-      },
-      {
-        // Le pendant salle : ce que la cuisine a annoncé et qu'il faut porter.
-        // Gouverné par `update`, la permission du service — c'est ici que le
-        // stock se décharge.
-        label: 'Pass (à emporter)',
-        icon: 'chef-hat',
-        route: '/pass',
-        permission: 'commande_client.update',
       },
     ],
   },

@@ -37,6 +37,29 @@ describe('premiereRouteAutorisee', () => {
     );
   });
 
+  /**
+   * Régression réelle : en remontant CUISINE au-dessus de SALLE & VENTE, le
+   * KDS — gardé par `commande_client.view`, que tout serveur détient — est
+   * devenu la première entrée ouverte. Un serveur atterrissait sur l'afficheur
+   * mural de la cuisine, un écran sans barre latérale dont il ne pouvait pas
+   * ressortir.
+   */
+  it('ne dépose personne sur un écran servi hors du shell', () => {
+    const route = premiereRouteAutorisee(auth(['commande_client.view', 'table.view']));
+
+    expect(route).not.toBe('/kds');
+    expect(route).not.toBe('/pass');
+  });
+
+  it('n’y dépose pas non plus le super-admin', () => {
+    // Il passe toutes les permissions : sans l'exclusion, l'ordre du menu seul
+    // le protégerait — c'est-à-dire pas du tout.
+    const route = premiereRouteAutorisee(auth([], true));
+
+    expect(route).not.toBe('/kds');
+    expect(route).not.toBe('/pass');
+  });
+
   it('ne propose jamais une entrée non livrée', () => {
     // `enabled: false` marque un écran qui n'existe pas encore : y rediriger
     // enverrait sur une route qui ne matche rien.

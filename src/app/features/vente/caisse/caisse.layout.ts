@@ -34,6 +34,10 @@ export class CaisseLayout {
    *
    * L'écran cuisine (KDS) n'est plus ici : c'est un afficheur mural, servi
    * hors du shell sur `/kds`.
+   *
+   * Les services de cuisine non plus : ouvrir un tiroir-caisse et ouvrir un
+   * service de brigade sont deux responsabilités, tenues par deux personnes.
+   * Ils vivent sous `/cuisine/services`, avec le reste de la production.
    */
   private readonly allTabs: CaisseTab[] = [
     { label: 'Sessions', route: 'sessions', permission: 'session_caisse.create' },
@@ -53,10 +57,6 @@ export class CaisseLayout {
     // permission que les sorties de tiroir : lire ce qu'on doit relève du même
     // geste que voir l'argent en sortir.
     { label: 'Pourboires', route: 'pourboires', permission: 'versement.view' },
-    // Le service de la brigade. Ici et non dans un menu à part : c'est un
-    // service qui s'ouvre et se ferme, comme la session de caisse à deux
-    // onglets de là — même geste, même endroit.
-    { label: 'Cuisine', route: 'cuisine', permission: 'session_cuisine.view' },
   ];
 
   readonly tabs = computed(() => this.allTabs.filter((t) => this.auth.hasPermission(t.permission)));

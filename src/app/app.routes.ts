@@ -207,6 +207,17 @@ export const routes: Routes = [
               import('./features/cuisine/budget/budget.page').then((m) => m.BudgetPage),
             title: 'Budget',
           },
+          {
+            // Le service de la brigade. Sous `/cuisine` et non sous la caisse :
+            // ouvrir un service de cuisine et ouvrir un tiroir-caisse sont deux
+            // responsabilités, tenues par deux personnes différentes.
+            path: 'services',
+            loadComponent: () =>
+              import('./features/vente/caisse/sessions-cuisine.page').then(
+                (m) => m.SessionsCuisinePage,
+              ),
+            title: 'Services de cuisine',
+          },
         ],
       },
       {
@@ -287,14 +298,6 @@ export const routes: Routes = [
                 loadComponent: () =>
                   import('./features/vente/caisse/ventes.page').then((m) => m.VentesPage),
                 title: 'Ventes du service',
-              },
-              {
-                path: 'cuisine',
-                loadComponent: () =>
-                  import('./features/vente/caisse/sessions-cuisine.page').then(
-                    (m) => m.SessionsCuisinePage,
-                  ),
-                title: 'Services de cuisine',
               },
               {
                 path: 'pourboires',

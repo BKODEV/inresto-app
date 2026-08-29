@@ -10,13 +10,22 @@ import { AuthService } from '../auth/auth.service';
  * qu'il ne peut pas charger. On le pose là où il a quelque chose à faire, dans
  * l'ordre du menu — qui est déjà l'ordre d'importance métier.
  *
+ * Les écrans servis hors du shell — KDS mural, tablette du pass — sont exclus :
+ * ce sont des appareils, pas des destinations. Un serveur détient
+ * `commande_client.view` pour prendre ses commandes ; l'ouvrir sur l'afficheur
+ * de la cuisine le laisserait devant un écran sans barre latérale, dont il ne
+ * saurait pas ressortir.
+ *
  * Repli sur `/dashboard` si rien n'est ouvert : mieux vaut le refus explicite
  * de cet écran qu'une redirection en boucle.
  */
 export function premiereRouteAutorisee(auth: AuthService): string {
   for (const section of MENU) {
     for (const item of section.items) {
-      if (item.enabled !== false && auth.hasAnyPermission(item.permission)) {
+      if (item.enabled === false || item.horsShell === true) {
+        continue;
+      }
+      if (auth.hasAnyPermission(item.permission)) {
         return item.route;
       }
     }
