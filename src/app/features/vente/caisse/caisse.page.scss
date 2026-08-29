@@ -647,3 +647,22 @@
     font-weight: 600;
   }
 }
+
+// Deux gestes dans l'en-tête : ouvrir une session, et sortir de l'argent du
+// tiroir. Le second n'est pas subordonné au premier — d'où deux boutons plutôt
+// qu'une action rangée dans la carte de la session ouverte.
+.header-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+// L'heure de clôture, sous le nom du caissier : deux informations d'audit qui
+// se lisent ensemble et ne méritent pas deux colonnes.
+.detail-heure {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}

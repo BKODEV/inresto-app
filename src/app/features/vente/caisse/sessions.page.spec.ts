@@ -300,3 +300,153 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
     expect(fermer.mock.calls[0][1]).not.toHaveProperty('forcer');
   });
 });
+
+/**
+ * Le tiroir de versement existait, ouvrable par `openVerser()` — mais AUCUN
+ * élément du gabarit ne l'appelait, et la liste chargée par `loadSessions()`
+ * n'était affichée nulle part. Le code passait les tests unitaires ci-dessus
+ * tout en étant inatteignable à la souris.
+ *
+ * Ces tests rendent l'écran plutôt que la classe : c'est le seul niveau où
+ * « il manque le bouton » se voit.
+ */
+describe('SessionsPage — le versement doit être atteignable', () => {
+  const CAISSE = {
+    id: 3,
+    libelle: 'Caisse principale',
+    point_de_vente: { id: 1, nom: 'Bar', site_id: 1 },
+  };
+
+  const VERSEMENT = {
+    id: 12,
+    caisse_id: 3,
+    session_caisse_id: 4,
+    montant: '200000.00',
+    destination: 'coffre',
+    destination_libelle: 'Coffre',
+    beneficiaire_id: null,
+    remis_a: 'Aminata D.',
+    reference: 'BD-4417',
+    notes: null,
+    date_heure: '2026-08-29T19:30:00+00:00',
+    en_service: true,
+    auteur: 'Kouassi A.',
+  };
+
+  function rendre(
+    options: { peutVerser?: boolean; versements?: unknown[]; sessions?: unknown[] } = {},
+  ) {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: SessionCaisseService,
+          useValue: { list: () => of(options.sessions ?? [{ id: 4, statut: 'fermee' }]) },
+        },
+        { provide: PdfService, useValue: { rapportFermeture: vi.fn() } },
+        { provide: ModeDePaiementService, useValue: { list: () => of([]) } },
+        { provide: CaisseService, useValue: { list: () => of([CAISSE]) } },
+        {
+          provide: VersementService,
+          useValue: { list: () => of(options.versements ?? []), create: vi.fn() },
+        },
+        {
+          provide: AuthService,
+          useValue: { hasPermission: () => options.peutVerser !== false },
+        },
+        {
+          provide: SelectedSiteService,
+          useValue: {
+            selectedSite: () => ({ id: 1, nom: 'Site principal' }),
+            estConsolide: () => false,
+            selectedId: () => 1,
+            sites: () => [],
+          },
+        },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(SessionsPage);
+    fixture.detectChanges();
+
+    return fixture;
+  }
+
+  function boutons(fixture: ReturnType<typeof rendre>): HTMLButtonElement[] {
+    return Array.from(fixture.nativeElement.querySelectorAll('button'));
+  }
+
+  it('offre un bouton « Verser » qui ouvre le tiroir', () => {
+    const fixture = rendre();
+
+    const verser = boutons(fixture).find((b) => b.textContent?.trim() === 'Verser');
+    expect(verser).toBeDefined();
+    expect(verser!.disabled).toBe(false);
+
+    verser!.click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.drawerMode()).toBe('verser');
+    expect(fixture.nativeElement.textContent).toContain("Sortir de l'argent du tiroir");
+  });
+
+  it('ne propose pas le versement à qui n’en a pas le droit', () => {
+    const fixture = rendre({ peutVerser: false });
+
+    expect(boutons(fixture).some((b) => b.textContent?.trim() === 'Verser')).toBe(false);
+  });
+
+  /**
+   * L'API rattache le versement à la dernière session connue : sans aucune
+   * session, elle n'a rien à quoi le rattacher et refuse. Autant ne pas offrir
+   * le geste plutôt que de le laisser échouer.
+   */
+  it('désactive le versement sur une caisse qui n’a jamais servi', () => {
+    const fixture = rendre({ sessions: [] });
+
+    const verser = boutons(fixture).find((b) => b.textContent?.trim() === 'Verser');
+    expect(verser!.disabled).toBe(true);
+  });
+
+  /**
+   * Un manquant s'explique en une ligne quand le versement au coffre est
+   * affiché à côté des sessions, et se cherche une heure quand il ne l'est pas.
+   */
+  it('affiche les sorties de tiroir sous les sessions', () => {
+    const fixture = rendre({ versements: [VERSEMENT] });
+
+    const texte: string = fixture.nativeElement.textContent;
+    expect(texte).toContain('Sorties de tiroir');
+    expect(texte).toContain('Coffre');
+    expect(texte).toContain('Aminata D.');
+    expect(texte).toContain('BD-4417');
+    expect(texte).toContain('En service');
+    expect(texte).toContain('Kouassi A.');
+  });
+
+  it('nomme le bénéficiaire d’un reversement de pourboires', () => {
+    // Destination « personnel » : ce n'est pas `remis_a` qui porte le nom, mais
+    // le bénéficiaire du solde débité.
+    const fixture = rendre({
+      versements: [
+        {
+          ...VERSEMENT,
+          destination: 'personnel',
+          destination_libelle: 'Personnel',
+          beneficiaire_id: 'uuid-kouassi',
+          beneficiaire: 'Kouassi A.',
+          remis_a: null,
+        },
+      ],
+    });
+
+    expect(fixture.nativeElement.textContent).toContain('Kouassi A.');
+  });
+
+  it('n’affiche aucune liste de sorties sans le droit de verser', () => {
+    // La liste n'est même pas chargée : l'afficher vide laisserait croire que
+    // rien n'est jamais sorti du tiroir.
+    const fixture = rendre({ peutVerser: false, versements: [VERSEMENT] });
+
+    expect(fixture.nativeElement.textContent).not.toContain('Sorties de tiroir');
+  });
+});

@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 
 import { ReportingService } from '../../core/api/reporting/reporting.service';
@@ -110,8 +111,15 @@ export class DashboardPage {
           this.data.set(data);
           this.loading.set(false);
         },
-        error: () => {
-          this.error.set('Impossible de charger le tableau de bord.');
+        error: (err: HttpErrorResponse) => {
+          // Un 403 n'est pas une panne : c'est une réponse. Le confondre avec
+          // « impossible de charger » envoie l'utilisateur rafraîchir une page
+          // qui ne s'ouvrira jamais pour lui.
+          this.error.set(
+            err.status === 403
+              ? 'Le tableau de bord demande la permission « Consulter le tableau de bord ». Demandez-la à votre responsable.'
+              : 'Impossible de charger le tableau de bord.',
+          );
           this.loading.set(false);
         },
       });

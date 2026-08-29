@@ -20,7 +20,16 @@ export interface MenuSection {
  */
 export const MENU: MenuSection[] = [
   {
-    items: [{ label: 'Tableau de bord', icon: 'layout-dashboard', route: '/dashboard' }],
+    // Gardé par `reporting.dashboard`, la permission qu'exige l'API : sans
+    // elle l'entrée menait à un écran qui ne pouvait que refuser de se charger.
+    items: [
+      {
+        label: 'Tableau de bord',
+        icon: 'layout-dashboard',
+        route: '/dashboard',
+        permission: 'reporting.dashboard',
+      },
+    ],
   },
   {
     title: 'CUISINE & STOCK',

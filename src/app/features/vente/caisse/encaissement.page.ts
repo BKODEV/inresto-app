@@ -33,6 +33,7 @@ import {
   payloadPaiement,
   pourboireApresAvoirGardeLaMonnaie,
   recuInsuffisant,
+  recuManquant,
 } from './reglement.util';
 import { AuthService } from '../../../core/auth/auth.service';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
@@ -144,6 +145,15 @@ export class EncaissementPage implements OnInit {
   private readonly montantSaisi = signal(0);
   private readonly recuSaisi = signal(0);
   private readonly pourboireSaisi = signal(0);
+  private readonly modeSaisi = signal(0);
+
+  /**
+   * Le mode retenu fait-il entrer des espèces dans le tiroir ? C'est lui qui
+   * rend le billet tendu obligatoire : hors tiroir, il n'y a rien à saisir.
+   */
+  readonly modeEnTiroir = computed(
+    () => this.modes().find((m) => m.id === this.modeSaisi())?.compte_en_caisse ?? false,
+  );
 
   /**
    * Ce qu'il restera après ce paiement. Le caissier voit tout de suite s'il
@@ -167,11 +177,15 @@ export class EncaissementPage implements OnInit {
   /** Saisie inversée : le billet doit couvrir la vente ET le pourboire. */
   readonly recuInsuffisant = computed(() => recuInsuffisant(this.saisie()));
 
+  /** Espèces tendues non saisies sur un mode qui alimente le tiroir. */
+  readonly recuManquant = computed(() => recuManquant(this.saisie()));
+
   /** Les trois montants du comptoir, tels que l'arithmétique les attend. */
   private readonly saisie = computed<SaisieReglement>(() => ({
     montant: this.montantSaisi(),
     pourboire: this.pourboireSaisi(),
     recu: this.recuSaisi(),
+    enTiroir: this.modeEnTiroir(),
   }));
 
   /** Horloge d'affichage : l'ancienneté se recalcule à chaque tic. */
@@ -197,6 +211,9 @@ export class EncaissementPage implements OnInit {
     this.reglementForm.controls.pourboire.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((valeur) => this.pourboireSaisi.set(Number(valeur) || 0));
+    this.reglementForm.controls.mode_de_paiement_id.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((valeur) => this.modeSaisi.set(Number(valeur) || 0));
 
     effect(() => {
       const list = this.pdvs();
@@ -345,6 +362,11 @@ export class EncaissementPage implements OnInit {
     }
     if (this.reglementForm.invalid) {
       this.reglementForm.markAllAsTouched();
+
+      return;
+    }
+    if (this.recuManquant()) {
+      this.formError.set('Saisissez les espèces tendues par le client.');
 
       return;
     }

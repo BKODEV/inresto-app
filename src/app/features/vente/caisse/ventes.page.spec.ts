@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { VentesPage } from './ventes.page';
@@ -204,5 +205,104 @@ describe('VentesPage — ventes d’une session de caisse', () => {
     page.onCaisseChange('3');
 
     expect(page.pageUnique()).toBe(true);
+  });
+});
+
+/**
+ * Le serveur ouvre la note, le caissier la solde — ce n'est pas toujours la
+ * même personne. `encaisse_par` / `encaisse_le` étaient servis par l'API et
+ * affichés nulle part : la piste d'audit de la clôture s'arrêtait en base.
+ */
+describe('VentesPage — la signature de la clôture', () => {
+  function rendre(surcharge: Partial<CommandeClient> = {}) {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: CommandeClientService,
+          useValue: {
+            listPagine: () =>
+              of({
+                commandes: [
+                  {
+                    id: 142,
+                    table_numero: 'T07',
+                    statut: 'encaissee',
+                    date_heure: '2026-08-20T19:00:00Z',
+                    montant_total: '5000.00',
+                    montant_du: '5000.00',
+                    montant_paye: '5000.00',
+                    reste_a_payer: '0.00',
+                    serveur: 'Kouassi A.',
+                    encaisse_par: 'uuid-aminata',
+                    encaisse_par_nom: 'Aminata D.',
+                    encaisse_le: '2026-08-20T21:45:00Z',
+                    paiements: [],
+                    ...surcharge,
+                  } as CommandeClient,
+                ],
+                pagination: { total: 1, par_page: 50, page_courante: 1, derniere_page: 1 },
+              }),
+          },
+        },
+        {
+          provide: SessionCaisseService,
+          useValue: {
+            list: () => of([{ id: 9, statut: 'fermee', ouvert_le: '2026-08-19T10:00:00Z' }]),
+          },
+        },
+        {
+          provide: CaisseService,
+          useValue: {
+            list: () =>
+              of([
+                {
+                  id: 3,
+                  libelle: 'Caisse principale',
+                  point_de_vente: { id: 1, nom: 'Bar', site_id: 1 },
+                },
+              ]),
+          },
+        },
+        { provide: PdfService, useValue: { recuClient: () => of(new Blob()) } },
+        provideRouter([]),
+        {
+          provide: SelectedSiteService,
+          useValue: {
+            selectedSite: () => ({ id: 1, nom: 'Site principal' }),
+            estConsolide: () => false,
+            selectedId: () => 1,
+            sites: () => [],
+          },
+        },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(VentesPage);
+    fixture.detectChanges();
+
+    return fixture;
+  }
+
+  it('nomme le caissier qui a clôturé la note', () => {
+    const fixture = rendre();
+
+    const texte: string = fixture.nativeElement.textContent;
+    expect(texte).toContain('Encaissé par');
+    expect(texte).toContain('Aminata D.');
+  });
+
+  it('affiche l’heure de la clôture, distincte de celle de la note', () => {
+    // La note ouverte à 19h a été soldée à 21h45 : les confondre effacerait la
+    // durée du service, qui est justement ce qu'un contrôle regarde.
+    const fixture = rendre();
+
+    expect(fixture.componentInstance.ventes()[0].encaisse_le).toBe('2026-08-20T21:45:00Z');
+    expect(fixture.nativeElement.querySelector('.detail-heure')).not.toBeNull();
+  });
+
+  it('ne prétend rien sur une note dont le caissier n’est pas chargé', () => {
+    const fixture = rendre({ encaisse_par_nom: null, encaisse_le: null });
+
+    expect(fixture.nativeElement.querySelector('.detail-heure')).toBeNull();
   });
 });

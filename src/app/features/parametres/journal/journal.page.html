@@ -3,7 +3,8 @@
     <div>
       <h1 class="page-title">Journal d'activité</h1>
       <p class="page-subtitle">
-        Annulations, remises, paiements, clôtures de note et impressions, par ordre chronologique.
+        Annulations, remises, paiements, clôtures de note, versements et impressions, par ordre
+        chronologique.
       </p>
     </div>
   </div>
@@ -27,6 +28,25 @@
         (change)="onDateFin($any($event.target).value)"
       />
     </label>
+
+    @if (pointsDeVente().length > 1) {
+      <!-- Un site porte plusieurs comptoirs, et une anomalie se cherche sur
+           celui où elle a eu lieu. Masqué s'il n'y en a qu'un : le choix
+           n'existerait pas. -->
+      <label class="field-label">
+        <span class="field-text">Point de vente</span>
+        <select
+          class="field-select"
+          [value]="pointDeVenteId() ?? ''"
+          (change)="onPointDeVente($any($event.target).value)"
+        >
+          <option value="">Tous</option>
+          @for (p of pointsDeVente(); track p.id) {
+            <option [value]="p.id" [selected]="pointDeVenteId() === p.id">{{ p.nom }}</option>
+          }
+        </select>
+      </label>
+    }
 
     <!-- Aucun type coché = tous les types. Cocher restreint, ce qui évite un
          état « rien de sélectionné » qui n'afficherait rien. -->
@@ -61,6 +81,15 @@
       </span>
     </div>
   } @else {
+    <!-- Chaque source est plafonnée côté API : dire ce qui a été lu évite de
+         prendre cette table pour l'historique complet de la période. -->
+    @if (periode(); as p) {
+      <p class="panel-note">
+        {{ total() }} événement{{ total() > 1 ? 's' : '' }} du {{ horodate(p.debut) }} au
+        {{ horodate(p.fin) }}.
+      </p>
+    }
+
     <table class="data-table">
       <thead>
         <tr>

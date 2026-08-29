@@ -111,7 +111,20 @@
       </div>
 
       <div class="panel card">
-        <div class="panel-head"><h2 class="panel-title">Écarts d'inventaire (période)</h2></div>
+        <div class="panel-head">
+          <h2 class="panel-title">Écarts d'inventaire (période)</h2>
+          <!-- Le ligne à ligne se demande à l'API : sur une période large il
+               pèse une ligne par matière comptée, pour une question qu'on ne
+               pose qu'une fois l'écart repéré. -->
+          <label class="check-inline">
+            <input
+              type="checkbox"
+              [checked]="detailEcarts()"
+              (change)="basculerDetail($any($event.target).checked)"
+            />
+            <span>Détail par matière</span>
+          </label>
+        </div>
         @if (ecarts().length === 0) {
           <div class="empty-state">
             <span class="empty-message">Aucun inventaire clôturé sur la période.</span>
@@ -133,7 +146,20 @@
               <tbody>
                 @for (e of ecarts(); track e.inventaire_id) {
                   <tr>
-                    <td>{{ e.date }}</td>
+                    <td>
+                      @if (detailEcarts()) {
+                        <button
+                          class="btn-deplier"
+                          type="button"
+                          [attr.aria-expanded]="estOuvert(e.inventaire_id)"
+                          (click)="basculerInventaire(e.inventaire_id)"
+                        >
+                          {{ estOuvert(e.inventaire_id) ? '▾' : '▸' }} {{ e.date }}
+                        </button>
+                      } @else {
+                        {{ e.date }}
+                      }
+                    </td>
                     <td class="td-primary">{{ e.site }}</td>
                     <td class="num">{{ e.nb_lignes }}</td>
                     <td
@@ -146,6 +172,55 @@
                     <td class="num neg">{{ fMontant(e.demarque_valeur) }}</td>
                     <td class="num">{{ fPct(e.taux_couverture) }}</td>
                   </tr>
+
+                  @if (detailEcarts() && estOuvert(e.inventaire_id)) {
+                    <tr class="ligne-detail">
+                      <td colspan="6">
+                        @if (matieresEnEcart(e).length === 0) {
+                          <span class="field-hint">
+                            Aucun écart sur cet inventaire : les {{ e.nb_lignes }} lignes comptées
+                            correspondent au stock théorique.
+                          </span>
+                        } @else {
+                          <table class="data-table data-table--imbriquee">
+                            <thead>
+                              <tr>
+                                <th>Matière</th>
+                                <th class="num">Écart (qté)</th>
+                                <th class="num">PMP</th>
+                                <th class="num">Écart valorisé</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <!-- Trié par poids : ce qui explique l'écart vient
+                                   en tête, et les lignes comptées juste sont
+                                   omises — `nb_lignes` porte déjà le volume. -->
+                              @for (m of matieresEnEcart(e); track m.matiere_premiere_id) {
+                                <tr>
+                                  <td class="td-primary">{{ m.matiere }}</td>
+                                  <td
+                                    class="num"
+                                    [class.neg]="m.ecart < 0"
+                                    [class.pos]="m.ecart > 0"
+                                  >
+                                    {{ fNombre(m.ecart) }}
+                                  </td>
+                                  <td class="num">{{ fMontant(m.pmp) }}</td>
+                                  <td
+                                    class="num"
+                                    [class.neg]="m.ecart_valeur < 0"
+                                    [class.pos]="m.ecart_valeur > 0"
+                                  >
+                                    {{ fMontant(m.ecart_valeur) }}
+                                  </td>
+                                </tr>
+                              }
+                            </tbody>
+                          </table>
+                        }
+                      </td>
+                    </tr>
+                  }
                 }
               </tbody>
             </table>

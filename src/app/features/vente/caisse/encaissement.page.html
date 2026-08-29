@@ -185,15 +185,30 @@
           Imprimer l'addition
         </button>
 
-        <label class="field-label" style="margin-top: 20px">
+        <div class="field-label" style="margin-top: 20px">
           <span class="field-text">Mode de paiement <span class="required">*</span></span>
-          <select class="field-select" formControlName="mode_de_paiement_id">
-            <option [value]="0" disabled>Sélectionner…</option>
+          <!-- Des boutons et non une liste : à un comptoir le mode se tape d'un
+               doigt, et le choix retenu reste visible pendant qu'on saisit le
+               montant — donc plus difficile à enregistrer par erreur. Même
+               forme qu'au détail de note, où le geste est le même. -->
+          <div class="modes-boutons">
             @for (m of modes(); track m.id) {
-              <option [value]="m.id">{{ m.libelle }}</option>
+              <button
+                type="button"
+                class="mode-bouton"
+                [class.mode-bouton-actif]="
+                  reglementForm.controls.mode_de_paiement_id.value === m.id
+                "
+                (click)="choisirMode(m.id)"
+              >
+                <span class="mode-libelle">{{ m.libelle }}</span>
+                @if (!m.compte_en_caisse) {
+                  <span class="mode-note">hors tiroir</span>
+                }
+              </button>
             }
-          </select>
-        </label>
+          </div>
+        </div>
 
         <label class="field-label" style="margin-top: 16px">
           <span class="field-text">Montant encaissé <span class="required">*</span></span>
@@ -208,9 +223,16 @@
 
         <!-- Le billet posé sur le comptoir. Il ne part PAS en base comme
              paiement : seul le montant encaissé reste en tiroir, et c'est lui
-             qui compte dans le fond théorique de la session. -->
+             qui compte dans le fond théorique de la session. Obligatoire dès
+             que l'argent y passe : sans lui, la monnaie rendue ne se déduit
+             pas, et le reçu affirmerait un appoint juste jamais constaté. -->
         <label class="field-label" style="margin-top: 16px">
-          <span class="field-text">Reçu du client</span>
+          <span class="field-text">
+            Reçu du client
+            @if (modeEnTiroir()) {
+              <span class="required">*</span>
+            }
+          </span>
           <input
             class="field-input"
             type="number"
@@ -219,6 +241,11 @@
             placeholder="Espèces tendues, pour calculer la monnaie"
             formControlName="montant_recu"
           />
+          @if (!modeEnTiroir()) {
+            <span class="field-hint">
+              Ce mode ne passe pas par le tiroir : aucun billet n'est tendu, rien à saisir.
+            </span>
+          }
         </label>
 
         <!-- Ne concerne QUE le pourboire qui atterrit dans le tiroir. Celui
@@ -243,7 +270,12 @@
           </span>
         </label>
 
-        @if (recuInsuffisant()) {
+        @if (recuManquant()) {
+          <p class="reglement-apres reglement-apres-alerte">
+            Saisissez les espèces tendues par le client : le reçu en a besoin pour annoncer la
+            monnaie rendue.
+          </p>
+        } @else if (recuInsuffisant()) {
           <p class="reglement-apres reglement-apres-alerte">
             Le montant reçu ne couvre pas le montant encaissé et le pourboire.
           </p>

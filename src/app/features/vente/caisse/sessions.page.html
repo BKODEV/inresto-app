@@ -4,14 +4,31 @@
       <h1 class="page-title">Sessions de caisse</h1>
       <p class="page-subtitle">Ouverture, fermeture et contrôle d'écart par caisse.</p>
     </div>
-    <button
-      class="btn btn-primary"
-      type="button"
-      (click)="openOuvrir()"
-      [disabled]="selectedCaisseId() === null || sessionOuverte() !== null"
-    >
-      + Ouvrir une session
-    </button>
+    <div class="header-actions">
+      <!-- Sortir de l'argent ne demande PAS une session ouverte : le versement
+           se rattache à la dernière session connue, ce qui permet de vider le
+           tiroir après la clôture. Il faut seulement que la caisse ait déjà
+           servi une fois — sans session, l'API n'aurait rien à rattacher. -->
+      @if (peutVerser()) {
+        <button
+          class="btn btn-secondary"
+          type="button"
+          (click)="openVerser()"
+          [disabled]="selectedCaisseId() === null || sessions().length === 0"
+          title="Sortir de l'argent du tiroir"
+        >
+          Verser
+        </button>
+      }
+      <button
+        class="btn btn-primary"
+        type="button"
+        (click)="openOuvrir()"
+        [disabled]="selectedCaisseId() === null || sessionOuverte() !== null"
+      >
+        + Ouvrir une session
+      </button>
+    </div>
   </div>
 
   @if (loading()) {
@@ -175,6 +192,73 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Ce qui est sorti du tiroir, en face des sessions : c'est la moitié
+           manquante de la lecture d'un écart. Un manquant de 200 000 s'explique
+           en une ligne quand le versement au coffre est là, et se cherche une
+           heure quand il ne l'est pas. Cadré sur la même permission que le
+           geste : sans `versement.create`, la liste n'est pas chargée. -->
+      @if (peutVerser()) {
+        <h2 class="page-subtitle" style="margin: var(--space-6) 0 12px">
+          Sorties de tiroir — 100 dernières
+        </h2>
+
+        @if (versements().length === 0) {
+          <div class="empty-state">
+            <span class="empty-title">Aucune sortie</span>
+            <span class="empty-message">
+              Rien n'est sorti du tiroir de cette caisse. Un versement au coffre ou en banque
+              s'enregistre avec le bouton « Verser ».
+            </span>
+          </div>
+        } @else {
+          <div class="card">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Montant</th>
+                  <th>Destination</th>
+                  <th>Remis à</th>
+                  <th>Référence</th>
+                  <th>Moment</th>
+                  <th>Auteur</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (v of versements(); track v.id) {
+                  <tr>
+                    <td>{{ v.date_heure | date: 'short' }}</td>
+                    <td class="td-mono">{{ v.montant | montant }}</td>
+                    <td>{{ v.destination_libelle }}</td>
+                    <td>
+                      <!-- Un reversement de pourboires désigne un bénéficiaire,
+                           un versement au coffre une personne qui emporte : la
+                           colonne répond à la même question, « qui a pris
+                           l'argent ». -->
+                      {{ v.beneficiaire || v.remis_a || '—' }}
+                    </td>
+                    <td class="td-mono">{{ v.reference || '—' }}</td>
+                    <td>
+                      <!-- Pendant le service le versement se retranche du
+                           théorique ; après la clôture il explique l'écart
+                           d'ouverture de la session suivante. -->
+                      @if (v.en_service === undefined) {
+                        —
+                      } @else if (v.en_service) {
+                        <span class="badge badge-neutral">En service</span>
+                      } @else {
+                        <span class="badge badge-warning">Après fermeture</span>
+                      }
+                    </td>
+                    <td>{{ v.auteur || '—' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
     }
   }
 </div>
@@ -226,6 +310,15 @@
     <form class="drawer-body" [formGroup]="verserForm" (ngSubmit)="verser()" novalidate>
       @if (formError()) {
         <div class="alert-error" style="margin-bottom: 16px">{{ formError() }}</div>
+      }
+
+      @if (sessionOuverte() === null) {
+        <!-- Le versement se rattache quand même à la dernière session fermée :
+             le dire ici évite de croire que le geste s'est perdu. -->
+        <p class="field-hint" style="margin: 0 0 16px">
+          Aucune session ouverte : ce versement se rattachera à la dernière session fermée et
+          expliquera l'écart d'ouverture de la suivante.
+        </p>
       }
 
       <!-- Ce montant se retranche du théorique de la session en cours : sans

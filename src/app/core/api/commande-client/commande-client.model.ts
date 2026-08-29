@@ -127,6 +127,11 @@ export interface CommandeClient {
    * n'est pas servie, et effacé si elle repart en cuisine.
    */
   servie_le: string | null;
+  /** Qui a clôturé la note, et quand. Nuls tant qu'elle n'est pas encaissée. */
+  encaisse_par: string | null;
+  /** Nom du caissier. Présent quand la relation est chargée. */
+  encaisse_par_nom?: string | null;
+  encaisse_le: string | null;
   montant_total: string;
   montant_du: string;
   montant_paye: string;

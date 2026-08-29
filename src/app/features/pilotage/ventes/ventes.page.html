@@ -89,15 +89,35 @@
 
       <div class="panel card">
         <div class="panel-head">
-          <h2 class="panel-title">Top produits</h2>
+          <h2 class="panel-title">{{ titreProduits() }}</h2>
           <select class="field-select" [value]="tri()" (change)="setTri($any($event.target).value)">
             <option value="ca">Par CA</option>
             <option value="quantite">Par quantité</option>
+          </select>
+          <!-- Le flop répond à une autre question que le top : quoi retirer de
+               la carte. L'API classait dans les deux sens depuis toujours. -->
+          <select
+            class="field-select"
+            [value]="sens()"
+            (change)="setSens($any($event.target).value)"
+            aria-label="Sens du classement"
+          >
+            <option value="desc">Meilleurs</option>
+            <option value="asc">Moins bons</option>
           </select>
         </div>
         @if (produits().length === 0) {
           <div class="empty-state"><span class="empty-message">Aucune vente.</span></div>
         } @else {
+          @if (sens() === 'asc') {
+            <!-- Un produit jamais vendu n'a aucune ligne de vente : il ne peut
+                 pas figurer ici. Sans ce rappel, on lit la liste comme celle
+                 des invendus et on retire de la carte le mauvais produit. -->
+            <p class="field-hint" style="margin: 0 0 12px">
+              Les moins vendus <strong>parmi ce qui s'est vendu</strong> : un produit à zéro vente
+              sur la période n'apparaît pas dans ce classement.
+            </p>
+          }
           <app-chart [options]="produitsOptions()" [height]="340" />
           <div class="table-wrap">
             <table class="data-table">

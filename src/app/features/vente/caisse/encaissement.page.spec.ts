@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
+import { provideRouter } from '@angular/router';
 
 import { EncaissementPage } from './encaissement.page';
 import { CommandeClient } from '../../../core/api/commande-client/commande-client.model';
@@ -87,13 +88,14 @@ describe('EncaissementPage — tiroir de règlement', () => {
     page.notes.set([note()]);
 
     page.ouvrirReglement(page.notes()[0]);
+    page.reglementForm.patchValue({ montant_recu: 5000 });
     page.regler();
 
     expect(api.ajouterPaiement).toHaveBeenCalledWith(142, {
       mode_de_paiement_id: 5,
       montant: 5000,
       pourboire: null,
-      montant_recu: null,
+      montant_recu: 5000,
     });
     expect(api.encaisser).toHaveBeenCalledWith(142);
     expect(page.notes()).toEqual([]);
@@ -132,8 +134,11 @@ describe('EncaissementPage — tiroir de règlement', () => {
     expect(page.monnaieARendre()).toBe(5000);
   });
 
-  it('ne transmet pas de billet tendu quand le compte est juste', () => {
-    // Une carte ou l'appoint exact : rien à mémoriser, et surtout rien à rendre.
+  /**
+   * Hors tiroir, aucun billet n'est posé sur le comptoir : le réclamer ferait
+   * saisir un chiffre inventé, et le reçu n'a aucune monnaie à annoncer.
+   */
+  it('ne transmet aucun billet tendu sur un mode hors tiroir', () => {
     const soldee = note({ montant_paye: '5000.00', reste_a_payer: '0.00' });
     const { page, api } = creer({
       api: {
@@ -141,19 +146,41 @@ describe('EncaissementPage — tiroir de règlement', () => {
         encaisser: vi.fn().mockReturnValue(of({ ...soldee, statut: 'encaissee' })),
       } as Partial<CommandeClientService>,
     });
+    page.modes.set([
+      { id: 5, libelle: 'Espèces', compte_en_caisse: true, ordre: 1, statut: 'actif' },
+      { id: 9, libelle: 'Carte bancaire', compte_en_caisse: false, ordre: 2, statut: 'actif' },
+    ] as never);
     page.notes.set([note()]);
 
     page.ouvrirReglement(page.notes()[0]);
-    page.reglementForm.patchValue({ montant_recu: 5000 });
+    page.choisirMode(9);
     page.regler();
 
     expect(api.ajouterPaiement).toHaveBeenCalledWith(142, {
-      mode_de_paiement_id: 5,
+      mode_de_paiement_id: 9,
       montant: 5000,
       pourboire: null,
       montant_recu: null,
     });
     expect(page.monnaieARendre()).toBe(0);
+  });
+
+  /**
+   * Sans le billet, la monnaie rendue ne se déduit pas : le reçu retombait sur
+   * le montant encaissé et affirmait un appoint juste jamais constaté.
+   */
+  it('refuse un règlement en espèces sans les espèces tendues', () => {
+    const { page, api } = creer();
+    page.notes.set([note()]);
+
+    page.ouvrirReglement(page.notes()[0]);
+
+    expect(page.recuManquant()).toBe(true);
+
+    page.regler();
+
+    expect(api.ajouterPaiement).not.toHaveBeenCalled();
+    expect(page.formError()).toContain('espèces tendues');
   });
 
   it('refuse un billet tendu inférieur au montant encaissé', () => {
@@ -181,7 +208,7 @@ describe('EncaissementPage — tiroir de règlement', () => {
     page.notes.set([note()]);
 
     page.ouvrirReglement(page.notes()[0]);
-    page.reglementForm.patchValue({ montant: 3000 });
+    page.reglementForm.patchValue({ montant: 3000, montant_recu: 3000 });
     page.regler();
 
     expect(api.encaisser).not.toHaveBeenCalled();
@@ -205,7 +232,7 @@ describe('EncaissementPage — tiroir de règlement', () => {
     page.notes.set([note()]);
 
     page.ouvrirReglement(page.notes()[0]);
-    page.reglementForm.patchValue({ montant: 3000 });
+    page.reglementForm.patchValue({ montant: 3000, montant_recu: 3000 });
     page.regler();
 
     expect(api.encaisser).toHaveBeenCalledWith(142);
@@ -223,6 +250,7 @@ describe('EncaissementPage — tiroir de règlement', () => {
     page.notes.set([note()]);
 
     page.ouvrirReglement(page.notes()[0]);
+    page.reglementForm.patchValue({ montant_recu: 5000 });
     page.regler();
 
     expect(api.ajouterPaiement).toHaveBeenCalled();
@@ -249,6 +277,7 @@ describe('EncaissementPage — tiroir de règlement', () => {
     page.notes.set([note()]);
 
     page.ouvrirReglement(page.notes()[0]);
+    page.reglementForm.patchValue({ montant_recu: 5000 });
     page.regler();
 
     expect(page.cible()).not.toBeNull();
@@ -321,8 +350,9 @@ describe('EncaissementPage — tiroir de règlement', () => {
       mode_de_paiement_id: 5,
       montant: 5000,
       pourboire: 1000,
-      // Rien à rendre, donc pas de billet à mémoriser.
-      montant_recu: null,
+      // Plus rien à rendre, mais le billet posé sur le comptoir reste 6 000 :
+      // c'est ce que le reçu doit annoncer comme reçu du client.
+      montant_recu: 6000,
     });
   });
 
@@ -364,5 +394,114 @@ describe('EncaissementPage — tiroir de règlement', () => {
 
     page.reglementForm.patchValue({ montant: 6000 });
     expect(page.resteApres()).toBe(-1000);
+  });
+});
+
+/**
+ * `choisirMode()` existait avec son commentaire — « des boutons et non une
+ * liste » — mais le gabarit gardait le `<select>` : la rangée de boutons
+ * n'avait jamais été posée ici, alors qu'elle l'était au détail de note pour
+ * le même geste. Une liste déroulante à un comptoir tactile se manipule mal,
+ * et masque le mode retenu pendant la saisie du montant.
+ */
+describe('EncaissementPage — le mode se choisit au doigt', () => {
+  const MODES = [
+    { id: 5, libelle: 'Espèces', compte_en_caisse: true, ordre: 1, statut: 'actif' },
+    { id: 9, libelle: 'Carte', compte_en_caisse: false, ordre: 2, statut: 'actif' },
+  ];
+
+  function rendre() {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: CommandeClientService,
+          useValue: {
+            list: () => of([]),
+            get: vi.fn(),
+            ajouterPaiement: vi.fn(),
+            encaisser: vi.fn(),
+          },
+        },
+        { provide: ModeDePaiementService, useValue: { list: () => of(MODES) } },
+        {
+          provide: PdfService,
+          useValue: { additionClient: () => of(new Blob()), recuClient: () => of(new Blob()) },
+        },
+        { provide: PointDeVenteService, useValue: { list: () => of([]) } },
+        { provide: AuthService, useValue: { hasPermission: () => true } },
+        provideRouter([]),
+        {
+          provide: SelectedSiteService,
+          useValue: {
+            selectedSite: () => ({ id: 1, nom: 'Site principal' }),
+            estConsolide: () => false,
+            selectedId: () => 1,
+            sites: () => [],
+          },
+        },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(EncaissementPage);
+    fixture.detectChanges();
+    fixture.componentInstance.ouvrirReglement({
+      id: 142,
+      table_numero: 'T07',
+      statut: 'servie',
+      montant_du: '5000.00',
+      montant_paye: '0.00',
+      reste_a_payer: '5000.00',
+    } as never);
+    fixture.detectChanges();
+
+    return fixture;
+  }
+
+  function boutonsMode(fixture: ReturnType<typeof rendre>): HTMLButtonElement[] {
+    return Array.from(fixture.nativeElement.querySelectorAll('.mode-bouton'));
+  }
+
+  it('offre un bouton par mode, et plus de liste déroulante', () => {
+    const fixture = rendre();
+
+    expect(
+      boutonsMode(fixture).map((b) => b.querySelector('.mode-libelle')?.textContent?.trim()),
+    ).toEqual(['Espèces', 'Carte']);
+    expect(
+      fixture.nativeElement.querySelector('select[formcontrolname="mode_de_paiement_id"]'),
+    ).toBeNull();
+  });
+
+  it('retient le mode tapé', () => {
+    const fixture = rendre();
+
+    boutonsMode(fixture)[1].click();
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.reglementForm.getRawValue().mode_de_paiement_id).toBe(9);
+  });
+
+  /** Le mode retenu doit rester visible pendant qu'on saisit le montant. */
+  it('montre lequel est retenu', () => {
+    const fixture = rendre();
+
+    boutonsMode(fixture)[1].click();
+    fixture.detectChanges();
+
+    expect(boutonsMode(fixture)[1].classList).toContain('mode-bouton-actif');
+    expect(boutonsMode(fixture)[0].classList).not.toContain('mode-bouton-actif');
+  });
+
+  /**
+   * Un mode hors tiroir ne compte pas dans le fond de caisse : le caissier doit
+   * le voir AVANT de taper, pas au moment de la fermeture.
+   */
+  it('signale un mode qui ne va pas au tiroir', () => {
+    const fixture = rendre();
+
+    expect(boutonsMode(fixture)[1].querySelector('.mode-note')?.textContent).toContain(
+      'hors tiroir',
+    );
+    expect(boutonsMode(fixture)[0].querySelector('.mode-note')).toBeNull();
   });
 });

@@ -409,9 +409,15 @@
       </label>
 
       <!-- Le billet posé sur le comptoir. Ne part pas en base tel quel : seul
-           le montant encaissé reste en tiroir. -->
+           le montant encaissé reste en tiroir. Obligatoire dès que l'argent y
+           passe : sans lui, le reçu n'a aucune monnaie à annoncer. -->
       <label class="field-label" style="margin-top: 16px">
-        <span class="field-text">Reçu du client</span>
+        <span class="field-text">
+          Reçu du client
+          @if (modeEnTiroir()) {
+            <span class="required">*</span>
+          }
+        </span>
         <input
           class="field-input"
           type="number"
@@ -420,6 +426,11 @@
           placeholder="Espèces tendues, pour calculer la monnaie"
           formControlName="montant_recu"
         />
+        @if (!modeEnTiroir()) {
+          <span class="field-hint">
+            Ce mode ne passe pas par le tiroir : aucun billet n'est tendu, rien à saisir.
+          </span>
+        }
       </label>
 
       <!-- Ne concerne QUE le pourboire qui atterrit dans le tiroir. Celui que
@@ -442,7 +453,12 @@
         </span>
       </label>
 
-      @if (recuInsuffisant()) {
+      @if (recuManquant()) {
+        <p class="reglement-apres reglement-apres-alerte">
+          Saisissez les espèces tendues par le client : le reçu en a besoin pour annoncer la monnaie
+          rendue.
+        </p>
+      } @else if (recuInsuffisant()) {
         <p class="reglement-apres reglement-apres-alerte">
           Le montant reçu ne couvre pas le montant encaissé et le pourboire.
         </p>

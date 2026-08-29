@@ -38,6 +38,7 @@ import {
   payloadPaiement,
   pourboireApresAvoirGardeLaMonnaie,
   recuInsuffisant,
+  recuManquant,
 } from './reglement.util';
 import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
@@ -175,15 +176,23 @@ export class CommandeVenteDetailPage implements OnInit {
   private readonly montantSaisi = signal(0);
   private readonly recuSaisi = signal(0);
   private readonly pourboireSaisi = signal(0);
+  private readonly modeSaisi = signal(0);
+
+  /** Le mode retenu alimente-t-il le tiroir ? Il rend le billet obligatoire. */
+  readonly modeEnTiroir = computed(
+    () => this.modes().find((m) => m.id === this.modeSaisi())?.compte_en_caisse ?? false,
+  );
 
   private readonly saisie = computed<SaisieReglement>(() => ({
     montant: this.montantSaisi(),
     pourboire: this.pourboireSaisi(),
     recu: this.recuSaisi(),
+    enTiroir: this.modeEnTiroir(),
   }));
 
   readonly monnaieSaisie = computed(() => monnaieARendre(this.saisie()));
   readonly recuInsuffisant = computed(() => recuInsuffisant(this.saisie()));
+  readonly recuManquant = computed(() => recuManquant(this.saisie()));
   readonly remiseForm = this.fb.nonNullable.group({
     type: ['pourcentage' as TypeRemise, Validators.required],
     valeur: [0, [Validators.required, Validators.min(0.01)]],
@@ -208,6 +217,7 @@ export class CommandeVenteDetailPage implements OnInit {
     suivre(this.paiementForm.controls.montant, this.montantSaisi);
     suivre(this.paiementForm.controls.montant_recu, this.recuSaisi);
     suivre(this.paiementForm.controls.pourboire, this.pourboireSaisi);
+    suivre(this.paiementForm.controls.mode_de_paiement_id, this.modeSaisi);
   }
 
   ngOnInit(): void {
@@ -586,6 +596,11 @@ export class CommandeVenteDetailPage implements OnInit {
       this.paiementForm.markAllAsTouched();
       return;
     }
+    if (this.recuManquant()) {
+      this.formError.set('Saisissez les espèces tendues par le client.');
+
+      return;
+    }
     if (this.recuInsuffisant()) {
       this.formError.set('Le montant reçu ne couvre pas le montant encaissé et le pourboire.');
 
@@ -645,10 +660,6 @@ export class CommandeVenteDetailPage implements OnInit {
 
   closeDrawer(): void {
     this.drawerMode.set(null);
-  }
-
-  retour(): void {
-    this.router.navigate(['/vente/caisse/commandes']);
   }
 }
 

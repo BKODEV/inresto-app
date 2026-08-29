@@ -1,17 +1,23 @@
 import { StorePaiementPayload } from '../../../core/api/commande-client/commande-client.model';
 
 /**
- * Les trois montants qu'un caissier pose sur un règlement.
+ * Les trois montants qu'un caissier pose sur un règlement, et la nature du mode
+ * choisi.
  *
  * `montant` solde la note — c'est la vente. `pourboire` reste en tiroir sans
  * appartenir à l'établissement. `recu` est le billet tendu, dont se déduit la
  * monnaie. Seul le billet ne part jamais tel quel en base : l'y enregistrer
  * gonflerait le fond de caisse théorique de l'argent déjà rendu.
+ *
+ * `enTiroir` dit si le mode fait entrer des espèces dans le tiroir. Il décide à
+ * lui seul si le billet est une donnée obligatoire ou une notion sans objet :
+ * une carte ne pose rien sur le comptoir.
  */
 export interface SaisieReglement {
   montant: number;
   pourboire: number;
   recu: number;
+  enTiroir: boolean;
 }
 
 /** Arrondi au centime, pour que les comparaisons ne butent pas sur un flottant. */
@@ -42,6 +48,17 @@ export function recuInsuffisant(saisie: SaisieReglement): boolean {
   return saisie.recu > 0 && saisie.recu < auCentime(saisie.montant + saisie.pourboire);
 }
 
+/**
+ * Espèces tendues non saisies alors que l'argent passe par le tiroir.
+ *
+ * Sans le billet, la monnaie rendue ne se déduit pas : le reçu retombait sur le
+ * montant encaissé et affirmait un appoint juste que personne n'avait constaté.
+ * L'API le refuse désormais ; l'annoncer ici évite au caissier un aller-retour.
+ */
+export function recuManquant(saisie: SaisieReglement): boolean {
+  return saisie.enTiroir && saisie.recu <= 0;
+}
+
 /** « Gardez la monnaie » : tout ce qui restait à rendre devient pourboire. */
 export function pourboireApresAvoirGardeLaMonnaie(saisie: SaisieReglement): number {
   return auCentime(saisie.pourboire + monnaieARendre(saisie));
@@ -50,9 +67,10 @@ export function pourboireApresAvoirGardeLaMonnaie(saisie: SaisieReglement): numb
 /**
  * Payload d'un paiement.
  *
- * `montant_recu` n'est transmis que s'il reste quelque chose à rendre : une
- * carte, un compte juste ou une monnaie entièrement laissée en pourboire n'ont
- * aucun billet à mémoriser, et le champ resterait un chiffre sans usage.
+ * `montant_recu` accompagne tout encaissement en tiroir, monnaie ou pas : un
+ * appoint juste est une information — le billet valait exactement la note —
+ * alors que l'absence de champ laissait le reçu la supposer. Hors tiroir, aucun
+ * billet n'a été tendu : le champ resterait un chiffre inventé.
  */
 export function payloadPaiement(
   modeDePaiementId: number,
@@ -62,6 +80,6 @@ export function payloadPaiement(
     mode_de_paiement_id: modeDePaiementId,
     montant: saisie.montant,
     pourboire: saisie.pourboire > 0 ? saisie.pourboire : null,
-    montant_recu: monnaieARendre(saisie) > 0 ? saisie.recu : null,
+    montant_recu: saisie.enTiroir ? saisie.recu : null,
   };
 }

@@ -1,12 +1,18 @@
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 
 import { authGuard, guestGuard } from './core/auth/auth.guard';
+import { AuthService } from './core/auth/auth.service';
+import { premiereRouteAutorisee } from './core/navigation/premiere-route-autorisee';
 
 export const routes: Routes = [
   {
+    // Pas `dashboard` en dur : cet écran demande `reporting.dashboard`, que
+    // tout le monde n'a pas. On envoie chacun sur le premier écran qu'il peut
+    // réellement ouvrir.
     path: '',
     pathMatch: 'full',
-    redirectTo: 'dashboard',
+    redirectTo: () => premiereRouteAutorisee(inject(AuthService)),
   },
   {
     path: 'login',
@@ -429,8 +435,10 @@ export const routes: Routes = [
         ],
       },
       {
+        // Même raison qu'à la racine : une URL inconnue ne doit pas déposer
+        // l'utilisateur sur un écran qu'il n'a pas le droit d'ouvrir.
         path: '**',
-        redirectTo: 'dashboard',
+        redirectTo: () => premiereRouteAutorisee(inject(AuthService)),
       },
     ],
   },

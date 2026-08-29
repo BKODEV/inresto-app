@@ -132,6 +132,10 @@
               <th>Note</th>
               <th>Table</th>
               <th>Serveur</th>
+              <!-- Qui a clôturé la note : la piste d'audit de la caisse. Le
+                   serveur a ouvert la note, le caissier l'a soldée — ce n'est
+                   pas toujours la même personne. -->
+              <th>Encaissé par</th>
               <th>Règlement</th>
               <th class="num">Total</th>
               <th></th>
@@ -148,6 +152,12 @@
                 </td>
                 <td class="td-primary">{{ v.table_numero ?? v.table?.numero ?? '—' }}</td>
                 <td>{{ v.serveur ?? '—' }}</td>
+                <td>
+                  {{ v.encaisse_par_nom ?? '—' }}
+                  @if (v.encaisse_le) {
+                    <span class="detail-heure">{{ v.encaisse_le | date: 'shortTime' }}</span>
+                  }
+                </td>
                 <td>
                   @for (p of v.paiements ?? []; track p.id) {
                     <span class="badge badge-neutral">

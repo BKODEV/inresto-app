@@ -210,3 +210,48 @@
     color: var(--text-dim);
   }
 }
+
+// Détail par matière des écarts d'inventaire ---------------------------------
+
+.check-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+
+// Le chevron porte la date : la cible de clic est la cellule qu'on lit, et non
+// une icône de 12px à côté d'elle.
+.btn-deplier {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--amber);
+  }
+}
+
+.ligne-detail > td {
+  background: var(--surface-2);
+  padding: var(--space-3) var(--space-4);
+}
+
+.data-table--imbriquee {
+  width: 100%;
+  font-size: var(--text-sm);
+
+  th,
+  td {
+    padding: 6px 8px;
+  }
+}

@@ -4,10 +4,12 @@ import {
   payloadPaiement,
   pourboireApresAvoirGardeLaMonnaie,
   recuInsuffisant,
+  recuManquant,
 } from './reglement.util';
 
+/** Espèces par défaut : le cas où le billet est en jeu. */
 function saisie(surcharge: Partial<SaisieReglement> = {}): SaisieReglement {
-  return { montant: 7500, pourboire: 0, recu: 0, ...surcharge };
+  return { montant: 7500, pourboire: 0, recu: 0, enTiroir: true, ...surcharge };
 }
 
 /**
@@ -34,7 +36,7 @@ describe('monnaieARendre', () => {
   });
 
   it('reste juste au centime', () => {
-    expect(monnaieARendre({ montant: 10.1, pourboire: 0.2, recu: 20 })).toBe(9.7);
+    expect(monnaieARendre({ montant: 10.1, pourboire: 0.2, recu: 20, enTiroir: true })).toBe(9.7);
   });
 });
 
@@ -57,6 +59,25 @@ describe('recuInsuffisant', () => {
   });
 });
 
+/**
+ * Le billet est une donnée du comptoir, pas un confort d'affichage : sans lui,
+ * le reçu retombe sur le montant encaissé et annonce un appoint juste que
+ * personne n'a constaté.
+ */
+describe('recuManquant', () => {
+  it('réclame le billet dès que l’argent passe par le tiroir', () => {
+    expect(recuManquant(saisie())).toBe(true);
+  });
+
+  it('se tait dès qu’un billet est saisi', () => {
+    expect(recuManquant(saisie({ recu: 7500 }))).toBe(false);
+  });
+
+  it('ne réclame rien hors tiroir : aucun billet n’est tendu', () => {
+    expect(recuManquant(saisie({ enTiroir: false }))).toBe(false);
+  });
+});
+
 describe('pourboireApresAvoirGardeLaMonnaie', () => {
   it('bascule la monnaie restante', () => {
     expect(pourboireApresAvoirGardeLaMonnaie(saisie({ recu: 10000 }))).toBe(2500);
@@ -68,8 +89,8 @@ describe('pourboireApresAvoirGardeLaMonnaie', () => {
 });
 
 describe('payloadPaiement', () => {
-  it('n’envoie ni pourboire ni billet quand le compte est juste', () => {
-    expect(payloadPaiement(5, saisie())).toEqual({
+  it('n’envoie aucun billet hors tiroir', () => {
+    expect(payloadPaiement(5, saisie({ enTiroir: false }))).toEqual({
       mode_de_paiement_id: 5,
       montant: 7500,
       pourboire: null,
@@ -77,10 +98,14 @@ describe('payloadPaiement', () => {
     });
   });
 
-  it('envoie le billet seulement s’il reste à rendre', () => {
+  it('envoie le billet sur tout encaissement en tiroir, monnaie ou pas', () => {
     expect(payloadPaiement(5, saisie({ recu: 10000 })).montant_recu).toBe(10000);
-    // Monnaie entièrement laissée : plus rien à rendre, donc rien à mémoriser.
-    expect(payloadPaiement(5, saisie({ recu: 10000, pourboire: 2500 })).montant_recu).toBeNull();
+    // Appoint juste : le billet valait exactement la note, et c'est une
+    // information — l'omettre laissait le reçu la supposer.
+    expect(payloadPaiement(5, saisie({ recu: 7500 })).montant_recu).toBe(7500);
+    // Monnaie entièrement laissée en pourboire : le billet reste ce qui a été
+    // posé sur le comptoir.
+    expect(payloadPaiement(5, saisie({ recu: 10000, pourboire: 2500 })).montant_recu).toBe(10000);
   });
 
   it('transmet le pourboire dès qu’il existe', () => {

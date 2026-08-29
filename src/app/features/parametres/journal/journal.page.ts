@@ -12,6 +12,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { JournalService } from '../../../core/api/journal/journal.service';
 import { EvenementJournal, TypeEvenementJournal } from '../../../core/api/journal/journal.model';
+import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
+import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { formatMontant } from '../../../shared/format/nombre.format';
 
@@ -25,6 +27,7 @@ const TYPES: TypeOption[] = [
   { value: 'remise', label: 'Remises' },
   { value: 'paiement', label: 'Paiements' },
   { value: 'encaissement', label: 'Clôtures de note' },
+  { value: 'versement', label: 'Versements' },
   { value: 'impression', label: 'Impressions' },
 ];
 
@@ -44,12 +47,28 @@ const TYPES: TypeOption[] = [
 })
 export class JournalPage implements OnInit {
   private readonly service = inject(JournalService);
+  private readonly pdvService = inject(PointDeVenteService);
   private readonly selectedSite = inject(SelectedSiteService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly types = TYPES;
   readonly evenements = signal<EvenementJournal[]>([]);
   readonly loading = signal(true);
+
+  /**
+   * La fenêtre réellement lue par l'API, et le volume retenu. Sans dates
+   * fournies elle se ramène à la journée courante, et chaque source est
+   * plafonnée : l'afficher évite de croire qu'on tient tout l'historique.
+   */
+  readonly periode = signal<{ debut: string; fin: string } | null>(null);
+  readonly total = signal(0);
+
+  /**
+   * Un site porte plusieurs comptoirs, et une anomalie se cherche sur le
+   * comptoir où elle a eu lieu. Le filtre est servi par l'API depuis toujours.
+   */
+  readonly pointsDeVente = signal<PointDeVente[]>([]);
+  readonly pointDeVenteId = signal<number | null>(null);
 
   private readonly aujourdhui = new Date().toISOString().slice(0, 10);
   readonly dateDebut = signal(this.aujourdhui);
@@ -61,10 +80,13 @@ export class JournalPage implements OnInit {
     remise: 'Remise',
     paiement: 'Paiement',
     encaissement: 'Clôture',
+    versement: 'Versement',
     impression: 'Impression',
   };
 
-  readonly aDesFiltres = computed(() => this.typesActifs().size > 0);
+  readonly aDesFiltres = computed(
+    () => this.typesActifs().size > 0 || this.pointDeVenteId() !== null,
+  );
 
   private readonly horodatage = new Intl.DateTimeFormat('fr-FR', {
     dateStyle: 'short',
@@ -73,13 +95,18 @@ export class JournalPage implements OnInit {
 
   constructor() {
     // Le périmètre borne ce que l'API renvoie : changer de site doit recharger.
+    // Le comptoir choisi appartenait au site précédent : le garder filtrerait
+    // sur un point de vente absent de la nouvelle portée, donc sur du vide.
     effect(() => {
       this.selectedSite.epoch();
+      this.pointDeVenteId.set(null);
+      this.chargerPointsDeVente();
       this.charger();
     });
   }
 
   ngOnInit(): void {
+    this.chargerPointsDeVente();
     this.charger();
   }
 
@@ -110,6 +137,11 @@ export class JournalPage implements OnInit {
     return this.typesActifs().has(type);
   }
 
+  onPointDeVente(valeur: string): void {
+    this.pointDeVenteId.set(valeur === '' ? null : Number(valeur));
+    this.charger();
+  }
+
   /** Horodatage à la seconde : deux gestes d'un même service se suivent de près. */
   horodate(valeur: string | null): string {
     return valeur === null ? '—' : this.horodatage.format(new Date(valeur));
@@ -127,14 +159,35 @@ export class JournalPage implements OnInit {
         date_fin: this.dateFin(),
         type: [...this.typesActifs()],
         site_id: this.selectedSite.selectedId() ?? undefined,
+        point_de_vente_id: this.pointDeVenteId() ?? undefined,
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (evenements) => {
-          this.evenements.set(evenements);
+        next: (index) => {
+          this.evenements.set(index.evenements);
+          this.periode.set(index.periode);
+          this.total.set(index.total);
           this.loading.set(false);
         },
         error: () => this.loading.set(false),
+      });
+  }
+
+  /**
+   * Restreint au site courant : les points de vente des autres sites ne sont
+   * pas dans le périmètre lu, les proposer ne filtrerait que sur du vide.
+   */
+  private chargerPointsDeVente(): void {
+    const siteId = this.selectedSite.selectedId();
+    this.pdvService
+      .list()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (liste) =>
+          this.pointsDeVente.set(
+            siteId === null ? liste : liste.filter((p) => p.site_id === siteId),
+          ),
+        error: () => this.pointsDeVente.set([]),
       });
   }
 }

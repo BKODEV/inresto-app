@@ -4,13 +4,7 @@ import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import { ApiResponse } from '../api.types';
-import { EvenementJournal, JournalFiltres } from './journal.model';
-
-interface JournalIndex {
-  evenements: EvenementJournal[];
-  periode: { debut: string; fin: string };
-  total: number;
-}
+import { JournalFiltres, JournalIndex } from './journal.model';
 
 @Injectable({ providedIn: 'root' })
 export class JournalService {
@@ -21,7 +15,7 @@ export class JournalService {
    * Sans plage de dates, l'API se limite à la journée courante : le journal
    * assemble plusieurs sources en mémoire et doit rester borné.
    */
-  list(filtres: JournalFiltres = {}): Observable<EvenementJournal[]> {
+  list(filtres: JournalFiltres = {}): Observable<JournalIndex> {
     let params = new HttpParams();
     if (filtres.site_id) {
       params = params.set('site_id', filtres.site_id);
@@ -38,8 +32,6 @@ export class JournalService {
     for (const type of filtres.type ?? []) {
       params = params.append('type[]', type);
     }
-    return this.http
-      .get<ApiResponse<JournalIndex>>(this.base, { params })
-      .pipe(map((r) => r.data.evenements));
+    return this.http.get<ApiResponse<JournalIndex>>(this.base, { params }).pipe(map((r) => r.data));
   }
 }
