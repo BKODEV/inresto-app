@@ -1,6 +1,7 @@
 import { Statut } from '../api.types';
 import { CategorieProduit } from '../categorie-produit/categorie-produit.model';
 import { PointDeVente } from '../point-de-vente/point-de-vente.model';
+import { MembreBrigade } from '../session-cuisine/session-cuisine.model';
 
 /**
  * Poste de production d'un point de vente : « Entrées froides », « Chaud »…
@@ -19,6 +20,13 @@ export interface PosteCuisine {
   ordre: number;
   statut: Statut;
   categories?: CategorieProduit[];
+  /**
+   * Qui tient le poste. C'est l'autre moitié de l'organisation du pass : les
+   * catégories disent ce qu'on y produit, les membres qui le fait. Être
+   * rattaché à au moins un poste d'un point de vente définit « être de la
+   * cuisine » de ce point de vente.
+   */
+  membres?: MembreBrigade[];
   point_de_vente?: PointDeVente;
 }
 
@@ -29,6 +37,8 @@ export interface CreatePosteCuisinePayload {
   statut?: Statut;
   /** Identifiants de catégories ; l'API les pose par `sync`. */
   categories?: number[];
+  /** Identifiants d'utilisateurs ; même `sync`, mêmes conditions. */
+  membres?: string[];
 }
 
 export interface UpdatePosteCuisinePayload {
@@ -40,4 +50,6 @@ export interface UpdatePosteCuisinePayload {
    * intentions distinctes, à ne pas confondre en envoyant `[]` par défaut.
    */
   categories?: number[];
+  /** Même règle absent/vide que `categories`. */
+  membres?: string[];
 }

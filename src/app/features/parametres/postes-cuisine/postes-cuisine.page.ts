@@ -16,6 +16,8 @@ import { PosteCuisine } from '../../../core/api/poste-cuisine/poste-cuisine.mode
 import { CategorieProduitService } from '../../../core/api/categorie-produit/categorie-produit.service';
 import { CategorieProduit } from '../../../core/api/categorie-produit/categorie-produit.model';
 import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
+import { SessionCuisineService } from '../../../core/api/session-cuisine/session-cuisine.service';
+import { MembreBrigade } from '../../../core/api/session-cuisine/session-cuisine.model';
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 
@@ -41,6 +43,7 @@ export class PostesCuisinePage implements OnInit {
   private readonly service = inject(PosteCuisineService);
   private readonly categorieService = inject(CategorieProduitService);
   private readonly pdvService = inject(PointDeVenteService);
+  private readonly sessionCuisineService = inject(SessionCuisineService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -56,6 +59,17 @@ export class PostesCuisinePage implements OnInit {
 
   /** Catégories cochées dans le tiroir, par identifiant. */
   readonly categoriesChoisies = signal<Set<number>>(new Set());
+
+  /**
+   * Qui tient le poste. L'autre moitié de l'organisation du pass : les
+   * catégories disent ce qu'on y produit, les membres qui le fait. C'est ce
+   * rattachement qui permet ensuite de composer une brigade sans dérouler tout
+   * le personnel du site.
+   */
+  readonly membresChoisis = signal<Set<string>>(new Set());
+  /** Personnel du site du point de vente en cours d'édition. */
+  readonly personnel = signal<MembreBrigade[]>([]);
+  readonly personnelLoading = signal(false);
 
   /**
    * Catégories qu'AUCUN poste ne prend en charge, pour le point de vente en
@@ -122,6 +136,25 @@ export class PostesCuisinePage implements OnInit {
     return noms.length > 0 ? noms.join(', ') : '—';
   }
 
+  libellesMembres(poste: PosteCuisine): string {
+    const noms = (poste.membres ?? []).map((m) => m.nom);
+    return noms.length > 0 ? noms.join(' · ') : '—';
+  }
+
+  estMembre(id: string): boolean {
+    return this.membresChoisis().has(id);
+  }
+
+  basculerMembre(id: string): void {
+    this.membresChoisis.update((set) => {
+      const copie = new Set(set);
+      if (!copie.delete(id)) {
+        copie.add(id);
+      }
+      return copie;
+    });
+  }
+
   estChoisie(categorie: CategorieProduit): boolean {
     return this.categoriesChoisies().has(categorie.id);
   }
@@ -142,6 +175,8 @@ export class PostesCuisinePage implements OnInit {
     this.editingItem.set(null);
     this.form.reset({ point_de_vente_id: this.pdvs()[0]?.id ?? 0, libelle: '', ordre: 0 });
     this.categoriesChoisies.set(new Set());
+    this.membresChoisis.set(new Set());
+    this.chargerPersonnel(this.pdvs()[0]?.id ?? null);
     this.formError.set(null);
     this.drawerOpen.set(true);
   }
@@ -154,12 +189,48 @@ export class PostesCuisinePage implements OnInit {
       ordre: item.ordre,
     });
     this.categoriesChoisies.set(new Set((item.categories ?? []).map((c) => c.id)));
+    this.membresChoisis.set(new Set((item.membres ?? []).map((m) => m.id)));
+    this.chargerPersonnel(item.point_de_vente_id);
     this.formError.set(null);
     this.drawerOpen.set(true);
   }
 
   closeDrawer(): void {
     this.drawerOpen.set(false);
+  }
+
+  /** Le point de vente change à la création : le personnel proposé aussi. */
+  onPdvChoisi(valeur: string): void {
+    this.chargerPersonnel(Number(valeur));
+    // Un membre du site précédent n'a rien à faire sur ce poste, et l'API le
+    // refuserait : on repart d'une brigade vide plutôt que d'un 422.
+    this.membresChoisis.set(new Set());
+  }
+
+  /**
+   * Servi par l'API en lecture minimale plutôt que par `GET /users`, qui exige
+   * `utilisateur.view` — une permission d'administration du personnel que le
+   * chef de cuisine n'a pas, alors que cet écran est le sien.
+   */
+  private chargerPersonnel(pointDeVenteId: number | null): void {
+    if (pointDeVenteId === null) {
+      this.personnel.set([]);
+      return;
+    }
+    this.personnelLoading.set(true);
+    this.sessionCuisineService
+      .personnel(pointDeVenteId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (liste) => {
+          this.personnel.set(liste);
+          this.personnelLoading.set(false);
+        },
+        error: () => {
+          this.personnel.set([]);
+          this.personnelLoading.set(false);
+        },
+      });
   }
 
   save(): void {
@@ -173,17 +244,19 @@ export class PostesCuisinePage implements OnInit {
 
     const { point_de_vente_id, libelle, ordre } = this.form.getRawValue();
     const categories = [...this.categoriesChoisies()];
+    const membres = [...this.membresChoisis()];
     const editing = this.editingItem();
 
     // Le point de vente n'est pas modifiable : déplacer un poste d'un pass à
     // l'autre emporterait ses catégories dans un contexte différent.
     const request$ = editing
-      ? this.service.update(editing.id, { libelle, ordre, categories })
+      ? this.service.update(editing.id, { libelle, ordre, categories, membres })
       : this.service.create({
           point_de_vente_id: Number(point_de_vente_id),
           libelle,
           ordre,
           categories,
+          membres,
         });
 
     request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({

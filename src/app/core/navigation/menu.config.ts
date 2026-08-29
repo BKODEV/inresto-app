@@ -85,6 +85,16 @@ export const MENU: MenuSection[] = [
         permission: 'session_cuisine.view',
       },
       {
+        // L'organigramme du pass : qui tient quel poste, et quelles catégories
+        // y sont produites. Ce n'est PAS un paramètre global — c'est le métier
+        // du chef, qui n'a pas `parametre.view` et ne pouvait donc même pas
+        // ouvrir l'écran tant qu'il vivait sous Paramètres.
+        label: 'Postes de production',
+        icon: 'chef-hat',
+        route: '/cuisine/postes',
+        permission: 'poste_cuisine.view',
+      },
+      {
         // Les recettes sont le métier du chef, pas un réglage d'achat : elles
         // rejoignent la production plutôt que le stock dont elles consomment.
         label: 'Produits & recettes',

@@ -179,20 +179,7 @@
           Vous serez ajouté d'office. L'équipe se corrige à la fermeture, quand on sait qui a
           réellement tenu le service.
         </span>
-        <div class="brigade-liste">
-          @for (u of personnel(); track u.id) {
-            <label class="check-membre">
-              <input
-                type="checkbox"
-                [checked]="estDansBrigade(u.id)"
-                (change)="basculerMembre(u.id)"
-              />
-              <span>{{ u.prenom }} {{ u.nom }}</span>
-            </label>
-          } @empty {
-            <span class="field-hint">Aucun personnel rattaché à ce site.</span>
-          }
-        </div>
+        <ng-container [ngTemplateOutlet]="listeBrigade" />
       </div>
 
       <label class="field-label" style="margin-top: 16px">
@@ -244,18 +231,7 @@
         <span class="field-hint">
           C'est ici qu'on corrige l'équipe : remplacements et renforts compris.
         </span>
-        <div class="brigade-liste">
-          @for (u of personnel(); track u.id) {
-            <label class="check-membre">
-              <input
-                type="checkbox"
-                [checked]="estDansBrigade(u.id)"
-                (change)="basculerMembre(u.id)"
-              />
-              <span>{{ u.prenom }} {{ u.nom }}</span>
-            </label>
-          }
-        </div>
+        <ng-container [ngTemplateOutlet]="listeBrigade" />
       </div>
 
       <label class="field-label" style="margin-top: 16px">
@@ -345,3 +321,51 @@
     </div>
   </div>
 }
+
+<!--
+  La liste des personnes inscriptibles, partagée par l'ouverture et la
+  fermeture : c'est le même geste, il ne doit pas exister en deux versions qui
+  divergeront.
+
+  Par défaut la cuisine de CE point de vente — les gens rattachés à l'un de ses
+  postes de production. La bascule élargit à tout le personnel du site, pour
+  l'extra qui ne figure dans aucun poste.
+-->
+<ng-template #listeBrigade>
+  <label class="check-inline" style="margin-top: 8px">
+    <input
+      type="checkbox"
+      [checked]="toutLePersonnel()"
+      (change)="basculerToutLePersonnel($any($event.target).checked)"
+    />
+    <span>Afficher tout le personnel du site</span>
+  </label>
+
+  @if (personnelLoading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else {
+    <div class="brigade-liste">
+      @for (u of personnel(); track u.id) {
+        <label class="check-membre">
+          <input type="checkbox" [checked]="estDansBrigade(u.id)" (change)="basculerMembre(u.id)" />
+          <span>{{ u.nom }}</span>
+        </label>
+      } @empty {
+        <span class="field-hint">
+          @if (toutLePersonnel()) {
+            Aucun personnel rattaché à ce site.
+          } @else {
+            <!-- Le cas le plus probable au premier usage : les postes existent
+                 mais personne n'y est encore rattaché. -->
+            Personne n'est rattaché aux postes de production de ce point de vente. Composez-les
+            depuis CUISINE › Postes de production, ou cochez ci-dessus pour voir tout le personnel
+            du site.
+          }
+        </span>
+      }
+    </div>
+  }
+</ng-template>

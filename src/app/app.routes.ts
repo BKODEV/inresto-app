@@ -208,6 +208,18 @@ export const routes: Routes = [
             title: 'Budget',
           },
           {
+            // L'organigramme du pass : qui tient quel poste, et quelles
+            // catégories y sont produites. Sous `/cuisine` et non sous
+            // Paramètres — le chef n'a pas `parametre.view`, il ne pouvait donc
+            // pas ouvrir l'écran qui organise sa propre brigade.
+            path: 'postes',
+            loadComponent: () =>
+              import('./features/parametres/postes-cuisine/postes-cuisine.page').then(
+                (m) => m.PostesCuisinePage,
+              ),
+            title: 'Postes de production',
+          },
+          {
             // Le service de la brigade. Sous `/cuisine` et non sous la caisse :
             // ouvrir un service de cuisine et ouvrir un tiroir-caisse sont deux
             // responsabilités, tenues par deux personnes différentes.
@@ -412,16 +424,6 @@ export const routes: Routes = [
                 (m) => m.ModesDePaiementPage,
               ),
             title: 'Modes de paiement',
-          },
-          {
-            // Organisation de la brigade : qui cuit quoi. Distinct des
-            // catégories produit, qui rangent la carte pour le client.
-            path: 'postes-cuisine',
-            loadComponent: () =>
-              import('./features/parametres/postes-cuisine/postes-cuisine.page').then(
-                (m) => m.PostesCuisinePage,
-              ),
-            title: 'Postes de production',
           },
           {
             path: 'utilisateurs',

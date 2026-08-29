@@ -10,7 +10,7 @@ import {
   untracked,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -21,8 +21,7 @@ import {
 } from '../../../core/api/session-cuisine/session-cuisine.model';
 import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
-import { UserService } from '../../../core/api/user/user.service';
-import { User } from '../../../core/api/user/user.model';
+import { MembreBrigade } from '../../../core/api/session-cuisine/session-cuisine.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -43,7 +42,7 @@ type DrawerMode = 'ouvrir' | 'fermer' | 'production' | null;
 @Component({
   selector: 'app-sessions-cuisine-page',
   standalone: true,
-  imports: [DatePipe, ReactiveFormsModule, SiteRequisComponent, MontantPipe],
+  imports: [DatePipe, NgTemplateOutlet, ReactiveFormsModule, SiteRequisComponent, MontantPipe],
   templateUrl: './sessions-cuisine.page.html',
   styleUrl: './caisse.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -51,7 +50,6 @@ type DrawerMode = 'ouvrir' | 'fermer' | 'production' | null;
 export class SessionsCuisinePage implements OnInit {
   private readonly service = inject(SessionCuisineService);
   private readonly pdvService = inject(PointDeVenteService);
-  private readonly userService = inject(UserService);
   private readonly selectedSite = inject(SelectedSiteService);
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
@@ -69,7 +67,21 @@ export class SessionsCuisinePage implements OnInit {
   readonly selectedPdvId = signal<number | null>(null);
 
   readonly sessions = signal<SessionCuisine[]>([]);
-  readonly personnel = signal<User[]>([]);
+
+  /**
+   * Qui peut être inscrit. Par défaut la cuisine de CE point de vente, c'est-à-
+   * dire les personnes rattachées à l'un de ses postes de production : le
+   * sélecteur déroulait auparavant tout le personnel du site, serveurs et
+   * caissiers compris.
+   */
+  readonly personnel = signal<MembreBrigade[]>([]);
+  /**
+   * Élargit à tout le personnel du site. Un extra qui ne figure dans aucun
+   * poste doit rester inscriptible, sinon un service tenu par un intérimaire ne
+   * serait imputable à personne.
+   */
+  readonly toutLePersonnel = signal(false);
+  readonly personnelLoading = signal(false);
   readonly loading = signal(true);
   readonly loadingSessions = signal(false);
 
@@ -119,8 +131,10 @@ export class SessionsCuisinePage implements OnInit {
       this.selectedPdvId.set(next);
       if (next !== null) {
         this.loadSessions(next);
+        this.loadPersonnel(next);
       } else {
         this.sessions.set([]);
+        this.personnel.set([]);
       }
     });
   }
@@ -136,22 +150,23 @@ export class SessionsCuisinePage implements OnInit {
         },
         error: () => this.loading.set(false),
       });
-
-    // La brigade se compose parmi le personnel du site : proposer les comptes
-    // des autres sites imputerait un service à quelqu'un qui n'y était pas.
-    this.userService
-      .list({ site_id: this.selectedSite.selectedId() ?? undefined })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (liste) => this.personnel.set(liste),
-        error: () => this.personnel.set([]),
-      });
   }
 
   onPdvChange(valeur: string): void {
     const id = Number(valeur);
     this.selectedPdvId.set(id);
     this.loadSessions(id);
+    // La brigade dépend du point de vente : un site peut porter deux pass, qui
+    // n'ont ni la même cuisine ni la même équipe.
+    this.loadPersonnel(id);
+  }
+
+  basculerToutLePersonnel(actif: boolean): void {
+    this.toutLePersonnel.set(actif);
+    const pdvId = this.selectedPdvId();
+    if (pdvId !== null) {
+      this.loadPersonnel(pdvId);
+    }
   }
 
   // ── Brigade ───────────────────────────────────────────────────────────────
@@ -285,6 +300,29 @@ export class SessionsCuisinePage implements OnInit {
     const noms = (session.brigade ?? []).map((m) => m.nom);
 
     return noms.length > 0 ? noms.join(' · ') : '—';
+  }
+
+  /**
+   * Servi par l'API en lecture minimale, et non par `GET /users` : cette
+   * dernière exige `utilisateur.view`, que le chef de cuisine n'a pas — le
+   * sélecteur répondait 403 et restait vide pour la seule personne qui ouvre
+   * un service.
+   */
+  private loadPersonnel(pointDeVenteId: number): void {
+    this.personnelLoading.set(true);
+    this.service
+      .personnel(pointDeVenteId, !this.toutLePersonnel())
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (liste) => {
+          this.personnel.set(liste);
+          this.personnelLoading.set(false);
+        },
+        error: () => {
+          this.personnel.set([]);
+          this.personnelLoading.set(false);
+        },
+      });
   }
 
   private loadSessions(pointDeVenteId: number): void {

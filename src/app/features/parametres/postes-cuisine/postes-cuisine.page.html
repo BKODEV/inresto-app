@@ -32,6 +32,7 @@
             <th>Poste</th>
             <th>Point de vente</th>
             <th>Catégories prises en charge</th>
+            <th>Brigade</th>
             <th></th>
           </tr>
         </thead>
@@ -42,6 +43,7 @@
               <td class="td-primary">{{ item.libelle }}</td>
               <td>{{ nomPdv(item.point_de_vente_id) }}</td>
               <td>{{ libellesCategories(item) }}</td>
+              <td>{{ libellesMembres(item) }}</td>
               <td class="td-actions">
                 <button class="btn-icon" type="button" title="Modifier" (click)="openEdit(item)">
                   ✎
@@ -90,6 +92,7 @@
           class="field-select"
           formControlName="point_de_vente_id"
           [disabled]="!!editingItem()"
+          (change)="onPdvChoisi($any($event.target).value)"
         >
           @for (pdv of pdvs(); track pdv.id) {
             <option [value]="pdv.id">{{ pdv.nom }}</option>
@@ -152,6 +155,40 @@
             }
             <br />
             Leurs plats apparaissent sur tous les écrans de ce point de vente — jamais dans le vide.
+          </div>
+        }
+      </div>
+
+      <!-- L'autre moitié de l'organisation du pass : les catégories disent ce
+           qu'on produit ici, la brigade dit qui le fait. C'est ce rattachement
+           qui alimente ensuite le sélecteur d'un service de cuisine. -->
+      <div class="field-label" style="margin-top: 16px">
+        <span class="field-text">Brigade du poste</span>
+        <span class="field-hint">
+          Les personnes rattachées à un poste de ce point de vente sont celles que l'ouverture d'un
+          service proposera. Facultatif : un poste sans personne reste un poste de production, il
+          n'apporte simplement personne à la brigade.
+        </span>
+
+        @if (personnelLoading()) {
+          <div class="loading-row">
+            <div class="spinner"></div>
+            <span>Chargement…</span>
+          </div>
+        } @else {
+          <div class="cat-grille">
+            @for (u of personnel(); track u.id) {
+              <label class="cat-case" [class.cat-case--choisie]="estMembre(u.id)">
+                <input
+                  type="checkbox"
+                  [checked]="estMembre(u.id)"
+                  (change)="basculerMembre(u.id)"
+                />
+                <span>{{ u.nom }}</span>
+              </label>
+            } @empty {
+              <span class="field-hint">Aucun personnel rattaché au site de ce point de vente.</span>
+            }
           </div>
         }
       </div>

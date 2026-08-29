@@ -43,9 +43,6 @@ export class ParametresLayout {
     { label: 'Catégories MP', route: 'categories-matiere-premiere' },
     { label: 'Unités de mesure', route: 'unites-de-mesure' },
     { label: 'Modes de paiement', route: 'modes-de-paiement' },
-    // Organisation de la brigade : qui cuit quoi. Distinct des catégories
-    // produit, qui rangent la carte pour le client.
-    { label: 'Postes de production', route: 'postes-cuisine', permission: 'poste_cuisine.view' },
     { label: 'Utilisateurs', route: 'utilisateurs', permission: 'utilisateur.view' },
     { label: 'Rôles', route: 'roles', permission: 'role.view' },
     { label: "Journal d'activité", route: 'journal', permission: 'journal.view' },

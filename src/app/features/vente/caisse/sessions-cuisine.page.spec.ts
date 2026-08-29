@@ -6,7 +6,6 @@ import { SessionsCuisinePage } from './sessions-cuisine.page';
 import { SessionCuisine } from '../../../core/api/session-cuisine/session-cuisine.model';
 import { SessionCuisineService } from '../../../core/api/session-cuisine/session-cuisine.service';
 import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
-import { UserService } from '../../../core/api/user/user.service';
 import { AuthService } from '../../../core/auth/auth.service';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 
@@ -23,10 +22,12 @@ describe('SessionsCuisinePage — le service de la brigade', () => {
     { id: 9, site_id: 7, nom: 'Autre site' },
   ];
 
-  const PERSONNEL = [
-    { id: 'uuid-chef', prenom: 'Kouassi', nom: 'A.' },
-    { id: 'uuid-commis', prenom: 'Aminata', nom: 'D.' },
+  /** Ce que sert l'API : des noms, rien d'autre. */
+  const CUISINE = [
+    { id: 'uuid-chef', nom: 'Kouassi A.' },
+    { id: 'uuid-commis', nom: 'Aminata D.' },
   ];
+  const TOUT_LE_SITE = [...CUISINE, { id: 'uuid-serveur', nom: 'Awa T.' }];
 
   function session(surcharge: Partial<SessionCuisine> = {}): SessionCuisine {
     return {
@@ -76,15 +77,21 @@ describe('SessionsCuisinePage — le service de la brigade', () => {
     const list = vi
       .fn()
       .mockReturnValue(of({ sessions: options.sessions ?? [session()], pagination: {} }));
+    // `cuisine = true` (défaut de l'écran) : la brigade du point de vente.
+    // `false` : tout le personnel du site, pour l'extra hors organigramme.
+    const personnel = vi
+      .fn()
+      .mockImplementation((_pdvId: number, cuisineSeulement: boolean) =>
+        of(cuisineSeulement ? CUISINE : TOUT_LE_SITE),
+      );
 
     TestBed.configureTestingModule({
       providers: [
         {
           provide: SessionCuisineService,
-          useValue: { list, ouvrir, fermer, production },
+          useValue: { list, ouvrir, fermer, production, personnel },
         },
         { provide: PointDeVenteService, useValue: { list: () => of(PDV) } },
-        { provide: UserService, useValue: { list: () => of(PERSONNEL) } },
         {
           provide: AuthService,
           useValue: {
@@ -109,7 +116,7 @@ describe('SessionsCuisinePage — le service de la brigade', () => {
     page.ngOnInit();
     TestBed.tick();
 
-    return { page, ouvrir, fermer, production, list };
+    return { page, ouvrir, fermer, production, list, personnel };
   }
 
   it('ne propose que les points de vente du site courant', () => {
@@ -237,5 +244,53 @@ describe('SessionsCuisinePage — le service de la brigade', () => {
     const { page } = creer();
 
     expect(page.brigadeLibelle(session({ brigade: [] }))).toBe('—');
+  });
+
+  /**
+   * LE défaut corrigé. Le sélecteur appelait `GET /users`, qui exige
+   * `utilisateur.view` — permission d'administration du personnel que le chef
+   * de cuisine n'a pas. Il était en 403 sur le seul écran qu'il tient, et ne
+   * voyait personne à inscrire.
+   */
+  it('prend la brigade des postes de production, jamais la fiche du personnel', () => {
+    const { page, personnel } = creer();
+
+    expect(personnel).toHaveBeenCalledWith(1, true);
+    expect(page.personnel().map((u) => u.nom)).toEqual(['Kouassi A.', 'Aminata D.']);
+  });
+
+  /**
+   * Un extra qui ne figure dans aucun poste doit rester inscriptible, sinon un
+   * service tenu par un intérimaire ne serait imputable à personne.
+   */
+  it('élargit à tout le personnel du site à la demande', () => {
+    const { page, personnel } = creer();
+
+    page.basculerToutLePersonnel(true);
+
+    expect(personnel).toHaveBeenLastCalledWith(1, false);
+    expect(page.personnel().map((u) => u.nom)).toContain('Awa T.');
+  });
+
+  /**
+   * Un site peut porter deux pass : le Lounge et le Restaurant n'ont ni la même
+   * cuisine ni la même équipe. La liste était chargée une seule fois au
+   * démarrage, donc figée sur le premier point de vente.
+   */
+  it('recharge la brigade au changement de point de vente', () => {
+    const { page, personnel } = creer();
+
+    page.onPdvChange('2');
+
+    expect(personnel).toHaveBeenLastCalledWith(2, true);
+  });
+
+  it('conserve la portée choisie en changeant de point de vente', () => {
+    const { page, personnel } = creer();
+    page.basculerToutLePersonnel(true);
+
+    page.onPdvChange('2');
+
+    expect(personnel).toHaveBeenLastCalledWith(2, false);
   });
 });

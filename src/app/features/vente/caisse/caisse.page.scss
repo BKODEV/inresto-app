@@ -695,3 +695,14 @@
     color: var(--amber);
   }
 }
+
+// Bascule « tout le personnel du site » au-dessus de la liste de brigade.
+.check-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
