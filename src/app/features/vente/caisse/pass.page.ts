@@ -27,6 +27,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { rafraichissementAuto } from '../../../core/temps/rafraichissement-auto';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 /**
  * Le PASS, côté salle : ce que la cuisine a annoncé et qui attend d'être porté.
@@ -58,6 +59,7 @@ export class PassPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly selectedSite = inject(SelectedSiteService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   private readonly allPdvs = signal<PointDeVente[]>([]);
   readonly currentSite = this.selectedSite.selectedSite;
@@ -286,7 +288,7 @@ export class PassPage implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.actionEnCours.set(null);
-          alert(apiErrorMessage(err, 'Service impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Service impossible.'));
         },
       });
   }

@@ -8,27 +8,9 @@
     </div>
   </div>
 
-  <div class="filters">
-    <label class="field-label">
-      <span class="field-text">Du</span>
-      <input
-        class="field-input"
-        type="date"
-        [value]="dateDebut()"
-        (change)="onDateDebut($any($event.target).value)"
-      />
-    </label>
-    <label class="field-label">
-      <span class="field-text">Au</span>
-      <input
-        class="field-input"
-        type="date"
-        [value]="dateFin()"
-        (change)="onDateFin($any($event.target).value)"
-      />
-    </label>
-    <label class="field-label">
-      <span class="field-text">Nature</span>
+  <app-periode-filtre (filterChange)="onPeriode($event)">
+    <div class="filtre-champ">
+      <label class="field-label">Nature</label>
       <select class="field-select" (change)="onNature($any($event.target).value)">
         <option value="" [selected]="nature() === null">Toutes</option>
         <option value="commandes_client" [selected]="nature() === 'commandes_client'">
@@ -38,9 +20,9 @@
           Ligne
         </option>
       </select>
-    </label>
-    <label class="field-label">
-      <span class="field-text">Devenir du stock</span>
+    </div>
+    <div class="filtre-champ">
+      <label class="field-label">Devenir du stock</label>
       <select class="field-select" (change)="onSort($any($event.target).value)">
         <option value="" [selected]="sort() === null">Tous</option>
         <option value="perte" [selected]="sort() === 'perte'">Perte</option>
@@ -48,8 +30,8 @@
           Remise en stock
         </option>
       </select>
-    </label>
-  </div>
+    </div>
+  </app-periode-filtre>
 
   @if (error()) {
     <div class="alert-error" style="margin-bottom: 16px">{{ error() }}</div>

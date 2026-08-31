@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  OnInit,
   computed,
   effect,
   inject,
@@ -16,7 +15,10 @@ import { AuditService } from '../../../core/api/audit/audit.service';
 import { AnnulationAudit, TypeAnnulable } from '../../../core/api/audit/audit.model';
 import { SortAnnulation } from '../../../core/api/commande-client/commande-client.model';
 import { Pagination } from '../../../core/api/api.types';
+import { ReportingFilter } from '../../../core/api/reporting/reporting.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { PeriodeFiltre } from '../shared/periode-filtre';
+import { plageDeReporting } from '../shared/periode-plage';
 
 /**
  * Relecture des annulations — lecture seule.
@@ -28,12 +30,12 @@ import { SelectedSiteService } from '../../../core/site/selected-site.service';
 @Component({
   selector: 'app-annulations-page',
   standalone: true,
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, PeriodeFiltre],
   templateUrl: './annulations.page.html',
   styleUrl: './audit.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class AnnulationsPage implements OnInit {
+export class AnnulationsPage {
   private readonly service = inject(AuditService);
   private readonly selectedSite = inject(SelectedSiteService);
   private readonly destroyRef = inject(DestroyRef);
@@ -43,9 +45,11 @@ export class AnnulationsPage implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
-  private readonly aujourdhui = new Date().toISOString().slice(0, 10);
-  readonly dateDebut = signal(this.premierDuMois());
-  readonly dateFin = signal(this.aujourdhui);
+  /**
+   * Posé par la barre de période, qui émet dès son initialisation : c'est cette
+   * première émission qui déclenche le chargement, d'où l'absence de `ngOnInit`.
+   */
+  readonly filtre = signal<ReportingFilter | null>(null);
   readonly sort = signal<SortAnnulation | null>(null);
   readonly nature = signal<TypeAnnulable | null>(null);
   readonly page = signal(1);
@@ -67,62 +71,57 @@ export class AnnulationsPage implements OnInit {
   readonly nbPertes = computed(() => this.annulations().filter((a) => a.sort === 'perte').length);
 
   constructor() {
+    // Une seule source de chargement : la période, les deux filtres, la page et
+    // le périmètre décrivent ensemble la question posée. Les gestes de l'écran
+    // ne font que poser un signal — les appeler ET laisser l'effet réagir,
+    // comme auparavant, lançait deux fois la même requête.
     effect(() => {
       this.selectedSite.epoch();
-      this.charger();
+      const filtre = this.filtre();
+      const sort = this.sort();
+      const nature = this.nature();
+      const page = this.page();
+
+      if (filtre) {
+        this.charger(filtre, sort, nature, page);
+      }
     });
   }
 
-  ngOnInit(): void {
-    this.charger();
-  }
-
-  onDateDebut(valeur: string): void {
-    this.dateDebut.set(valeur);
+  onPeriode(filtre: ReportingFilter): void {
     this.page.set(1);
-    this.charger();
-  }
-
-  onDateFin(valeur: string): void {
-    this.dateFin.set(valeur);
-    this.page.set(1);
-    this.charger();
+    this.filtre.set(filtre);
   }
 
   onSort(valeur: string): void {
-    this.sort.set(valeur === '' ? null : (valeur as SortAnnulation));
     this.page.set(1);
-    this.charger();
+    this.sort.set(valeur === '' ? null : (valeur as SortAnnulation));
   }
 
   onNature(valeur: string): void {
-    this.nature.set(valeur === '' ? null : (valeur as TypeAnnulable));
     this.page.set(1);
-    this.charger();
+    this.nature.set(valeur === '' ? null : (valeur as TypeAnnulable));
   }
 
   allerPage(page: number): void {
     this.page.set(page);
-    this.charger();
   }
 
-  private premierDuMois(): string {
-    const now = new Date();
-
-    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-  }
-
-  private charger(): void {
+  private charger(
+    filtre: ReportingFilter,
+    sort: SortAnnulation | null,
+    nature: TypeAnnulable | null,
+    page: number,
+  ): void {
     this.loading.set(true);
     this.error.set(null);
     this.service
       .annulations({
-        date_debut: this.dateDebut(),
-        date_fin: this.dateFin(),
-        sort: this.sort() ?? undefined,
-        annulable_type: this.nature() ?? undefined,
+        ...plageDeReporting(filtre),
+        sort: sort ?? undefined,
+        annulable_type: nature ?? undefined,
         site_id: this.selectedSite.selectedId() ?? undefined,
-        page: this.page(),
+        page,
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

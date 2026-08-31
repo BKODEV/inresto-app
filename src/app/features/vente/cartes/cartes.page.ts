@@ -21,6 +21,7 @@ import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.mo
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-cartes-page',
@@ -36,6 +37,7 @@ export class CartesPage implements OnInit {
   private readonly selectedSite = inject(SelectedSiteService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   // Cartes + PDV restreints au site global (via le PDV de chaque carte).
   private readonly allItems = signal<Carte[]>([]);
@@ -151,8 +153,8 @@ export class CartesPage implements OnInit {
     });
   }
 
-  delete(item: Carte): void {
-    if (!confirm(`Supprimer la carte « ${item.libelle} » ?`)) {
+  async delete(item: Carte): Promise<void> {
+    if (!(await this.alertes.confirmerSuppression(item.libelle, { nature: 'la carte' }))) {
       return;
     }
     this.deletingId.set(item.id);

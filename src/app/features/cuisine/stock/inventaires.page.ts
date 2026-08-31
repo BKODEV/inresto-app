@@ -25,6 +25,7 @@ import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.com
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 import { QuantitePipe } from '../../../shared/format/nombre.pipes';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-inventaires-page',
@@ -41,6 +42,7 @@ export class InventairesPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   // Sites + sélection pilotés par le sélecteur global de la topbar.
   readonly sites = this.selectedSite.sites;
@@ -171,8 +173,14 @@ export class InventairesPage implements OnInit {
       });
   }
 
-  deleteInventaire(item: Inventaire): void {
-    if (!confirm('Supprimer cet inventaire ?')) {
+  async deleteInventaire(item: Inventaire): Promise<void> {
+    const confirme = await this.alertes.confirmer({
+      titre: 'Supprimer cet inventaire ?',
+      texte: 'Cette action est irréversible.',
+      confirmer: 'Supprimer',
+      danger: true,
+    });
+    if (!confirme) {
       return;
     }
     this.service
@@ -180,7 +188,8 @@ export class InventairesPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.items.update((list) => list.filter((i) => i.id !== item.id)),
-        error: (err: HttpErrorResponse) => alert(apiErrorMessage(err, 'Suppression impossible.')),
+        error: (err: HttpErrorResponse) =>
+          this.alertes.erreur(apiErrorMessage(err, 'Suppression impossible.')),
       });
   }
 
@@ -256,18 +265,23 @@ export class InventairesPage implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.reloadDetail(),
-        error: (err: HttpErrorResponse) => alert(apiErrorMessage(err, 'Suppression impossible.')),
+        error: (err: HttpErrorResponse) =>
+          this.alertes.erreur(apiErrorMessage(err, 'Suppression impossible.')),
       });
   }
 
-  cloturer(): void {
+  async cloturer(): Promise<void> {
     const inv = this.detail();
     if (!inv || this.busy()) {
       return;
     }
-    if (
-      !confirm('Clôturer cet inventaire ? Les écarts corrigeront le stock. Action irréversible.')
-    ) {
+    const confirme = await this.alertes.confirmer({
+      titre: 'Clôturer cet inventaire ?',
+      texte: 'Les écarts corrigeront le stock. Action irréversible.',
+      confirmer: 'Clôturer',
+      danger: true,
+    });
+    if (!confirme) {
       return;
     }
     this.busy.set(true);

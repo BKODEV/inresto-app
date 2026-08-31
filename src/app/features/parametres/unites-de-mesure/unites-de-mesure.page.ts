@@ -14,6 +14,7 @@ import { UniteDeMesureService } from '../../../core/api/unite-de-mesure/unite-de
 import { UniteDeMesure } from '../../../core/api/unite-de-mesure/unite-de-mesure.model';
 import { Statut } from '../../../core/api/api.types';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-unites-de-mesure-page',
@@ -27,6 +28,7 @@ export class UnitesDeMesurePage implements OnInit {
   private readonly service = inject(UniteDeMesureService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly items = signal<UniteDeMesure[]>([]);
   readonly loading = signal(true);
@@ -111,8 +113,8 @@ export class UnitesDeMesurePage implements OnInit {
     });
   }
 
-  delete(item: UniteDeMesure): void {
-    if (!confirm(`Supprimer « ${item.libelle} » ?`)) {
+  async delete(item: UniteDeMesure): Promise<void> {
+    if (!(await this.alertes.confirmerSuppression(item.libelle))) {
       return;
     }
     this.deletingId.set(item.id);

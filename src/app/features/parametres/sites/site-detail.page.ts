@@ -26,6 +26,7 @@ import { Statut } from '../../../core/api/api.types';
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 import { MontantPipe } from '../../../shared/format/nombre.pipes';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 /**
  * Détail d'un site (Paramètres) : ses informations et la liste de ses points de
@@ -48,6 +49,7 @@ export class SiteDetailPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly siteId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -237,8 +239,17 @@ export class SiteDetailPage implements OnInit {
       });
   }
 
-  deleteLogo(): void {
-    if (this.logoBusy() || !confirm('Supprimer le logo de cet établissement ?')) {
+  async deleteLogo(): Promise<void> {
+    if (this.logoBusy()) {
+      return;
+    }
+
+    const confirme = await this.alertes.confirmer({
+      titre: 'Supprimer le logo de cet établissement ?',
+      confirmer: 'Supprimer',
+      danger: true,
+    });
+    if (!confirme) {
       return;
     }
     this.logoBusy.set(true);
@@ -394,8 +405,8 @@ export class SiteDetailPage implements OnInit {
     });
   }
 
-  deletePdv(pdv: PointDeVente): void {
-    if (!confirm(`Supprimer le point de vente « ${pdv.nom} » ?`)) {
+  async deletePdv(pdv: PointDeVente): Promise<void> {
+    if (!(await this.alertes.confirmerSuppression(pdv.nom, { nature: 'le point de vente' }))) {
       return;
     }
     this.deletingPdvId.set(pdv.id);
@@ -410,7 +421,7 @@ export class SiteDetailPage implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.deletingPdvId.set(null);
-          alert(apiErrorMessage(err, 'Suppression impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Suppression impossible.'));
         },
       });
   }

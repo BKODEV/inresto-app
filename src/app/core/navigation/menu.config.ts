@@ -220,6 +220,22 @@ export const MENU: MenuSection[] = [
         route: '/pilotage/budget',
         permission: 'reporting.budget',
       },
+      {
+        // Les relectures de contrôle vivaient sous Paramètres, derrière
+        // `parametre.view` : la direction qui détient `remise.view` pour
+        // surveiller ce qu'on retire des notes n'a pas de raison de détenir
+        // aussi les réglages de l'établissement, et l'écran lui restait fermé.
+        label: 'Remises',
+        icon: 'receipt',
+        route: '/pilotage/remises',
+        permission: 'remise.view',
+      },
+      {
+        label: 'Annulations',
+        icon: 'shield',
+        route: '/pilotage/annulations',
+        permission: 'annulation.view',
+      },
     ],
   },
   {

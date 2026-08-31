@@ -13,6 +13,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { CategorieMatierePremièreService } from '../../../core/api/categorie-matiere-premiere/categorie-matiere-premiere.service';
 import { CategorieMatierePremiere } from '../../../core/api/categorie-matiere-premiere/categorie-matiere-premiere.model';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-categories-matiere-premiere-page',
@@ -26,6 +27,7 @@ export class CategoriesMatierePremierePage implements OnInit {
   private readonly service = inject(CategorieMatierePremièreService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly items = signal<CategorieMatierePremiere[]>([]);
   readonly loading = signal(true);
@@ -110,8 +112,8 @@ export class CategoriesMatierePremierePage implements OnInit {
     });
   }
 
-  delete(item: CategorieMatierePremiere): void {
-    if (!confirm(`Supprimer « ${item.libelle} » ?`)) {
+  async delete(item: CategorieMatierePremiere): Promise<void> {
+    if (!(await this.alertes.confirmerSuppression(item.libelle))) {
       return;
     }
     this.deletingId.set(item.id);

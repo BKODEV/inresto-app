@@ -20,6 +20,7 @@ import { Role } from '../../../core/api/role/role.model';
 import { Site } from '../../../core/api/site/site.model';
 import { Statut } from '../../../core/api/api.types';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 type PasswordMode = 'saisir' | 'email';
 type ResetMode = 'definir' | 'lien';
@@ -39,6 +40,7 @@ export class UtilisateursPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly users = signal<User[]>([]);
   readonly roles = signal<Role[]>([]);
@@ -339,13 +341,16 @@ export class UtilisateursPage implements OnInit {
       },
       error: (err: HttpErrorResponse) => {
         this.actionBusyId.set(null);
-        alert(apiErrorMessage(err, 'Action impossible.'));
+        this.alertes.erreur(apiErrorMessage(err, 'Action impossible.'));
       },
     });
   }
 
-  remove(user: User): void {
-    if (!confirm(`Supprimer l'utilisateur « ${user.prenom} ${user.nom} » ?`)) {
+  async remove(user: User): Promise<void> {
+    const confirme = await this.alertes.confirmerSuppression(`${user.prenom} ${user.nom}`, {
+      nature: "l'utilisateur",
+    });
+    if (!confirme) {
       return;
     }
     this.actionBusyId.set(user.id);
@@ -359,7 +364,7 @@ export class UtilisateursPage implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.actionBusyId.set(null);
-          alert(apiErrorMessage(err, 'Suppression impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Suppression impossible.'));
         },
       });
   }

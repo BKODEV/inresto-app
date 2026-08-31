@@ -1,11 +1,24 @@
-// Écrans de relecture (remises, annulations). Même grammaire que le journal
-// d'activité : une barre de filtres, une table, une pagination.
-.filters {
+// Écrans de relecture (remises, annulations). Même grammaire que les rapports
+// de pilotage : une barre de période, une table, une pagination.
+//
+// Ces champs sont PROJETÉS dans `app-periode-filtre`, qui pose la barre et son
+// alignement. L'encapsulation les laisse rattachés à la page : leur habillage
+// vit donc ici, en écho au `.pf-field` du composant.
+.filtre-champ {
   display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  flex-direction: column;
+  gap: var(--space-1);
+
+  .field-label {
+    font-size: var(--text-xs);
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .field-select {
+    min-width: 180px;
+  }
 }
 
 .resume {

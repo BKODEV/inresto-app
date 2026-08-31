@@ -22,6 +22,7 @@ import { Produit } from '../../../core/api/produit/produit.model';
 import { CategorieProduitService } from '../../../core/api/categorie-produit/categorie-produit.service';
 import { CategorieProduit } from '../../../core/api/categorie-produit/categorie-produit.model';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-carte-composition-page',
@@ -39,6 +40,7 @@ export class CarteCompositionPage implements OnInit {
   private readonly categorieService = inject(CategorieProduitService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly carteId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -299,7 +301,8 @@ export class CarteCompositionPage implements OnInit {
       .subscribe({
         next: (updated) =>
           this.lignes.update((list) => list.map((l) => (l.id === updated.id ? updated : l))),
-        error: (err: HttpErrorResponse) => alert(apiErrorMessage(err, 'Modification impossible.')),
+        error: (err: HttpErrorResponse) =>
+          this.alertes.erreur(apiErrorMessage(err, 'Modification impossible.')),
       });
   }
 
@@ -314,7 +317,8 @@ export class CarteCompositionPage implements OnInit {
       .subscribe({
         next: (updated) =>
           this.lignes.update((list) => list.map((l) => (l.id === updated.id ? updated : l))),
-        error: (err: HttpErrorResponse) => alert(apiErrorMessage(err, 'Modification impossible.')),
+        error: (err: HttpErrorResponse) =>
+          this.alertes.erreur(apiErrorMessage(err, 'Modification impossible.')),
       });
   }
 
@@ -329,12 +333,19 @@ export class CarteCompositionPage implements OnInit {
       .subscribe({
         next: (updated) =>
           this.lignes.update((list) => list.map((l) => (l.id === updated.id ? updated : l))),
-        error: (err: HttpErrorResponse) => alert(apiErrorMessage(err, 'Modification impossible.')),
+        error: (err: HttpErrorResponse) =>
+          this.alertes.erreur(apiErrorMessage(err, 'Modification impossible.')),
       });
   }
 
-  remove(ligne: CarteProduit): void {
-    if (!confirm('Retirer ce produit de la carte ?')) {
+  async remove(ligne: CarteProduit): Promise<void> {
+    const confirme = await this.alertes.confirmer({
+      titre: 'Retirer ce produit de la carte ?',
+      texte: 'Il restera au catalogue et pourra être remis à la carte plus tard.',
+      confirmer: 'Retirer',
+      danger: true,
+    });
+    if (!confirme) {
       return;
     }
     this.deletingId.set(ligne.id);
@@ -348,7 +359,7 @@ export class CarteCompositionPage implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.deletingId.set(null);
-          alert(
+          this.alertes.erreur(
             apiErrorMessage(err, 'Suppression impossible (carte active : désactivez la ligne).'),
           );
         },

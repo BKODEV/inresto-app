@@ -19,6 +19,7 @@ import { Caisse } from '../../../core/api/caisse/caisse.model';
 import { Statut } from '../../../core/api/api.types';
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 /**
  * Détail d'un point de vente (Paramètres) : ses informations et ses caisses.
@@ -41,6 +42,7 @@ export class PointDeVenteDetailPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly pdvId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -142,8 +144,8 @@ export class PointDeVenteDetailPage implements OnInit {
     });
   }
 
-  delete(caisse: Caisse): void {
-    if (!confirm(`Supprimer la caisse « ${caisse.libelle} » ?`)) {
+  async delete(caisse: Caisse): Promise<void> {
+    if (!(await this.alertes.confirmerSuppression(caisse.libelle, { nature: 'la caisse' }))) {
       return;
     }
     this.deletingId.set(caisse.id);
@@ -158,7 +160,7 @@ export class PointDeVenteDetailPage implements OnInit {
         error: (err: HttpErrorResponse) => {
           this.deletingId.set(null);
           // 409 : caisse porteuse de sessions (historique financier).
-          alert(apiErrorMessage(err, 'Suppression impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Suppression impossible.'));
         },
       });
   }

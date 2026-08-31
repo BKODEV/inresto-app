@@ -50,23 +50,42 @@ describe('RemisesPage — relecture des remises', () => {
     };
   }
 
+  /**
+   * La page ne charge plus d'elle-même : c'est la barre de période qui émet à
+   * son initialisation. On joue donc cette émission, puis on laisse tourner
+   * l'effet qui en découle.
+   */
   function creer(remises: RemiseAudit[] = [remise()]) {
     const { remisesFn, liste } = providers(remises, []);
     TestBed.configureTestingModule({ providers: liste });
     const page = TestBed.runInInjectionContext(() => new RemisesPage());
-    page.ngOnInit();
+    page.onPeriode({ periode: 'mois', date: '2026-08-20' });
+    TestBed.tick();
 
     return { page, remisesFn };
   }
 
-  it('ouvre sur le mois en cours plutôt que sur la journée', () => {
+  it('interroge le mois entier de la date de référence', () => {
     // Une remise se contrôle sur une période, pas sur un service : la question
-    // est « combien a-t-on remis ce mois-ci ».
-    const { page } = creer();
-    const now = new Date();
-    const premier = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    // est « combien a-t-on remis ce mois-ci ». La barre de période émet un mois
+    // et une date de référence ; c'est la page qui en fait des bornes.
+    const { remisesFn } = creer();
 
-    expect(page.dateDebut()).toBe(premier);
+    expect(remisesFn).toHaveBeenLastCalledWith(
+      expect.objectContaining({ date_debut: '2026-08-01', date_fin: '2026-08-31' }),
+    );
+  });
+
+  it('ne lance qu’une requête par changement de filtre', () => {
+    // Les gestes de l'écran posaient un signal ET appelaient le chargement,
+    // que l'effet relançait derrière : chaque clic partait en double.
+    const { page, remisesFn } = creer();
+    remisesFn.mockClear();
+
+    page.onType('pourcentage');
+    TestBed.tick();
+
+    expect(remisesFn).toHaveBeenCalledTimes(1);
   });
 
   /**
@@ -95,8 +114,10 @@ describe('RemisesPage — relecture des remises', () => {
   it('filtre sur le type, et revient à la première page', () => {
     const { page, remisesFn } = creer();
     page.allerPage(3);
+    TestBed.tick();
 
     page.onType('pourcentage');
+    TestBed.tick();
 
     expect(page.page()).toBe(1);
     expect(remisesFn).toHaveBeenLastCalledWith(
@@ -125,7 +146,8 @@ describe('AnnulationsPage — le devenir du stock', () => {
     const { annulationsFn, liste } = providers([], annulations);
     TestBed.configureTestingModule({ providers: liste });
     const page = TestBed.runInInjectionContext(() => new AnnulationsPage());
-    page.ngOnInit();
+    page.onPeriode({ periode: 'mois', date: '2026-08-20' });
+    TestBed.tick();
 
     return { page, annulationsFn };
   }
@@ -149,6 +171,7 @@ describe('AnnulationsPage — le devenir du stock', () => {
     const { page, annulationsFn } = creer();
 
     page.onSort('perte');
+    TestBed.tick();
 
     expect(annulationsFn).toHaveBeenLastCalledWith(expect.objectContaining({ sort: 'perte' }));
   });
@@ -157,6 +180,7 @@ describe('AnnulationsPage — le devenir du stock', () => {
     const { page, annulationsFn } = creer();
 
     page.onNature('commandes_client');
+    TestBed.tick();
 
     expect(annulationsFn).toHaveBeenLastCalledWith(
       expect.objectContaining({ annulable_type: 'commandes_client' }),
@@ -166,8 +190,10 @@ describe('AnnulationsPage — le devenir du stock', () => {
   it('retire un filtre quand on revient à « tous »', () => {
     const { page, annulationsFn } = creer();
     page.onSort('perte');
+    TestBed.tick();
 
     page.onSort('');
+    TestBed.tick();
 
     expect(annulationsFn).toHaveBeenLastCalledWith(expect.objectContaining({ sort: undefined }));
   });

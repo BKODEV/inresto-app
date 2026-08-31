@@ -19,6 +19,7 @@ import { UniteDeMesure } from '../../../core/api/unite-de-mesure/unite-de-mesure
 import { Statut } from '../../../core/api/api.types';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 import { QuantitePipe, CoutUnitairePipe } from '../../../shared/format/nombre.pipes';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-matieres-premieres-page',
@@ -34,6 +35,7 @@ export class MatieresPremieresPage implements OnInit {
   private readonly uniteService = inject(UniteDeMesureService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly items = signal<MatierePremiere[]>([]);
   readonly categories = signal<CategorieMatierePremiere[]>([]);
@@ -153,8 +155,8 @@ export class MatieresPremieresPage implements OnInit {
     });
   }
 
-  delete(item: MatierePremiere): void {
-    if (!confirm(`Supprimer « ${item.libelle} » ?`)) {
+  async delete(item: MatierePremiere): Promise<void> {
+    if (!(await this.alertes.confirmerSuppression(item.libelle))) {
       return;
     }
     this.deletingId.set(item.id);

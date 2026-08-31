@@ -1,0 +1,259 @@
+// =============================================================================
+// InnResto — Habillage de SweetAlert2
+// =============================================================================
+// Les dialogues sont montés sur <body>, hors de portée des styles de composant :
+// leur habillage vit donc ici, en global.
+//
+// Tout est écrit SOUS `.swal2-container`, et non sur `:root`, pour deux raisons.
+// La bibliothèque injecte sa feuille de style au chargement de son morceau de
+// bundle, soit APRÈS celle de l'application : à spécificité égale, c'est elle
+// qui l'emporterait. Et ses propres règles sont écrites en `:where(…)`, de
+// spécificité nulle — un sélecteur de classe suffit donc à passer devant, à
+// condition d'en avoir un.
+//
+// Les valeurs ne sont que des jetons du design system : la bascule clair/sombre
+// est automatique, sans règle propre au thème.
+// -----------------------------------------------------------------------------
+
+.swal2-container {
+  // --- Jetons de la bibliothèque ---------------------------------------------
+  --swal2-backdrop: rgba(0, 0, 0, 0.6);
+  // Vaut aussi pour les notifications, qui sinon se collent au bord de l'écran.
+  --swal2-container-padding: var(--space-4);
+  --swal2-width: 30em;
+  --swal2-background: var(--surface);
+  --swal2-color: var(--text);
+  --swal2-border: 1px solid var(--border);
+  --swal2-border-radius: var(--radius-lg);
+  --swal2-padding: var(--space-2) 0 var(--space-5);
+  --swal2-title-padding: var(--space-5) var(--space-6) 0;
+  --swal2-html-container-padding: var(--space-3) var(--space-6) 0;
+
+  // L'icône par défaut fait 5em de haut, marges comprises : à l'échelle d'une
+  // interface dense, elle mangeait le dialogue entier.
+  --swal2-icon-zoom: 0.72;
+
+  --swal2-actions-margin: var(--space-6) var(--space-6) 0;
+  --swal2-actions-justify-content: flex-end;
+  --swal2-actions-width: auto;
+
+  --swal2-close-button-color: var(--text-mute);
+  --swal2-close-button-font-size: 1.75em;
+
+  --swal2-footer-border-color: var(--border);
+  --swal2-footer-color: var(--text-dim);
+
+  --swal2-validation-message-background: rgba(var(--red-rgb), 0.1);
+  --swal2-validation-message-color: var(--red-soft);
+
+  // Neutre : une barre ambre sous une notification d'erreur ferait concurrence
+  // à la couleur qui porte le sens.
+  --swal2-timer-progress-bar-background: rgba(var(--text-mute-rgb), 0.6);
+  --swal2-outline: 0 0 0 3px var(--amber-soft);
+
+  // --- Boîte ------------------------------------------------------------------
+  .swal2-popup {
+    box-shadow: var(--shadow-lg);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+  }
+
+  .swal2-title {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .swal2-html-container {
+    font-size: var(--text-base);
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .swal2-close:hover {
+    color: var(--text);
+  }
+
+  // Les boutons portent les classes du design system (`buttonsStyling: false`,
+  // voir AlerteService) : il ne reste qu'à les espacer.
+  .swal2-actions {
+    gap: var(--space-3);
+  }
+
+  // La bibliothèque pose le focus d'entrée sur un bouton : sans cette règle, le
+  // navigateur y dessine son anneau bleu, seule tache de bleu de l'interface.
+  .swal2-actions button:focus-visible {
+    outline: 2px solid var(--amber);
+    outline-offset: 2px;
+  }
+
+  // --- Saisie -----------------------------------------------------------------
+  // Le champ porte `.field-input` / `.field-textarea` ; seule sa gouttière est
+  // reprise, la bibliothèque la calculant en `em` sur ses propres marges.
+  .swal2-input,
+  .swal2-textarea {
+    width: auto;
+    margin: var(--space-4) var(--space-6) 0;
+    font-size: var(--text-base);
+  }
+
+  .swal2-input-label {
+    margin: var(--space-4) var(--space-6) calc(var(--space-2) * -1);
+    justify-content: flex-start;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-dim);
+    letter-spacing: 0.02em;
+  }
+
+  .swal2-validation-message {
+    margin: var(--space-3) var(--space-6) 0;
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+
+    &::before {
+      display: none;
+    }
+  }
+
+  // --- Icônes -----------------------------------------------------------------
+  // Les teintes d'origine (vert tendre, rouge saumon) sont réglées pour un fond
+  // blanc ; sur les surfaces sombres du produit, elles se délavent.
+  .swal2-icon.swal2-success {
+    border-color: var(--green);
+    color: var(--green);
+
+    [class^='swal2-success-line'] {
+      background-color: var(--green);
+    }
+    .swal2-success-ring {
+      border-color: rgba(var(--green-rgb), 0.3);
+    }
+  }
+
+  .swal2-icon.swal2-error {
+    border-color: var(--red);
+    color: var(--red);
+
+    [class^='swal2-x-mark-line'] {
+      background-color: var(--red);
+    }
+  }
+
+  .swal2-icon.swal2-warning {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  .swal2-icon.swal2-info {
+    border-color: var(--blue);
+    color: var(--blue);
+  }
+
+  .swal2-icon.swal2-question {
+    border-color: var(--border-strong);
+    color: var(--text-dim);
+  }
+
+  // --- Récapitulatif d'une confirmation ---------------------------------------
+  // Rappel des informations d'identification de l'objet visé, monté par
+  // `AlerteService.confirmer` lorsqu'un `recap` lui est passé.
+  .swal-texte {
+    margin: 0 0 var(--space-3);
+  }
+
+  .swal-recap {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    // `--surface-2` se teinte dans les deux thèmes, là où `--bg-2` se confond
+    // avec la boîte en thème clair.
+    background: var(--surface-2);
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+    text-align: left;
+  }
+
+  .swal-recap__ligne {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-2) 0;
+
+    & + & {
+      border-top: 1px solid var(--border);
+    }
+  }
+
+  .swal-recap__label {
+    color: var(--text-mute);
+    white-space: nowrap;
+  }
+
+  .swal-recap__valeur {
+    color: var(--text);
+    font-weight: 500;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  // --- Notifications ----------------------------------------------------------
+  .swal2-toast.swal-toast-inresto {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    // Même surface que les dialogues : le masque de l'animation de la coche
+    // reprend `--swal2-background`, et jurerait sur une autre teinte.
+    background: var(--surface);
+    box-shadow: var(--shadow-md);
+    padding: var(--space-3);
+    // La barre de compte à rebours est posée au ras du bas : sans découpe, elle
+    // déborderait des angles arrondis.
+    overflow: hidden;
+
+    .swal2-timer-progress-bar-container {
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+    }
+
+    .swal2-title {
+      margin: 0;
+      font-size: var(--text-base);
+      font-weight: 600;
+    }
+
+    .swal2-html-container {
+      margin: 2px 0 0;
+      font-size: var(--text-sm);
+      color: var(--text-dim);
+    }
+
+    .swal2-close {
+      font-size: 1.5em;
+      align-self: start;
+    }
+
+    .swal2-icon.swal2-success {
+      border-color: var(--green);
+      [class^='swal2-success-line'] {
+        background-color: var(--green);
+      }
+      .swal2-success-ring {
+        border-color: rgba(var(--green-rgb), 0.3);
+      }
+    }
+    .swal2-icon.swal2-error {
+      border-color: var(--red);
+      color: var(--red);
+      [class^='swal2-x-mark-line'] {
+        background-color: var(--red);
+      }
+    }
+    .swal2-icon.swal2-warning {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+    .swal2-icon.swal2-info {
+      border-color: var(--blue);
+      color: var(--blue);
+    }
+  }
+}

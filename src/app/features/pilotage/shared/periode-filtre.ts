@@ -6,6 +6,12 @@ import { PeriodeType, ReportingFilter } from '../../../core/api/reporting/report
  * Filtre temporel réutilisable par toutes les pages de pilotage. Émet un
  * `ReportingFilter` (sans périmètre site, ajouté par la page) à chaque
  * changement valide — la plage n'émet qu'avec ses deux bornes renseignées.
+ *
+ * Une page qui a ses propres filtres les projette dans le composant : ils
+ * prennent place dans la même barre, à la suite des dates.
+ *
+ * Les écrans qui n'acceptent que des bornes — les relectures de contrôle —
+ * traduisent l'émission avec `plageDeReporting` (voir `periode-plage.ts`).
  */
 @Component({
   selector: 'app-periode-filtre',

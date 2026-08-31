@@ -17,6 +17,7 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 /**
  * Liste des fiches techniques ACTIVES : consultation, impression et accès au
@@ -36,6 +37,7 @@ export class FichesTechniquesPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly pdfService = inject(PdfService);
   private readonly selectedSite = inject(SelectedSiteService);
+  private readonly alertes = inject(AlerteService);
 
   /** En vue consolidée il n'y a pas de site, donc pas d'en-tête à imprimer. */
   readonly estConsolide = this.selectedSite.estConsolide;
@@ -110,13 +112,16 @@ export class FichesTechniquesPage implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.pdfBusyId.set(null);
-          alert(apiErrorMessage(err, 'Génération du PDF impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Génération du PDF impossible.'));
         },
       });
   }
 
-  delete(item: FicheTechnique): void {
-    if (!confirm(`Supprimer la fiche technique de « ${this.produitLibelle(item)} » ?`)) {
+  async delete(item: FicheTechnique): Promise<void> {
+    const confirme = await this.alertes.confirmerSuppression(this.produitLibelle(item), {
+      nature: 'la fiche technique de',
+    });
+    if (!confirme) {
       return;
     }
     this.deletingId.set(item.id);
@@ -130,7 +135,7 @@ export class FichesTechniquesPage implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.deletingId.set(null);
-          alert(apiErrorMessage(err, 'Suppression impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Suppression impossible.'));
         },
       });
   }

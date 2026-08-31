@@ -18,6 +18,7 @@ import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 const NIVEAU_LABEL: Record<NiveauAlerte, string> = {
   aucun: 'Sous contrôle',
@@ -48,6 +49,7 @@ export class BudgetPage {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   // Sites + sélection pilotés par le sélecteur global de la topbar.
   readonly sites = this.selectedSite.sites;
@@ -233,9 +235,16 @@ export class BudgetPage {
     });
   }
 
-  delete(item: Budget): void {
+  async delete(item: Budget): Promise<void> {
     const siteId = this.selectedSiteId();
-    if (!siteId || !confirm(`Supprimer le budget de ${this.formatMois(item.mois)} ?`)) {
+    if (!siteId) {
+      return;
+    }
+
+    const confirme = await this.alertes.confirmerSuppression(this.formatMois(item.mois), {
+      nature: 'le budget de',
+    });
+    if (!confirme) {
       return;
     }
     this.deletingId.set(item.id);

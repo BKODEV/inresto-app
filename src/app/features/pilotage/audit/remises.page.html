@@ -8,34 +8,16 @@
     </div>
   </div>
 
-  <div class="filters">
-    <label class="field-label">
-      <span class="field-text">Du</span>
-      <input
-        class="field-input"
-        type="date"
-        [value]="dateDebut()"
-        (change)="onDateDebut($any($event.target).value)"
-      />
-    </label>
-    <label class="field-label">
-      <span class="field-text">Au</span>
-      <input
-        class="field-input"
-        type="date"
-        [value]="dateFin()"
-        (change)="onDateFin($any($event.target).value)"
-      />
-    </label>
-    <label class="field-label">
-      <span class="field-text">Type</span>
+  <app-periode-filtre (filterChange)="onPeriode($event)">
+    <div class="filtre-champ">
+      <label class="field-label">Type</label>
       <select class="field-select" (change)="onType($any($event.target).value)">
         <option value="" [selected]="type() === null">Tous</option>
         <option value="pourcentage" [selected]="type() === 'pourcentage'">Pourcentage</option>
         <option value="montant_fixe" [selected]="type() === 'montant_fixe'">Montant fixe</option>
       </select>
-    </label>
-  </div>
+    </div>
+  </app-periode-filtre>
 
   @if (error()) {
     <div class="alert-error" style="margin-bottom: 16px">{{ error() }}</div>

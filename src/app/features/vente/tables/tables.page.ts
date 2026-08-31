@@ -26,6 +26,7 @@ import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.com
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 import { AuthService } from '../../../core/auth/auth.service';
 import { LOT_MAX, genererNumeros, indexesEnDoublon } from './serie-tables';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 const STATUTS: { value: StatutTable; label: string }[] = [
   { value: 'libre', label: 'Libre' },
@@ -50,6 +51,7 @@ export class TablesPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly statuts = STATUTS;
   readonly statutLabel: Record<StatutTable, string> = {
@@ -396,7 +398,7 @@ export class TablesPage implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.qrBusy.set(false);
-          alert(apiErrorMessage(err, 'Génération du QR impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Génération du QR impossible.'));
         },
       });
   }
@@ -418,7 +420,7 @@ export class TablesPage implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.plancheBusy.set(false);
-          alert(apiErrorMessage(err, 'Génération de la planche impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Génération de la planche impossible.'));
         },
       });
   }
@@ -427,11 +429,14 @@ export class TablesPage implements OnInit {
    * Régénère le jeton : opération destructrice pour les QR déjà collés en
    * salle, d'où la confirmation explicite.
    */
-  regenererToken(table: TableSalle): void {
-    const confirme = confirm(
-      `Régénérer le QR de la table ${table.numero} ?\n\n` +
+  async regenererToken(table: TableSalle): Promise<void> {
+    const confirme = await this.alertes.confirmer({
+      titre: `Régénérer le QR de la table ${table.numero} ?`,
+      texte:
         'Les QR déjà imprimés pour cette table cesseront de fonctionner et devront être remplacés.',
-    );
+      confirmer: 'Régénérer',
+      danger: true,
+    });
     if (!confirme) {
       return;
     }
@@ -445,7 +450,8 @@ export class TablesPage implements OnInit {
           this.editingTable.set(updated);
           this.lienCopie.set(false);
         },
-        error: (err: HttpErrorResponse) => alert(apiErrorMessage(err, 'Régénération impossible.')),
+        error: (err: HttpErrorResponse) =>
+          this.alertes.erreur(apiErrorMessage(err, 'Régénération impossible.')),
       });
   }
 
@@ -459,7 +465,7 @@ export class TablesPage implements OnInit {
         this.lienCopie.set(true);
         setTimeout(() => this.lienCopie.set(false), 2000);
       },
-      () => alert('Copie impossible. Sélectionnez le lien manuellement.'),
+      () => this.alertes.avertissement('Copie impossible. Sélectionnez le lien manuellement.'),
     );
   }
 
@@ -515,7 +521,8 @@ export class TablesPage implements OnInit {
             this.editingTable.set(updated);
           }
         },
-        error: (err: HttpErrorResponse) => alert(apiErrorMessage(err, 'Changement impossible.')),
+        error: (err: HttpErrorResponse) =>
+          this.alertes.erreur(apiErrorMessage(err, 'Changement impossible.')),
       });
   }
 
@@ -524,12 +531,15 @@ export class TablesPage implements OnInit {
    * servi : la suppression lui est définitivement fermée. Le jeton public est
    * conservé, donc réactiver fait refonctionner les QR déjà imprimés.
    */
-  archiver(table: TableSalle): void {
-    const confirme = confirm(
-      `Archiver la table ${table.numero} ?\n\n` +
+  async archiver(table: TableSalle): Promise<void> {
+    const confirme = await this.alertes.confirmer({
+      titre: `Archiver la table ${table.numero} ?`,
+      texte:
         'Elle sortira du plan de salle et de la caisse, et son QR cessera de servir un menu. ' +
         'Son historique de commandes est conservé, et vous pourrez la réactiver.',
-    );
+      confirmer: 'Archiver',
+      danger: true,
+    });
     if (!confirme) {
       return;
     }
@@ -542,7 +552,7 @@ export class TablesPage implements OnInit {
         next: (updated) => this.apresArchivage(updated),
         error: (err: HttpErrorResponse) => {
           this.archiving.set(false);
-          alert(apiErrorMessage(err, 'Archivage impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Archivage impossible.'));
         },
       });
   }
@@ -556,7 +566,7 @@ export class TablesPage implements OnInit {
         next: (updated) => this.apresArchivage(updated),
         error: (err: HttpErrorResponse) => {
           this.archiving.set(false);
-          alert(apiErrorMessage(err, 'Réactivation impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Réactivation impossible.'));
         },
       });
   }
@@ -577,8 +587,8 @@ export class TablesPage implements OnInit {
     this.editingTable.set(updated);
   }
 
-  delete(table: TableSalle): void {
-    if (!confirm(`Supprimer la table ${table.numero} ?`)) {
+  async delete(table: TableSalle): Promise<void> {
+    if (!(await this.alertes.confirmerSuppression(String(table.numero), { nature: 'la table' }))) {
       return;
     }
     this.deleting.set(true);
@@ -593,7 +603,7 @@ export class TablesPage implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.deleting.set(false);
-          alert(apiErrorMessage(err, 'Suppression impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Suppression impossible.'));
         },
       });
   }

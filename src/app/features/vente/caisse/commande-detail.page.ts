@@ -44,6 +44,7 @@ import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.servi
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 import { AuthService } from '../../../core/auth/auth.service';
 import { MontantPipe } from '../../../shared/format/nombre.pipes';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 type DrawerMode = 'paiement' | 'remise' | 'annuler-ligne' | null;
 
@@ -66,6 +67,7 @@ export class CommandeVenteDetailPage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthService);
+  private readonly alertes = inject(AlerteService);
 
   readonly commandeId = Number(this.route.snapshot.paramMap.get('id'));
 
@@ -534,11 +536,17 @@ export class CommandeVenteDetailPage implements OnInit {
    * d'annulation. Taper une table la réserve ; défaire ce geste ne doit pas
    * coûter une justification, ni polluer la piste d'audit des annulations.
    */
-  libererTable(): void {
+  async libererTable(): Promise<void> {
     if (this.busy()) {
       return;
     }
-    if (!confirm('Libérer la table ? La commande, encore vide, sera supprimée.')) {
+    const confirme = await this.alertes.confirmer({
+      titre: 'Libérer la table ?',
+      texte: 'La commande, encore vide, sera supprimée.',
+      confirmer: 'Libérer',
+      danger: true,
+    });
+    if (!confirme) {
       return;
     }
 
@@ -550,13 +558,21 @@ export class CommandeVenteDetailPage implements OnInit {
         next: () => this.router.navigate(['/vente/caisse/commandes']),
         error: (err: HttpErrorResponse) => {
           this.busy.set(false);
-          alert(apiErrorMessage(err, 'Libération impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Libération impossible.'));
         },
       });
   }
 
-  annulerCommande(): void {
-    const motif = prompt('Motif d’annulation de la commande ?');
+  async annulerCommande(): Promise<void> {
+    const motif = await this.alertes.saisir({
+      titre: 'Annuler la commande',
+      label: 'Motif d’annulation',
+      placeholder: 'Erreur de saisie, départ du client…',
+      obligatoire: 'Indiquez le motif : il est repris dans la piste d’audit.',
+      confirmer: 'Annuler la commande',
+      annuler: 'Revenir',
+      danger: true,
+    });
     if (!motif) {
       return;
     }

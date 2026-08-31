@@ -17,6 +17,7 @@ import { Site } from '../../../core/api/site/site.model';
 import { Statut } from '../../../core/api/api.types';
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-sites-page',
@@ -31,6 +32,7 @@ export class SitesPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly items = signal<Site[]>([]);
   readonly loading = signal(true);
@@ -125,8 +127,8 @@ export class SitesPage implements OnInit {
     });
   }
 
-  delete(item: Site): void {
-    if (!confirm(`Supprimer le site « ${item.nom} » ?`)) {
+  async delete(item: Site): Promise<void> {
+    if (!(await this.alertes.confirmerSuppression(item.nom, { nature: 'le site' }))) {
       return;
     }
     this.deletingId.set(item.id);
@@ -141,7 +143,7 @@ export class SitesPage implements OnInit {
         error: (err: HttpErrorResponse) => {
           this.deletingId.set(null);
           // 409 : site utilisé (points de vente, budgets, stock).
-          alert(apiErrorMessage(err, 'Suppression impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Suppression impossible.'));
         },
       });
   }

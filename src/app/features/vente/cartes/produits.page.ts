@@ -19,6 +19,7 @@ import { Produit } from '../../../core/api/produit/produit.model';
 import { CategorieProduitService } from '../../../core/api/categorie-produit/categorie-produit.service';
 import { CategorieProduit } from '../../../core/api/categorie-produit/categorie-produit.model';
 import { redimensionnerImage } from '../../../core/media/redimensionner-image';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-produits-page',
@@ -34,6 +35,7 @@ export class ProduitsPage implements OnInit {
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly items = signal<Produit[]>([]);
   readonly categories = signal<CategorieProduit[]>([]);
@@ -150,9 +152,18 @@ export class ProduitsPage implements OnInit {
     });
   }
 
-  supprimerPhoto(): void {
+  async supprimerPhoto(): Promise<void> {
     const produit = this.editingItem();
-    if (this.photoBusy() || produit === null || !confirm('Supprimer la photo de ce produit ?')) {
+    if (this.photoBusy() || produit === null) {
+      return;
+    }
+
+    const confirme = await this.alertes.confirmer({
+      titre: 'Supprimer la photo de ce produit ?',
+      confirmer: 'Supprimer',
+      danger: true,
+    });
+    if (!confirme) {
       return;
     }
 
@@ -210,8 +221,8 @@ export class ProduitsPage implements OnInit {
     });
   }
 
-  delete(item: Produit): void {
-    if (!confirm(`Supprimer le produit « ${item.libelle} » ?`)) {
+  async delete(item: Produit): Promise<void> {
+    if (!(await this.alertes.confirmerSuppression(item.libelle, { nature: 'le produit' }))) {
       return;
     }
     this.deletingId.set(item.id);
@@ -225,7 +236,7 @@ export class ProduitsPage implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.deletingId.set(null);
-          alert(apiErrorMessage(err, 'Suppression impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Suppression impossible.'));
         },
       });
   }

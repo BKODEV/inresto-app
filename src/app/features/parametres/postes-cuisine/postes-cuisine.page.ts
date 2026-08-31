@@ -20,6 +20,7 @@ import { SessionCuisineService } from '../../../core/api/session-cuisine/session
 import { MembreBrigade } from '../../../core/api/session-cuisine/session-cuisine.model';
 import { PointDeVente } from '../../../core/api/point-de-vente/point-de-vente.model';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 /**
  * Paramétrage des postes de production et des catégories qu'ils prennent en
@@ -46,6 +47,7 @@ export class PostesCuisinePage implements OnInit {
   private readonly sessionCuisineService = inject(SessionCuisineService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly items = signal<PosteCuisine[]>([]);
   readonly categories = signal<CategorieProduit[]>([]);
@@ -276,10 +278,10 @@ export class PostesCuisinePage implements OnInit {
     });
   }
 
-  delete(item: PosteCuisine): void {
+  async delete(item: PosteCuisine): Promise<void> {
     // Rien n'est perdu : les plats du poste supprimé reparaissent sur tous les
     // écrans, jamais dans le vide.
-    if (!confirm(`Supprimer le poste « ${item.libelle} » ?`)) {
+    if (!(await this.alertes.confirmerSuppression(item.libelle, { nature: 'le poste' }))) {
       return;
     }
     this.deletingId.set(item.id);

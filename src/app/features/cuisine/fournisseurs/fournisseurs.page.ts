@@ -15,6 +15,7 @@ import { FournisseurService } from '../../../core/api/fournisseur/fournisseur.se
 import { Fournisseur } from '../../../core/api/fournisseur/fournisseur.model';
 import { Statut } from '../../../core/api/api.types';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-fournisseurs-page',
@@ -28,6 +29,7 @@ export class FournisseursPage implements OnInit {
   private readonly service = inject(FournisseurService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly items = signal<Fournisseur[]>([]);
   readonly loading = signal(true);
@@ -141,8 +143,8 @@ export class FournisseursPage implements OnInit {
     });
   }
 
-  delete(item: Fournisseur): void {
-    if (!confirm(`Supprimer « ${item.nom} » ?`)) {
+  async delete(item: Fournisseur): Promise<void> {
+    if (!(await this.alertes.confirmerSuppression(item.nom))) {
       return;
     }
     this.deletingId.set(item.id);

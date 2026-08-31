@@ -361,6 +361,18 @@ export const routes: Routes = [
               ),
             title: 'Budget (pilotage)',
           },
+          {
+            path: 'remises',
+            loadComponent: () =>
+              import('./features/pilotage/audit/remises.page').then((m) => m.RemisesPage),
+            title: 'Remises accordées',
+          },
+          {
+            path: 'annulations',
+            loadComponent: () =>
+              import('./features/pilotage/audit/annulations.page').then((m) => m.AnnulationsPage),
+            title: 'Annulations',
+          },
         ],
       },
       {
@@ -444,18 +456,6 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/parametres/journal/journal.page').then((m) => m.JournalPage),
             title: "Journal d'activité",
-          },
-          {
-            path: 'remises',
-            loadComponent: () =>
-              import('./features/parametres/audit/remises.page').then((m) => m.RemisesPage),
-            title: 'Remises accordées',
-          },
-          {
-            path: 'annulations',
-            loadComponent: () =>
-              import('./features/parametres/audit/annulations.page').then((m) => m.AnnulationsPage),
-            title: 'Annulations',
           },
         ],
       },

@@ -26,6 +26,12 @@ export class PilotageLayout {
     { label: 'Ventes', route: 'ventes', permission: 'reporting.ventes' },
     { label: 'Stock', route: 'stock', permission: 'reporting.stock' },
     { label: 'Budget', route: 'budget', permission: 'reporting.budget' },
+    // Relectures de contrôle : mêmes questions de fin de mois que les rapports
+    // ci-dessus, sur les gestes qui retirent de l'argent au lieu d'en compter.
+    // Gardées par leurs propres permissions, et non par `reporting.*` : la
+    // direction qui supervise les remises n'analyse pas forcément le food cost.
+    { label: 'Remises', route: 'remises', permission: 'remise.view' },
+    { label: 'Annulations', route: 'annulations', permission: 'annulation.view' },
   ];
 
   /** Onglets visibles selon les permissions de l'utilisateur. */

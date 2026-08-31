@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
-  OnInit,
   computed,
   effect,
   inject,
@@ -16,8 +15,11 @@ import { AuditService } from '../../../core/api/audit/audit.service';
 import { RemiseAudit } from '../../../core/api/audit/audit.model';
 import { TypeRemise } from '../../../core/api/commande-client/commande-client.model';
 import { Pagination } from '../../../core/api/api.types';
+import { ReportingFilter } from '../../../core/api/reporting/reporting.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { formatMontant, formatPourcentage } from '../../../shared/format/nombre.format';
+import { PeriodeFiltre } from '../shared/periode-filtre';
+import { plageDeReporting } from '../shared/periode-plage';
 
 /**
  * Relecture des remises accordées — lecture seule.
@@ -29,12 +31,12 @@ import { formatMontant, formatPourcentage } from '../../../shared/format/nombre.
 @Component({
   selector: 'app-remises-page',
   standalone: true,
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, PeriodeFiltre],
   templateUrl: './remises.page.html',
   styleUrl: './audit.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RemisesPage implements OnInit {
+export class RemisesPage {
   private readonly service = inject(AuditService);
   private readonly selectedSite = inject(SelectedSiteService);
   private readonly destroyRef = inject(DestroyRef);
@@ -44,9 +46,11 @@ export class RemisesPage implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
-  private readonly aujourdhui = new Date().toISOString().slice(0, 10);
-  readonly dateDebut = signal(this.premierDuMois());
-  readonly dateFin = signal(this.aujourdhui);
+  /**
+   * Posé par la barre de période, qui émet dès son initialisation : c'est cette
+   * première émission qui déclenche le chargement, d'où l'absence de `ngOnInit`.
+   */
+  readonly filtre = signal<ReportingFilter | null>(null);
   readonly type = signal<TypeRemise | null>(null);
   readonly page = signal(1);
 
@@ -71,38 +75,34 @@ export class RemisesPage implements OnInit {
   );
 
   constructor() {
-    // Le périmètre borne ce que l'API renvoie : changer de site recharge.
+    // Une seule source de chargement : la période, le type, la page et le
+    // périmètre décrivent ensemble la question posée. Les gestes de l'écran ne
+    // font que poser un signal — les appeler ET laisser l'effet réagir, comme
+    // auparavant, lançait deux fois la même requête.
     effect(() => {
       this.selectedSite.epoch();
-      this.charger();
+      const filtre = this.filtre();
+      const type = this.type();
+      const page = this.page();
+
+      if (filtre) {
+        this.charger(filtre, type, page);
+      }
     });
   }
 
-  ngOnInit(): void {
-    this.charger();
-  }
-
-  onDateDebut(valeur: string): void {
-    this.dateDebut.set(valeur);
+  onPeriode(filtre: ReportingFilter): void {
     this.page.set(1);
-    this.charger();
-  }
-
-  onDateFin(valeur: string): void {
-    this.dateFin.set(valeur);
-    this.page.set(1);
-    this.charger();
+    this.filtre.set(filtre);
   }
 
   onType(valeur: string): void {
-    this.type.set(valeur === '' ? null : (valeur as TypeRemise));
     this.page.set(1);
-    this.charger();
+    this.type.set(valeur === '' ? null : (valeur as TypeRemise));
   }
 
   allerPage(page: number): void {
     this.page.set(page);
-    this.charger();
   }
 
   /** Un pourcentage et un montant ne se lisent pas avec la même unité. */
@@ -114,22 +114,15 @@ export class RemisesPage implements OnInit {
 
   readonly fMontant = formatMontant;
 
-  private premierDuMois(): string {
-    const now = new Date();
-
-    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-  }
-
-  private charger(): void {
+  private charger(filtre: ReportingFilter, type: TypeRemise | null, page: number): void {
     this.loading.set(true);
     this.error.set(null);
     this.service
       .remises({
-        date_debut: this.dateDebut(),
-        date_fin: this.dateFin(),
-        type: this.type() ?? undefined,
+        ...plageDeReporting(filtre),
+        type: type ?? undefined,
         site_id: this.selectedSite.selectedId() ?? undefined,
-        page: this.page(),
+        page,
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

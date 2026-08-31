@@ -15,6 +15,7 @@ import { ModeDePaiementService } from '../../../core/api/mode-de-paiement/mode-d
 import { ModeDePaiement } from '../../../core/api/mode-de-paiement/mode-de-paiement.model';
 import { Statut } from '../../../core/api/api.types';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-modes-de-paiement-page',
@@ -28,6 +29,7 @@ export class ModesDePaiementPage implements OnInit {
   private readonly service = inject(ModeDePaiementService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly items = signal<ModeDePaiement[]>([]);
   readonly loading = signal(true);
@@ -129,8 +131,8 @@ export class ModesDePaiementPage implements OnInit {
     });
   }
 
-  delete(item: ModeDePaiement): void {
-    if (!confirm(`Supprimer « ${item.libelle} » ?`)) {
+  async delete(item: ModeDePaiement): Promise<void> {
+    if (!(await this.alertes.confirmerSuppression(item.libelle))) {
       return;
     }
     this.deletingId.set(item.id);

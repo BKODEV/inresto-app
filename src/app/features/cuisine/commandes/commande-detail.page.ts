@@ -31,6 +31,7 @@ import { PdfService, ouvrirPdfDansOnglet } from '../../../core/api/pdf/pdf.servi
 import { STATUT_COMMANDE_BADGE, STATUT_COMMANDE_LABEL } from './statut-commande.labels';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 import { QuantitePipe } from '../../../shared/format/nombre.pipes';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-commande-detail-page',
@@ -53,6 +54,7 @@ export class CommandeDetailPage implements OnInit {
   private readonly pdfService = inject(PdfService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   private commandeId!: number;
 
@@ -265,22 +267,39 @@ export class CommandeDetailPage implements OnInit {
 
   // ── Transitions d'état ──────────────────────────────────────────────────
 
-  envoyer(): void {
-    if (!confirm('Envoyer cette commande au fournisseur ? Elle ne sera plus modifiable.')) {
+  async envoyer(): Promise<void> {
+    const confirme = await this.alertes.confirmer({
+      titre: 'Envoyer cette commande au fournisseur ?',
+      texte: 'Elle ne sera plus modifiable.',
+      confirmer: 'Envoyer',
+    });
+    if (!confirme) {
       return;
     }
     this.runAction(this.service.envoyer(this.commandeId));
   }
 
-  annuler(): void {
-    if (!confirm('Annuler cette commande ?')) {
+  async annuler(): Promise<void> {
+    const confirme = await this.alertes.confirmer({
+      titre: 'Annuler cette commande ?',
+      confirmer: 'Annuler la commande',
+      annuler: 'Revenir',
+      danger: true,
+    });
+    if (!confirme) {
       return;
     }
     this.runAction(this.service.annuler(this.commandeId));
   }
 
-  supprimer(): void {
-    if (!confirm('Supprimer définitivement cette commande ?')) {
+  async supprimer(): Promise<void> {
+    const confirme = await this.alertes.confirmer({
+      titre: 'Supprimer définitivement cette commande ?',
+      texte: 'Cette action est irréversible.',
+      confirmer: 'Supprimer',
+      danger: true,
+    });
+    if (!confirme) {
       return;
     }
     this.busy.set(true);
@@ -394,8 +413,13 @@ export class CommandeDetailPage implements OnInit {
     });
   }
 
-  deleteLigne(ligne: LigneCommandeFournisseur): void {
-    if (!confirm('Supprimer cette ligne ?')) {
+  async deleteLigne(ligne: LigneCommandeFournisseur): Promise<void> {
+    const confirme = await this.alertes.confirmer({
+      titre: 'Supprimer cette ligne ?',
+      confirmer: 'Supprimer',
+      danger: true,
+    });
+    if (!confirme) {
       return;
     }
     this.service

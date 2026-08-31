@@ -17,6 +17,7 @@ import { PermissionService } from '../../../core/api/permission/permission.servi
 import { CreateRolePayload, Role, UpdateRolePayload } from '../../../core/api/role/role.model';
 import { PermissionModule } from '../../../core/api/permission/permission.model';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-roles-page',
@@ -32,6 +33,7 @@ export class RolesPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly roles = signal<Role[]>([]);
   readonly modules = signal<PermissionModule[]>([]);
@@ -196,11 +198,11 @@ export class RolesPage implements OnInit {
     this.formError.set(apiErrorMessage(err, 'Enregistrement impossible.'));
   }
 
-  remove(role: Role): void {
+  async remove(role: Role): Promise<void> {
     if (role.is_system) {
       return;
     }
-    if (!confirm(`Supprimer le rôle « ${role.name} » ?`)) {
+    if (!(await this.alertes.confirmerSuppression(role.name, { nature: 'le rôle' }))) {
       return;
     }
     this.deletingId.set(role.id);
@@ -214,7 +216,7 @@ export class RolesPage implements OnInit {
         },
         error: (err: HttpErrorResponse) => {
           this.deletingId.set(null);
-          alert(apiErrorMessage(err, 'Suppression impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Suppression impossible.'));
         },
       });
   }

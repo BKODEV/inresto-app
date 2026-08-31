@@ -20,6 +20,7 @@ import { UniteDeMesure } from '../../../core/api/unite-de-mesure/unite-de-mesure
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 import { QuantitePipe } from '../../../shared/format/nombre.pipes';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-sous-recettes-page',
@@ -36,6 +37,7 @@ export class SousRecettesPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly items = signal<SousRecette[]>([]);
   readonly matieres = signal<MatierePremiere[]>([]);
@@ -203,8 +205,8 @@ export class SousRecettesPage implements OnInit {
     });
   }
 
-  delete(item: SousRecette): void {
-    if (!confirm(`Supprimer la sous-recette « ${item.libelle} » ?`)) {
+  async delete(item: SousRecette): Promise<void> {
+    if (!(await this.alertes.confirmerSuppression(item.libelle, { nature: 'la sous-recette' }))) {
       return;
     }
     this.deletingId.set(item.id);
@@ -219,7 +221,7 @@ export class SousRecettesPage implements OnInit {
         error: (err: HttpErrorResponse) => {
           this.deletingId.set(null);
           // 409 : sous-recette utilisée par une fiche active.
-          alert(apiErrorMessage(err, 'Suppression impossible.'));
+          this.alertes.erreur(apiErrorMessage(err, 'Suppression impossible.'));
         },
       });
   }

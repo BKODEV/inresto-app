@@ -13,6 +13,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { CategorieProduitService } from '../../../core/api/categorie-produit/categorie-produit.service';
 import { CategorieProduit } from '../../../core/api/categorie-produit/categorie-produit.model';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
+import { AlerteService } from '../../../core/alertes/alerte.service';
 
 @Component({
   selector: 'app-categories-produit-page',
@@ -26,6 +27,7 @@ export class CategoriesProduitPage implements OnInit {
   private readonly service = inject(CategorieProduitService);
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly alertes = inject(AlerteService);
 
   readonly items = signal<CategorieProduit[]>([]);
   readonly loading = signal(true);
@@ -115,8 +117,8 @@ export class CategoriesProduitPage implements OnInit {
     });
   }
 
-  delete(item: CategorieProduit): void {
-    if (!confirm(`Supprimer « ${item.libelle} » ?`)) {
+  async delete(item: CategorieProduit): Promise<void> {
+    if (!(await this.alertes.confirmerSuppression(item.libelle))) {
       return;
     }
     this.deletingId.set(item.id);
