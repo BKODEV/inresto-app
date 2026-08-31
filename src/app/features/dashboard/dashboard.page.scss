@@ -201,3 +201,37 @@
 .empty-ok .empty-message {
   color: var(--text-dim);
 }
+
+// Apparition ------------------------------------------------------------------
+// Les cartes se révèlent en vague au moment où les données arrivent. C'est
+// volontairement la SEULE animation de cet écran : pas d'écran d'attente qui
+// retarderait l'affichage, on habille la dernière étape — le passage de « vide »
+// à « rempli » — d'une transition qui existe déjà. Le dashboard reste donc
+// disponible à la milliseconde près aussi vite qu'auparavant.
+//
+// `backwards` et non `forwards` : l'animation tient la carte invisible pendant
+// son décalage, puis rend la main. Avec `forwards` elle figerait le `transform`
+// d'arrivée et le survol des KPI ci-dessus ne décollerait plus.
+.kpi,
+.chart-card {
+  animation: apparition-montante var(--motion-entree) var(--motion-courbe) backwards;
+}
+
+// Les cinq KPI d'abord, de gauche à droite.
+@for $rang from 1 through 5 {
+  .kpi-grid .kpi:nth-child(#{$rang}) {
+    animation-delay: calc(var(--motion-decalage) * #{$rang - 1});
+  }
+}
+
+// Puis l'évolution du CA, seule carte fille directe de la page.
+.dashboard > .chart-card {
+  animation-delay: calc(var(--motion-decalage) * 5);
+}
+
+// Puis les trois cartes du bas.
+@for $rang from 1 through 3 {
+  .dash-grid .chart-card:nth-child(#{$rang}) {
+    animation-delay: calc(var(--motion-decalage) * #{$rang + 5});
+  }
+}

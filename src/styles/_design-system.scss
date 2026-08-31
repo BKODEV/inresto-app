@@ -127,6 +127,17 @@
   --transition-base: 0.15s ease;
   --transition-slow: 0.25s ease;
 
+  // Entrées d'écran. La durée et le décalage sont des tokens pour une raison :
+  // le bloc « mouvement réduit », en fin de fichier, les ramène à zéro et
+  // neutralise ainsi toutes les apparitions d'un coup — sans `!important`, et
+  // sans toucher aux animations qui portent une information (les spinners).
+  --motion-entree: 0.34s;
+  --motion-decalage: 40ms;
+  // Décélération franche : vif au départ, posé à l'arrivée. Une entrée qui
+  // ralentit en fin de course se lit comme un objet qui se pose, là où un
+  // `ease` linéaire donne l'impression d'un élément qui glisse et s'arrête net.
+  --motion-courbe: cubic-bezier(0.22, 1, 0.36, 1);
+
   // -----------------------------------------------------------------------------
   // 7. TOKENS — Layout
   // -----------------------------------------------------------------------------
@@ -639,6 +650,33 @@
   }
 }
 
+// Apparition d'un élément qui entre en scène : il monte de 8 px en se révélant.
+//
+// `transform` et `opacity` UNIQUEMENT. Ce sont les deux seules propriétés que
+// le navigateur confie au compositeur, sur le GPU : ni recalcul de mise en
+// page, ni repeinture, donc 60 images par seconde même sur la tablette d'entrée
+// de gamme accrochée en cuisine. Animer `width`, `top`, `box-shadow` ou
+// `filter` obligerait au contraire à retravailler la page à chaque image.
+//
+// Pas de `to` : l'état d'arrivée est l'état naturel de l'élément. Combiné à
+// `animation-fill-mode: backwards`, cela laisse l'animation ne tenir l'élément
+// QUE pendant son décalage puis rendre la main — sans quoi elle figerait le
+// `transform` final et neutraliserait les `:hover` qui en dépendent.
+@keyframes apparition-montante {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+// Même chose sans le déplacement, pour les éléments de décor qui n'ont pas à
+// bouger : ils se contentent de se révéler.
+@keyframes apparition-fondu {
+  from {
+    opacity: 0;
+  }
+}
+
 // Empty state
 .empty-state {
   display: flex;
@@ -738,4 +776,24 @@
 }
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+// -----------------------------------------------------------------------------
+// Mouvement réduit
+// -----------------------------------------------------------------------------
+// Réglage système, souvent activé pour des raisons médicales — et bienvenu sur
+// un écran mural qu'on regarde du coin de l'œil pendant un service.
+//
+// On ramène les tokens à zéro plutôt que d'écraser tout le CSS à coups de
+// `!important` : les apparitions deviennent instantanées, les survols aussi, et
+// les spinners gardent leur rotation. Un spinner figé ne dit plus « ça
+// travaille » ; le mouvement réduit vise le décor, pas l'information.
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-entree: 0.01ms;
+    --motion-decalage: 0ms;
+    --transition-fast: 0s;
+    --transition-base: 0s;
+    --transition-slow: 0s;
+  }
 }

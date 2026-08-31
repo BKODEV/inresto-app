@@ -423,3 +423,46 @@
   color: var(--text-mute);
   letter-spacing: 0.08em;
 }
+
+// Apparition ------------------------------------------------------------------
+// L'écran de connexion est un temps mort : on y attend déjà, il n'y a rien à
+// optimiser, et c'est la première image du produit. La carte se pose, son
+// contenu suit, le décor se révèle en dernier — environ 660 ms en tout, une
+// seule fois par chargement, et rien qui boucle.
+//
+// Tout passe par `--motion-decalage`, que le mode « mouvement réduit » ramène à
+// zéro : la séquence devient alors instantanée sans que rien ne casse.
+.card {
+  animation: apparition-montante var(--motion-entree) var(--motion-courbe) backwards;
+  animation-delay: var(--motion-decalage);
+}
+
+.logo-row,
+.heading,
+.subheading,
+form {
+  animation: apparition-montante var(--motion-entree) var(--motion-courbe) backwards;
+}
+
+.logo-row {
+  animation-delay: calc(var(--motion-decalage) * 3);
+}
+.heading {
+  animation-delay: calc(var(--motion-decalage) * 4);
+}
+.subheading {
+  animation-delay: calc(var(--motion-decalage) * 5);
+}
+// Le formulaire entre d'un bloc : faire monter chaque champ l'un après l'autre
+// ferait de la saisie un spectacle, alors qu'on vient ici pour taper deux mots.
+form {
+  animation-delay: calc(var(--motion-decalage) * 6);
+}
+
+// Le décor ne bouge pas, il se révèle : ces éléments encadrent l'écran, les
+// faire glisser tirerait l'œil loin du seul endroit qui compte.
+.topbar,
+.foot {
+  animation: apparition-fondu var(--motion-entree) var(--motion-courbe) backwards;
+  animation-delay: calc(var(--motion-decalage) * 8);
+}
