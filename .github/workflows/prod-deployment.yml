@@ -54,8 +54,10 @@ jobs:
         env:
           PROD_SSH_PRIVATE_KEY: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
         run: |
-          echo "$PROD_SSH_PRIVATE_KEY" > private_key
+          # tr : une clé collée avec des fins de ligne Windows est illisible pour ssh (« error in libcrypto »).
+          printf '%s\n' "$PROD_SSH_PRIVATE_KEY" | tr -d '\r' > private_key
           chmod 600 private_key
+          ssh-keygen -y -f private_key > /dev/null || { echo "::error::PROD_SSH_PRIVATE_KEY illisible : coller la clé PRIVÉE entière, BEGIN/END compris, sans passphrase."; exit 1; }
           echo "SSH=ssh -i private_key -o StrictHostKeyChecking=no" >> "$GITHUB_ENV"
 
       # Sortie SSR : dist/inresto-app/{browser,server}. Le bundle serveur embarque ses
