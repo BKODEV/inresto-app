@@ -424,45 +424,126 @@
   letter-spacing: 0.08em;
 }
 
-// Apparition ------------------------------------------------------------------
-// L'écran de connexion est un temps mort : on y attend déjà, il n'y a rien à
-// optimiser, et c'est la première image du produit. La carte se pose, son
-// contenu suit, le décor se révèle en dernier — environ 660 ms en tout, une
-// seule fois par chargement, et rien qui boucle.
+// Intro -----------------------------------------------------------------------
+// Le monogramme se trace seul sur le fond de l'écran, marque un temps, puis
+// s'efface pendant que la carte monte. Environ une seconde en tout.
 //
-// Tout passe par `--motion-decalage`, que le mode « mouvement réduit » ramène à
-// zéro : la séquence devient alors instantanée sans que rien ne casse.
-.card {
-  animation: apparition-montante var(--motion-entree) var(--motion-courbe) backwards;
-  animation-delay: var(--motion-decalage);
+// C'est le seul endroit du produit qui s'autorise une intro, et il le peut pour
+// une raison vérifiable : `guestGuard` renvoie ailleurs tout utilisateur déjà
+// connecté, et le jeton vit dans `localStorage`. Cet écran ne se voit donc qu'à
+// l'installation d'un poste ou après une déconnexion explicite — jamais assez
+// souvent pour lasser.
+
+.intro {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  color: var(--amber);
 }
 
-.logo-row,
-.heading,
-.subheading,
-form {
-  animation: apparition-montante var(--motion-entree) var(--motion-courbe) backwards;
+.monogramme {
+  width: 84px;
+  height: 84px;
+
+  path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
 }
 
-.logo-row {
-  animation-delay: calc(var(--motion-decalage) * 3);
-}
-.heading {
-  animation-delay: calc(var(--motion-decalage) * 4);
-}
-.subheading {
-  animation-delay: calc(var(--motion-decalage) * 5);
-}
-// Le formulaire entre d'un bloc : faire monter chaque champ l'un après l'autre
-// ferait de la saisie un spectacle, alors qu'on vient ici pour taper deux mots.
-form {
-  animation-delay: calc(var(--motion-decalage) * 6);
+// Le tracé n'est posé qu'à la première image rendue (classe `pret`, voir
+// `login.page.ts`), sinon il se jouerait derrière un écran encore blanc.
+:host(.pret) .monogramme path {
+  animation: tracer 380ms ease-in-out forwards;
+
+  // Les trois traits s'enchaînent : les deux dents de la fourchette, puis la
+  // lame. Décalés, ils se lisent comme une main qui dessine ; simultanés, comme
+  // un logo qui se révèle.
+  &:nth-child(2) {
+    animation-delay: 90ms;
+  }
+  &:nth-child(3) {
+    animation-delay: 180ms;
+  }
 }
 
-// Le décor ne bouge pas, il se révèle : ces éléments encadrent l'écran, les
-// faire glisser tirerait l'œil loin du seul endroit qui compte.
-.topbar,
-.foot {
-  animation: apparition-fondu var(--motion-entree) var(--motion-courbe) backwards;
-  animation-delay: calc(var(--motion-decalage) * 8);
+// Seule entorse à la règle « transform et opacity uniquement » de tout le
+// reste : `stroke-dashoffset` repasse par la peinture. C'est assumé ici — trois
+// traits fins dans un carré de 84 px, sur un écran qui ne fait rien d'autre.
+@keyframes tracer {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.intro-sortie {
+  animation: intro-sortie 300ms var(--motion-courbe) forwards;
+}
+
+@keyframes intro-sortie {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+// La page attend son tour derrière l'intro. `visibility` et non `opacity` : un
+// élément seulement transparent reste cliquable et reçoit encore le focus au
+// clavier, ce qui permettrait de taper dans un formulaire invisible.
+:host(:not(.page)) {
+  .topbar,
+  .wrap,
+  .foot {
+    visibility: hidden;
+  }
+}
+
+// Apparition ------------------------------------------------------------------
+// La carte se pose, son contenu suit, le décor se révèle en dernier — environ
+// 660 ms, enchaînés à la sortie de l'intro.
+//
+// Tout est sous `:host(.page)`, classe posée quand l'intro cède la place. Poser
+// la propriété `animation` à cet instant est ce qui démarre l'animation : elle
+// ne peut donc pas s'écouler avant que l'écran soit là pour la montrer.
+//
+// Les durées viennent des tokens du design system, que « mouvement réduit »
+// ramène à zéro — et dans ce cas l'intro est sautée entièrement.
+:host(.page) {
+  .card {
+    animation: apparition-montante var(--motion-entree) var(--motion-courbe) backwards;
+    animation-delay: var(--motion-decalage);
+  }
+
+  .logo-row,
+  .heading,
+  .subheading,
+  form {
+    animation: apparition-montante var(--motion-entree) var(--motion-courbe) backwards;
+  }
+
+  .logo-row {
+    animation-delay: calc(var(--motion-decalage) * 3);
+  }
+  .heading {
+    animation-delay: calc(var(--motion-decalage) * 4);
+  }
+  .subheading {
+    animation-delay: calc(var(--motion-decalage) * 5);
+  }
+  // Le formulaire entre d'un bloc : faire monter chaque champ l'un après
+  // l'autre ferait de la saisie un spectacle, alors qu'on vient ici pour taper
+  // deux mots.
+  form {
+    animation-delay: calc(var(--motion-decalage) * 6);
+  }
+
+  // Le décor ne bouge pas, il se révèle : ces éléments encadrent l'écran, les
+  // faire glisser tirerait l'œil loin du seul endroit qui compte.
+  .topbar,
+  .foot {
+    animation: apparition-fondu var(--motion-entree) var(--motion-courbe) backwards;
+    animation-delay: calc(var(--motion-decalage) * 8);
+  }
 }

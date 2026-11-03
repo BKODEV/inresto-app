@@ -52,6 +52,28 @@
   }
 }
 
+/* Titre de section dans un tiroir */
+.sub-h {
+  font-size: var(--text-base);
+  font-weight: 700;
+  margin: 22px 0 12px;
+
+  &:first-of-type {
+    margin-top: 4px;
+  }
+}
+
+/* Signalement non bloquant : un service ne s'arrête pas parce qu'un montant
+   demande une explication. */
+.alert-warning {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--amber);
+  background: var(--amber-soft);
+  border: 1px solid var(--amber);
+}
+
 /* Montants récapitulatifs */
 .totaux {
   display: flex;

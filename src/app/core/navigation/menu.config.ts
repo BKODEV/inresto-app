@@ -221,6 +221,14 @@ export const MENU: MenuSection[] = [
         permission: 'reporting.budget',
       },
       {
+        // « Combien avons-nous, là, maintenant » : le théorique d'une caisse
+        // n'existait qu'à sa fermeture, et rien n'agrégeait les tiroirs.
+        label: 'Trésorerie',
+        icon: 'banknote',
+        route: '/pilotage/tresorerie',
+        permission: 'reporting.tresorerie',
+      },
+      {
         // Les relectures de contrôle vivaient sous Paramètres, derrière
         // `parametre.view` : la direction qui détient `remise.view` pour
         // surveiller ce qu'on retire des notes n'a pas de raison de détenir

@@ -1,6 +1,7 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { ProduitDetailPage } from './produit-detail.page';
 import { FicheTechnique } from '../../../core/api/fiche-technique/fiche-technique.model';
@@ -51,9 +52,10 @@ describe('ProduitDetailPage — méthodologie de la fiche', () => {
     };
   }
 
-  function creer(ficheActive: FicheTechnique | null = fiche()) {
-    const create = vi.fn().mockReturnValue(of({}));
-
+  function creer(
+    ficheActive: FicheTechnique | null = fiche(),
+    create = vi.fn().mockReturnValue(of({})),
+  ) {
     TestBed.configureTestingModule({
       providers: [
         {
@@ -80,6 +82,19 @@ describe('ProduitDetailPage — méthodologie de la fiche', () => {
     page.ngOnInit();
 
     return { page, create };
+  }
+
+  /**
+   * Même jeu de doubles, mais avec le template rendu : nécessaire dès que le
+   * comportement porte sur le DOM (ici le recentrage sur l'alerte).
+   */
+  function rendre(create: Parameters<typeof creer>[1]) {
+    creer(fiche(), create);
+
+    const fixture = TestBed.createComponent(ProduitDetailPage);
+    fixture.detectChanges();
+
+    return fixture;
   }
 
   /**
@@ -190,6 +205,66 @@ describe('ProduitDetailPage — méthodologie de la fiche', () => {
 
     expect(create).toHaveBeenCalled();
     expect(create.mock.calls[0][0].etapes).toEqual([]);
+  });
+
+  /**
+   * Un refus du serveur doit se lire. Le détail d'un 422 vit dans `errors`, pas
+   * dans le `message` générique : sans cette reprise, l'écran resterait muet
+   * alors que c'est l'étape 2 qui est en cause.
+   */
+  it('affiche l’erreur de champ d’un 422 sur une étape', () => {
+    const create = vi.fn().mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 422,
+            error: {
+              status: 'error',
+              message: 'Les données fournies sont invalides.',
+              errors: {
+                'etapes.1.duree_minutes': ['La durée ne peut pas dépasser 1440 minutes.'],
+              },
+            },
+          }),
+      ),
+    );
+    const { page } = creer(fiche(), create);
+    page.openFicheDrawer();
+
+    page.save();
+
+    expect(page.formError()).toBe('La durée ne peut pas dépasser 1440 minutes.');
+    expect(page.saving()).toBe(false);
+  });
+
+  /**
+   * L'alerte est en tête du corps défilant et on enregistre depuis le pied
+   * fixe, donc depuis le bas des étapes : sans recentrage, le refus s'affiche
+   * hors écran et l'enregistrement paraît muet — le symptôme signalé.
+   */
+  it('ramène le tiroir sur l’alerte quand le serveur refuse', () => {
+    const create = vi.fn().mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 422,
+            error: { status: 'error', message: 'Les données fournies sont invalides.' },
+          }),
+      ),
+    );
+    const fixture = rendre(create);
+    const page = fixture.componentInstance;
+
+    page.openFicheDrawer();
+    fixture.detectChanges();
+
+    const corps = fixture.nativeElement.querySelector('.drawer-body') as HTMLElement;
+    const scrollTo = vi.fn();
+    corps.scrollTo = scrollTo;
+
+    page.save();
+
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
   });
 
   it('joint le matériel d’un trait pour l’affichage', () => {

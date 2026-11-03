@@ -1,5 +1,6 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 
 import { SessionsPage } from './sessions.page';
 import { EcartSens } from '../../../core/api/session-caisse/session-caisse.model';
@@ -17,15 +18,24 @@ import { SelectedSiteService } from '../../../core/site/selected-site.service';
  * ce que les chiffres prétendent dire.
  */
 describe('SessionsPage — lecture de l’écart de caisse', () => {
-  function creer(options: { fermer?: unknown; peutVerser?: boolean; peutForcer?: boolean } = {}) {
+  function creer(
+    options: {
+      fermer?: unknown;
+      peutVerser?: boolean;
+      peutForcer?: boolean;
+      peutLirePosition?: boolean;
+      position?: unknown;
+    } = {},
+  ) {
     const rapportFermeture = vi.fn().mockReturnValue(of(new Blob()));
     const creerVersement = vi.fn().mockReturnValue(of({ id: 1, montant: '100000.00' }));
+    const position = options.position ?? vi.fn().mockReturnValue(of(positionFactice()));
 
     TestBed.configureTestingModule({
       providers: [
         {
           provide: SessionCaisseService,
-          useValue: { list: () => of([]), fermer: options.fermer ?? vi.fn() },
+          useValue: { list: () => of([]), fermer: options.fermer ?? vi.fn(), position },
         },
         { provide: PdfService, useValue: { rapportFermeture } },
         {
@@ -46,10 +56,16 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
         {
           provide: AuthService,
           useValue: {
-            hasPermission: (p: string) =>
-              p === 'session_caisse.forcer_fermeture'
-                ? options.peutForcer === true
-                : options.peutVerser !== false,
+            hasPermission: (p: string) => {
+              if (p === 'session_caisse.forcer_fermeture') {
+                return options.peutForcer === true;
+              }
+              if (p === 'session_caisse.consulter_theorique') {
+                return options.peutLirePosition !== false;
+              }
+
+              return options.peutVerser !== false;
+            },
           },
         },
         {
@@ -61,7 +77,28 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
 
     const page = TestBed.runInInjectionContext(() => new SessionsPage());
 
-    return { page, rapportFermeture, creerVersement };
+    return { page, rapportFermeture, creerVersement, position };
+  }
+
+  function positionFactice() {
+    return {
+      session_caisse_id: 4,
+      caisse: 'Caisse 1',
+      ouverte: true,
+      fonds_initial: 50000,
+      versements_en_service: 80000,
+      contenants: [
+        { mode_de_paiement_id: 5, mode: 'Espèces', compte_en_caisse: true, theorique: 170000 },
+        { mode_de_paiement_id: 9, mode: 'Carte', compte_en_caisse: false, theorique: 300000 },
+      ],
+      total_en_tiroir: 170000,
+      total_hors_tiroir: 300000,
+      fonds_non_ventile: 0,
+      pourboires_dus: {
+        total: 7000,
+        par_serveur: [{ user_id: 'u-1', serveur: 'Aminata D.', montant: 7000 }],
+      },
+    };
   }
 
   it('nomme les quatre sens de l’écart', () => {
@@ -183,6 +220,72 @@ describe('SessionsPage — lecture de l’écart de caisse', () => {
     page.onConstat(9, '');
 
     expect(page.contenantsNonComptes().map((m) => m.libelle)).toEqual(['Carte']);
+  });
+
+  // ───────────────────────── position du tiroir ─────────────────────────
+
+  /**
+   * « Combien avons-nous, là, maintenant » ne se demandait à personne : le
+   * théorique n'existait qu'à la fermeture.
+   */
+  it('charge la position de la session demandée', () => {
+    const { page, position } = creer();
+
+    page.openPosition({ id: 4, statut: 'ouverte' } as never);
+
+    expect(position).toHaveBeenCalledWith(4);
+    expect(page.position()?.total_en_tiroir).toBe(170000);
+    expect(page.positionError()).toBeNull();
+  });
+
+  /**
+   * Le pourboire est physiquement dans le tiroir mais n'appartient pas à
+   * l'établissement : l'inclure dans le disponible annoncerait plus d'argent
+   * qu'il n'y en a.
+   */
+  it('retranche du disponible ce qui est dû aux serveurs', () => {
+    const { page } = creer();
+
+    page.openPosition({ id: 4, statut: 'ouverte' } as never);
+
+    // 170 000 dans le tiroir, dont 7 000 qui ne nous appartiennent pas.
+    expect(page.positionDisponible()).toBe(163000);
+  });
+
+  /**
+   * Le refus au porteur du tiroir n'est pas une panne : c'est la règle du
+   * comptage à l'aveugle. Le message du serveur l'explique, l'écran doit donc
+   * l'afficher tel quel plutôt qu'un « erreur » générique.
+   */
+  it('affiche le refus opposé au porteur de la session', () => {
+    const refus =
+      'Vous tenez la session de caisse (id: 4) : son montant théorique ne peut vous être communiqué avant que le tiroir soit compté.';
+    const position = vi.fn().mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 403,
+            error: { status: 'error', message: refus },
+          }),
+      ),
+    );
+    const { page } = creer({ position });
+
+    page.openPosition({ id: 4, statut: 'ouverte' } as never);
+
+    expect(page.positionError()).toBe(refus);
+    expect(page.position()).toBeNull();
+    expect(page.positionLoading()).toBe(false);
+  });
+
+  /**
+   * Lire ce que le tiroir devrait contenir est un niveau de confiance à part :
+   * `session_caisse.view` ouvre la liste des sessions, pas leur théorique.
+   */
+  it('cache la position à qui n’a pas la permission dédiée', () => {
+    const { page } = creer({ peutLirePosition: false });
+
+    expect(page.peutLirePosition()).toBe(false);
   });
 
   // ───────────────────────── versements ─────────────────────────

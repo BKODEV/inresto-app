@@ -17,7 +17,11 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { CaisseService } from '../../../core/api/caisse/caisse.service';
 import { Caisse } from '../../../core/api/caisse/caisse.model';
 import { SessionCaisseService } from '../../../core/api/session-caisse/session-caisse.service';
-import { EcartSens, SessionCaisse } from '../../../core/api/session-caisse/session-caisse.model';
+import {
+  EcartSens,
+  PositionCaisse,
+  SessionCaisse,
+} from '../../../core/api/session-caisse/session-caisse.model';
 import { SelectedSiteService } from '../../../core/site/selected-site.service';
 import { SiteRequisComponent } from '../../../shared/site-requis/site-requis.component';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
@@ -30,7 +34,7 @@ import { DestinationVersement, Versement } from '../../../core/api/versement/ver
 import { AuthService } from '../../../core/auth/auth.service';
 import { MontantPipe, MontantSignePipe } from '../../../shared/format/nombre.pipes';
 
-type DrawerMode = 'ouvrir' | 'fermer' | 'verser';
+type DrawerMode = 'ouvrir' | 'fermer' | 'verser' | 'position';
 
 @Component({
   selector: 'app-sessions-page',
@@ -71,6 +75,23 @@ export class SessionsPage implements OnInit {
   readonly formError = signal<string | null>(null);
   readonly closingSession = signal<SessionCaisse | null>(null);
   readonly pdfBusy = signal(false);
+
+  /**
+   * Lire ce que le tiroir devrait contenir est un niveau de confiance à part :
+   * `session_caisse.view` ouvre la liste des sessions, pas leur théorique.
+   *
+   * La permission ne suffit d'ailleurs pas — l'API refuse en plus la lecture au
+   * PORTEUR de la session ouverte, quel que soit son rôle. On propose donc le
+   * geste et on affiche son refus tel quel, plutôt que de masquer le bouton
+   * d'après un calcul que le serveur seul fait autorité pour trancher.
+   */
+  readonly peutLirePosition = computed(() =>
+    this.auth.hasPermission('session_caisse.consulter_theorique'),
+  );
+  readonly position = signal<PositionCaisse | null>(null);
+  readonly positionLoading = signal(false);
+  readonly positionError = signal<string | null>(null);
+  readonly positionSession = signal<SessionCaisse | null>(null);
 
   /**
    * Sortir de l'argent du tiroir est un geste distinct de l'encaissement : il
@@ -285,6 +306,46 @@ export class SessionsPage implements OnInit {
         },
       });
   }
+
+  /**
+   * Ce que la caisse devrait contenir maintenant, sans attendre la fermeture.
+   *
+   * Un 403 n'est pas une panne ici : c'est la règle du comptage à l'aveugle qui
+   * s'applique au porteur du tiroir. Le message du serveur l'explique, on
+   * l'affiche donc mot pour mot.
+   */
+  openPosition(session: SessionCaisse): void {
+    this.positionSession.set(session);
+    this.position.set(null);
+    this.positionError.set(null);
+    this.positionLoading.set(true);
+    this.drawerMode.set('position');
+
+    this.sessionService
+      .position(session.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (position) => {
+          this.position.set(position);
+          this.positionLoading.set(false);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.positionLoading.set(false);
+          this.positionError.set(apiErrorMessage(err, 'Position indisponible.'));
+        },
+      });
+  }
+
+  /**
+   * Ce dont l'établissement dispose réellement : le tiroir moins ce qui y est
+   * physiquement mais appartient aux serveurs. Le taire annoncerait plus
+   * d'argent qu'il n'y en a.
+   */
+  readonly positionDisponible = computed(() => {
+    const position = this.position();
+
+    return position === null ? 0 : position.total_en_tiroir - position.pourboires_dus.total;
+  });
 
   openFermer(session: SessionCaisse): void {
     this.closingSession.set(session);

@@ -26,6 +26,9 @@ export class PilotageLayout {
     { label: 'Ventes', route: 'ventes', permission: 'reporting.ventes' },
     { label: 'Stock', route: 'stock', permission: 'reporting.stock' },
     { label: 'Budget', route: 'budget', permission: 'reporting.budget' },
+    // Famille de permission à part : savoir ce qu'on a vendu et savoir ce qu'on
+    // DÉTIENT ne relèvent pas du même niveau de confiance.
+    { label: 'Trésorerie', route: 'tresorerie', permission: 'reporting.tresorerie' },
     // Relectures de contrôle : mêmes questions de fin de mois que les rapports
     // ci-dessus, sur les gestes qui retirent de l'argent au lieu d'en compter.
     // Gardées par leurs propres permissions, et non par `reporting.*` : la

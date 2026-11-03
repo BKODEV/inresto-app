@@ -133,6 +133,9 @@
   // sans toucher aux animations qui portent une information (les spinners).
   --motion-entree: 0.34s;
   --motion-decalage: 40ms;
+  // Distance parcourue à l'entrée. Assez pour que l'œil saisisse un mouvement,
+  // trop peu pour qu'il ait à le suivre.
+  --motion-distance: 10px;
   // Décélération franche : vif au départ, posé à l'arrivée. Une entrée qui
   // ralentit en fin de course se lit comme un objet qui se pose, là où un
   // `ease` linéaire donne l'impression d'un élément qui glisse et s'arrête net.
@@ -665,7 +668,7 @@
 @keyframes apparition-montante {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(var(--motion-distance));
   }
 }
 
@@ -792,6 +795,7 @@
   :root {
     --motion-entree: 0.01ms;
     --motion-decalage: 0ms;
+    --motion-distance: 0;
     --transition-fast: 0s;
     --transition-base: 0s;
     --transition-slow: 0s;

@@ -12,6 +12,12 @@ class SessionsStub {}
 @Component({ standalone: true, template: 'commandes' })
 class CommandesStub {}
 
+@Component({ standalone: true, template: 'ventes' })
+class VentesStub {}
+
+@Component({ standalone: true, template: 'pourboires' })
+class PourboiresStub {}
+
 /**
  * Le layout caisse ne filtrait aucun onglet : il les déclarait en dur, si bien
  * qu'un serveur voyait les fonds de caisse et qu'un cuisinier avait besoin de
@@ -32,6 +38,10 @@ describe('CaisseLayout — onglets filtrés par permission', () => {
               { path: '', pathMatch: 'full', redirectTo: 'sessions' },
               { path: 'sessions', component: SessionsStub },
               { path: 'commandes', component: CommandesStub },
+              // Cibles des redirections du layout : sans elles, la navigation
+              // rejette après le test (NG04002) et vitest sort en erreur.
+              { path: 'ventes', component: VentesStub },
+              { path: 'pourboires', component: PourboiresStub },
             ],
           },
         ]),

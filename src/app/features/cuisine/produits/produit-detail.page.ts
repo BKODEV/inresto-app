@@ -2,10 +2,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
   OnInit,
   computed,
   inject,
   signal,
+  viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -75,6 +77,7 @@ export class ProduitDetailPage implements OnInit {
   readonly drawerOpen = signal(false);
   readonly saving = signal(false);
   readonly formError = signal<string | null>(null);
+  private readonly ficheDrawerBody = viewChild<ElementRef<HTMLElement>>('ficheDrawerBody');
   readonly lignesMatieres = signal<FormGroup[]>([]);
   readonly lignesSousRecettes = signal<FormGroup[]>([]);
 
@@ -379,6 +382,7 @@ export class ProduitDetailPage implements OnInit {
       methodologie.forEach((g) => g.markAllAsTouched());
       if (totalLignes === 0) {
         this.formError.set('Ajoutez au moins une matière ou une sous-recette.');
+        this.revelerErreurFormulaire();
       }
       return;
     }
@@ -422,8 +426,19 @@ export class ProduitDetailPage implements OnInit {
         error: (err: HttpErrorResponse) => {
           this.saving.set(false);
           this.formError.set(apiErrorMessage(err));
+          this.revelerErreurFormulaire();
         },
       });
+  }
+
+  /**
+   * L'alerte vit en tête du corps défilant, or on enregistre depuis le pied
+   * fixe — donc en pratique depuis le bas des étapes. Sans ce recentrage, un
+   * refus du serveur (422 sur une étape, par exemple) s'affiche hors écran et
+   * l'enregistrement paraît muet.
+   */
+  private revelerErreurFormulaire(): void {
+    this.ficheDrawerBody()?.nativeElement.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // ── Historique ──────────────────────────────────────────────────────────
