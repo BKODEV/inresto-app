@@ -1,0 +1,98 @@
+name: Angular CI/CD Production
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: prod-deployment
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      DEPLOY_PATH: "/var/www/resto.innov-immobilier.com"
+      TEMP_DIR: "/home/tmp/new-inresto-app"
+      # URL publique de l'API, figée au build dans environment.prod.ts.
+      API_URL: "https://restoapi.innov-immobilier.com/api"
+      # Programme supervisor qui fait tourner le serveur SSR (port 4010, derrière nginx).
+      SUPERVISOR_PROGRAM: "inresto-app"
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Angular 22 exige ^22.22.3 || ^24.15.0. La version est figée plutôt que
+      # laissée à '22', qui résout vers la dernière 22.x du jour.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.2'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Tests
+        run: npx ng test --watch=false
+
+      # environment.prod.ts garde « /api » dans le dépôt (aucun domaine en dur : chaque
+      # instance a le sien) ; l'URL de cette instance n'est posée qu'ici, au build.
+      - name: Configure API URL
+        run: |
+          sed -i "s|apiUrl: '.*'|apiUrl: '${API_URL}'|" src/environments/environment.prod.ts
+          grep -q "apiUrl: '${API_URL}'" src/environments/environment.prod.ts
+          cat src/environments/environment.prod.ts
+
+      - name: Build Angular Project
+        run: npm run build -- --configuration=production
+
+      - name: Configuration SSH
+        env:
+          PROD_SSH_PRIVATE_KEY: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+        run: |
+          echo "$PROD_SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+          echo "SSH=ssh -i private_key -o StrictHostKeyChecking=no" >> "$GITHUB_ENV"
+
+      # Sortie SSR : dist/inresto-app/{browser,server}. Le bundle serveur embarque ses
+      # dépendances : pas de node_modules à installer sur le serveur.
+      - name: Deploy Application
+        env:
+          SSH_USER: ${{ secrets.PROD_SSH_USER }}
+          SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
+        run: |
+          $SSH $SSH_USER@$SSH_HOST "
+            sudo mkdir -p $TEMP_DIR &&
+            sudo chown -R $SSH_USER:$SSH_USER $TEMP_DIR &&
+            sudo chmod -R 755 $TEMP_DIR
+          "
+
+          rsync -az --delete -e "$SSH" dist/inresto-app/ $SSH_USER@$SSH_HOST:$TEMP_DIR/
+
+          $SSH $SSH_USER@$SSH_HOST "
+            set -e
+            sudo rsync -a --delete $TEMP_DIR/ $DEPLOY_PATH/
+            sudo chown -R www-data:www-data $DEPLOY_PATH
+            sudo chmod -R 755 $DEPLOY_PATH
+            sudo supervisorctl restart $SUPERVISOR_PROGRAM
+            sleep 3
+            sudo supervisorctl status $SUPERVISOR_PROGRAM | grep -q RUNNING
+            curl -fsS -o /dev/null http://127.0.0.1:4010/
+            sudo rm -rf $TEMP_DIR
+          "
+
+      # Exécuté même en cas d'échec d'une étape précédente, pour ne pas laisser
+      # la clé privée sur le runner.
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f private_key
+
+      - name: Debug Info
+        if: always()
+        run: |
+          echo "Tag Name: ${{ github.ref_name }}"
+          echo "Deploy Path: $DEPLOY_PATH"
