@@ -87,3 +87,45 @@ export interface FermerSessionPayload {
   motif_forcage?: string | null;
   notes?: string | null;
 }
+
+/** Un contenant et ce qu'il devrait contenir, en cours de service. */
+export interface ContenantPosition {
+  mode_de_paiement_id: number;
+  mode: string;
+  compte_en_caisse: boolean;
+  theorique: number;
+}
+
+export interface PourboireParServeur {
+  user_id: string;
+  serveur: string;
+  montant: number;
+}
+
+/**
+ * Ce que la caisse devrait contenir, là, maintenant — par opposition à
+ * `montant_theorique`, qui n'existe qu'une fois la session fermée.
+ *
+ * Lecture réservée (`session_caisse.consulter_theorique`) et refusée au porteur
+ * de la session tant qu'elle est ouverte : un montant affiché se recopie, et
+ * celui qui comptera ce soir doit compter à l'aveugle.
+ */
+export interface PositionCaisse {
+  session_caisse_id: number;
+  caisse: string | null;
+  ouverte: boolean;
+  fonds_initial: number;
+  versements_en_service: number;
+  contenants: ContenantPosition[];
+  total_en_tiroir: number;
+  total_hors_tiroir: number;
+  /**
+   * Non nul seulement quand aucun mode actif n'alimente le tiroir : le fonds
+   * n'a alors aucun contenant pour le porter et flotte hors ventilation.
+   */
+  fonds_non_ventile: number;
+  pourboires_dus: {
+    total: number;
+    par_serveur: PourboireParServeur[];
+  };
+}

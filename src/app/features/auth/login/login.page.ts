@@ -4,6 +4,7 @@ import {
   Component,
   DestroyRef,
   OnInit,
+  afterNextRender,
   inject,
   signal,
 } from '@angular/core';
@@ -16,6 +17,15 @@ import { interval, startWith } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { apiErrorMessage } from '../../../core/api/api-error.util';
 
+/**
+ * Minutage de l'intro, en millisecondes. Le tracé, un temps d'arrêt pour que
+ * l'œil se pose, puis l'effacement — qui recouvre l'arrivée de la carte plutôt
+ * que de la précéder, sans quoi l'écran resterait vide entre les deux.
+ */
+const TRACE_MS = 550;
+const PAUSE_MS = 200;
+const SORTIE_MS = 300;
+
 @Component({
   selector: 'app-login-page',
   standalone: true,
@@ -23,12 +33,59 @@ import { apiErrorMessage } from '../../../core/api/api-error.util';
   templateUrl: './login.page.html',
   styleUrl: './login.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: {
+    '[class.pret]': 'pret()',
+    '[class.page]': "phase() !== 'intro'",
+  },
 })
 export class LoginPage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
+  /**
+   * `intro` : seul le monogramme est à l'écran. `sortie` : il s'efface pendant
+   * que la carte monte — les deux coexistent le temps de la transition.
+   * `page` : l'intro est démontée.
+   */
+  readonly phase = signal<'intro' | 'sortie' | 'page'>('intro');
+
+  /** Pose le départ du tracé. Voir `lancerIntro` pour le pourquoi du délai. */
+  readonly pret = signal(false);
+
+  private readonly minuteurs: ReturnType<typeof setTimeout>[] = [];
+
+  constructor() {
+    // `afterNextRender` ne s'exécute pas côté serveur : le rendu SSR sort donc
+    // la page telle quelle, sans intro ni classe à poser.
+    afterNextRender(() => this.lancerIntro());
+    this.destroyRef.onDestroy(() => this.minuteurs.forEach(clearTimeout));
+  }
+
+  private lancerIntro(): void {
+    // Mouvement réduit : aucune intro. Retenir la page trois quarts de seconde
+    // devant un monogramme immobile n'apporterait rien à personne.
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      this.phase.set('page');
+      return;
+    }
+
+    // `requestAnimationFrame` et non un `setTimeout` : il suit le rythme du
+    // rendu, pas l'horloge. Tant que le navigateur ne produit pas d'image — fil
+    // principal occupé à démarrer Angular — il n'est pas rappelé, et le tracé
+    // ne part donc pas dans le vide.
+    //
+    // C'est exactement ce qui rendait la première version invisible : mesuré au
+    // protocole DevTools, l'animation s'achevait à 568 ms pour un premier rendu
+    // à 712 ms. Elle se jouait entièrement derrière un écran encore blanc.
+    requestAnimationFrame(() => {
+      this.pret.set(true);
+      this.minuteurs.push(
+        setTimeout(() => this.phase.set('sortie'), TRACE_MS + PAUSE_MS),
+        setTimeout(() => this.phase.set('page'), TRACE_MS + PAUSE_MS + SORTIE_MS),
+      );
+    });
+  }
 
   readonly showPassword = signal(false);
   readonly clockLabel = signal('— · —');

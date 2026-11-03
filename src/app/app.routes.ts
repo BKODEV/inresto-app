@@ -362,6 +362,14 @@ export const routes: Routes = [
             title: 'Budget (pilotage)',
           },
           {
+            path: 'tresorerie',
+            loadComponent: () =>
+              import('./features/pilotage/tresorerie/tresorerie.page').then(
+                (m) => m.TresoreriePage,
+              ),
+            title: 'Trésorerie',
+          },
+          {
             path: 'remises',
             loadComponent: () =>
               import('./features/pilotage/audit/remises.page').then((m) => m.RemisesPage),

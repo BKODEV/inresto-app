@@ -83,6 +83,15 @@
           </div>
         </div>
         <div class="actions-row">
+          <!-- « Combien avons-nous, là, maintenant » : le théorique n'existait
+               qu'à la fermeture. L'API refuse cette lecture au porteur du
+               tiroir — le bouton reste donc offert, et c'est son refus qui
+               explique pourquoi. -->
+          @if (peutLirePosition()) {
+            <button class="btn btn-secondary" type="button" (click)="openPosition(open)">
+              Voir la position
+            </button>
+          }
           <button class="btn btn-primary" type="button" (click)="openFermer(open)">
             Fermer la session
           </button>
@@ -174,6 +183,11 @@
                   }
                 </td>
                 <td class="td-actions">
+                  @if (peutLirePosition()) {
+                    <button class="btn btn-secondary" type="button" (click)="openPosition(s)">
+                      Position
+                    </button>
+                  }
                   @if (s.statut === 'fermee') {
                     <!-- Un ticket se perd : le rapprochement doit rester
                          consultable après coup. -->
@@ -477,6 +491,141 @@
         }
         Fermer
       </button>
+    </div>
+  </div>
+}
+
+<!-- DRAWER : ce que la caisse devrait contenir, là, maintenant.
+     Lecture réservée, et refusée par l'API au porteur d'une session encore
+     ouverte : celui qui comptera ce soir compte à l'aveugle. -->
+@if (drawerMode() === 'position') {
+  <div class="drawer-overlay" (click)="closeDrawer()"></div>
+  <div class="drawer drawer-wide" role="dialog" aria-modal="true">
+    <div class="drawer-header">
+      <div>
+        <h2 class="drawer-title">Position de la caisse</h2>
+        @if (positionSession(); as s) {
+          <p class="drawer-sub">
+            Session #{{ s.id }} — ouverte le {{ s.ouvert_le | date: 'short' }}
+          </p>
+        }
+      </div>
+      <button class="btn-icon" type="button" (click)="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body">
+      @if (positionLoading()) {
+        <div class="loading-row">
+          <div class="spinner"></div>
+          <span>Chargement…</span>
+        </div>
+      } @else if (positionError()) {
+        <!-- Le refus au porteur passe par ici : ce n'est pas une panne, c'est
+             la règle du comptage à l'aveugle. Le message du serveur l'explique,
+             on l'affiche tel quel. -->
+        <div class="alert-error">{{ positionError() }}</div>
+      } @else if (position(); as p) {
+        <div class="totaux" style="padding: 0 0 var(--space-4)">
+          <div class="total-item">
+            <span class="total-label">Attendu en tiroir</span>
+            <span class="total-value">{{ p.total_en_tiroir | montant }}</span>
+          </div>
+          <div class="total-item">
+            <span class="total-label">Dont dû aux serveurs</span>
+            <span class="total-value total-value--due">{{ p.pourboires_dus.total | montant }}</span>
+          </div>
+          <div class="total-item">
+            <!-- Le pourboire est physiquement dans le tiroir mais n'appartient
+                 pas à l'établissement : le taire annoncerait plus d'argent
+                 disponible qu'il n'y en a. -->
+            <span class="total-label">Disponible</span>
+            <span class="total-value total-value--ok">{{ positionDisponible() | montant }}</span>
+          </div>
+          <div class="total-item">
+            <span class="total-label">Hors tiroir</span>
+            <span class="total-value">{{ p.total_hors_tiroir | montant }}</span>
+          </div>
+        </div>
+
+        <div class="totaux" style="padding: 0 0 var(--space-4)">
+          <div class="total-item">
+            <span class="total-label">Fonds initial</span>
+            <span class="total-value">{{ p.fonds_initial | montant }}</span>
+          </div>
+          <div class="total-item">
+            <span class="total-label">Versé pendant le service</span>
+            <span class="total-value total-value--reste">
+              {{ p.versements_en_service | montant }}
+            </span>
+          </div>
+        </div>
+
+        @if (p.fonds_non_ventile) {
+          <!-- Aucun mode actif n'alimente le tiroir : le fonds n'a pas de
+               contenant pour le porter. On le dit plutôt que de rendre un total
+               et des lignes qui ne tombent pas d'accord. -->
+          <div class="alert-warning" style="margin-bottom: 16px">
+            {{ p.fonds_non_ventile | montant }} de fonds initial n'est rattaché à aucun contenant :
+            aucun moyen de paiement actif n'alimente le tiroir.
+          </div>
+        }
+
+        <h3 class="sub-h">Contenant par contenant</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Moyen de paiement</th>
+              <th>Emplacement</th>
+              <th class="num">Attendu</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Une ligne par mode ACTIF, même sans mouvement : un terminal
+                 encaissé mais jamais saisi doit avoir une ligne où apparaître. -->
+            @for (c of p.contenants; track c.mode_de_paiement_id) {
+              <tr>
+                <td class="td-primary">{{ c.mode }}</td>
+                <td>
+                  @if (c.compte_en_caisse) {
+                    <span class="badge badge-neutral">Tiroir</span>
+                  } @else {
+                    <span class="badge badge-neutral">Hors tiroir</span>
+                  }
+                </td>
+                <td class="num td-mono">{{ c.theorique | montant }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        @if (p.pourboires_dus.par_serveur.length > 0) {
+          <h3 class="sub-h">Pourboires dus</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Serveur</th>
+                <th class="num">Montant</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (t of p.pourboires_dus.par_serveur; track t.user_id) {
+                <tr>
+                  <td class="td-primary">{{ t.serveur }}</td>
+                  <td class="num td-mono">{{ t.montant | montant }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+          <!-- Les pourboires remis de la main à la main ne passent pas par la
+               caisse : cette liste n'est pas exhaustive, et le dire évite de la
+               croire telle. -->
+          <p class="field-hint" style="margin: 8px 0 0">
+            Seuls les pourboires encaissés à la caisse apparaissent ici.
+          </p>
+        }
+      }
+    </div>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" type="button" (click)="closeDrawer()">Fermer</button>
     </div>
   </div>
 }

@@ -271,3 +271,66 @@ export interface DashboardData {
   alertes_stock: DashboardAlertesStock;
   modes_paiement: DashboardModePaiement[];
 }
+
+// ── Trésorerie ─────────────────────────────────────────────────────────────
+//
+// Le reste du reporting répond à « qu'avons-nous vendu ». Celui-ci répond à
+// « qu'avons-nous », d'où sa propre famille de permission
+// (`reporting.tresorerie`) : savoir ce qu'on a vendu et savoir ce qu'on détient
+// ne relèvent pas du même niveau de confiance.
+
+/** Une caisse en service et le contenu attendu de son tiroir. */
+export interface TresorerieCaisseOuverte {
+  session_caisse_id: number;
+  caisse_id: number;
+  caisse: string;
+  point_de_vente: string;
+  site_id: number;
+  ouverte_le: string;
+  caissier: string;
+  en_tiroir: number;
+  hors_tiroir: number;
+  pourboires_dus: number;
+}
+
+/**
+ * Une caisse sans session ouverte, et ce qui dort encore dans son tiroir : le
+ * dernier compte constaté moins ce qui en est sorti depuis.
+ */
+export interface TresorerieCaisseAuRepos {
+  session_caisse_id: number;
+  caisse_id: number;
+  caisse: string;
+  point_de_vente: string;
+  site_id: number;
+  fermee_le: string;
+  reste_en_tiroir: number;
+}
+
+/**
+ * Une caisse fermée dont le tiroir n'a jamais été compté : son reliquat est
+ * INCONNU, ce qui n'est pas la même chose que zéro. Isolée plutôt que comptée
+ * pour rien, sans quoi on annoncerait une caisse vide là où personne n'a
+ * regardé.
+ */
+export type TresorerieCaisseNonComptee = Omit<TresorerieCaisseAuRepos, 'reste_en_tiroir'>;
+
+export interface TresorerieTotaux {
+  en_service: number;
+  au_repos: number;
+  /** Ce qu'on a, tiroirs confondus. */
+  en_caisse: number;
+  hors_tiroir_en_service: number;
+  /** Physiquement dans les tiroirs, mais dû aux serveurs. */
+  pourboires_dus: number;
+  /** `en_caisse` moins ce qui ne nous appartient pas. */
+  disponible: number;
+}
+
+/** Photo instantanée : aucun filtre temporel, seulement le périmètre de sites. */
+export interface TresoreriePosition {
+  caisses_ouvertes: TresorerieCaisseOuverte[];
+  caisses_au_repos: TresorerieCaisseAuRepos[];
+  totaux: TresorerieTotaux;
+  non_comptees: TresorerieCaisseNonComptee[];
+}

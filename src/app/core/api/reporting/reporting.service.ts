@@ -18,6 +18,7 @@ import {
   OrdreTri,
   ReportingFilter,
   StockValorisation,
+  TresoreriePosition,
   TriProduit,
   VenteModePaiement,
   VenteParPdv,
@@ -102,10 +103,7 @@ export class ReportingService {
     );
   }
 
-  stockEcartsInventaire(
-    filter: ReportingFilter,
-    detail = false,
-  ): Observable<EcartInventaire[]> {
+  stockEcartsInventaire(filter: ReportingFilter, detail = false): Observable<EcartInventaire[]> {
     return this.get<{ inventaires: EcartInventaire[] }>('/stock/ecarts-inventaire', filter, {
       detail: detail ? 1 : undefined,
     }).pipe(map((d) => d.inventaires));
@@ -127,6 +125,16 @@ export class ReportingService {
 
   budgetDepenses(filter: ReportingFilter): Observable<DepensesReport> {
     return this.get<DepensesReport>('/budget/depenses', filter);
+  }
+
+  // ── Trésorerie ────────────────────────────────────────────────────────────
+
+  /**
+   * Où en est l'argent, maintenant. Photo instantanée : seul le périmètre de
+   * sites est transmis, une position ne se demande pas sur une période.
+   */
+  tresoreriePosition(siteId: number | null): Observable<TresoreriePosition> {
+    return this.get<TresoreriePosition>('/tresorerie/position', siteId ? { site_id: siteId } : {});
   }
 
   // ── Privé ─────────────────────────────────────────────────────────────────

@@ -1,0 +1,184 @@
+<div class="param-page reporting-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Trésorerie</h1>
+      <p class="page-subtitle">Ce que nous détenons, là, maintenant — tiroir par tiroir.</p>
+    </div>
+  </div>
+
+  @if (perimetreLabel()) {
+    <div class="toolbar">
+      Périmètre : <strong>{{ perimetreLabel() }}</strong>
+      <!-- Aucune période ici : une position est une photo, pas un cumul. -->
+      <span>— photo instantanée, sans filtre de période</span>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (error()) {
+    <div class="alert-error">{{ error() }}</div>
+  } @else {
+    @if (totaux(); as t) {
+      <div class="kpi-grid">
+        <div class="kpi card">
+          <div class="kpi-label">En caisse</div>
+          <div class="kpi-value">{{ fMontant(t.en_caisse) }}</div>
+          <div class="kpi-sub">tiroirs confondus, versements déduits</div>
+        </div>
+        <div class="kpi card">
+          <!-- Les pourboires sont physiquement dans les tiroirs mais n'appar-
+               tiennent pas à l'établissement : sans ce retrait, l'écran
+               annoncerait plus d'argent disponible qu'il n'y en a. -->
+          <div class="kpi-label">Disponible</div>
+          <div class="kpi-value pos">{{ fMontant(t.disponible) }}</div>
+          <div class="kpi-sub">hors pourboires dus</div>
+        </div>
+        <div class="kpi card">
+          <div class="kpi-label">Dû aux serveurs</div>
+          <div class="kpi-value" [class.neg]="t.pourboires_dus > 0">
+            {{ fMontant(t.pourboires_dus) }}
+          </div>
+          <div class="kpi-sub">pourboires encaissés, non reversés</div>
+        </div>
+        <div class="kpi card">
+          <div class="kpi-label">En service</div>
+          <div class="kpi-value">{{ fMontant(t.en_service) }}</div>
+          <div class="kpi-sub">{{ caissesOuvertes().length }} caisse(s) ouverte(s)</div>
+        </div>
+        <div class="kpi card">
+          <div class="kpi-label">Au repos</div>
+          <div class="kpi-value">{{ fMontant(t.au_repos) }}</div>
+          <div class="kpi-sub">{{ caissesAuRepos().length }} tiroir(s) sans session</div>
+        </div>
+        <div class="kpi card">
+          <!-- Encaissé sans passer par le tiroir : à la banque ou sur le
+               terminal, pas dans la caisse qu'on comptera ce soir. -->
+          <div class="kpi-label">Hors tiroir (en service)</div>
+          <div class="kpi-value">{{ fMontant(t.hors_tiroir_en_service) }}</div>
+          <div class="kpi-sub">virement, carte, chèque</div>
+        </div>
+      </div>
+    }
+
+    @if (nonComptees().length > 0) {
+      <!-- Un tiroir fermé sans comptage n'a pas de reliquat CONNU, ce qui n'est
+           pas la même chose que zéro. Le compter pour rien annoncerait une
+           caisse vide là où personne n'a regardé. -->
+      <div class="report-grid">
+        <div class="panel card span-all">
+          <div class="panel-head">
+            <h2 class="panel-title">Tiroirs jamais comptés</h2>
+            <span class="badge badge-warning">{{ nonComptees().length }}</span>
+          </div>
+          <p class="panel-note">
+            Ces sessions ont été fermées sans que le tiroir soit compté : leur contenu est inconnu
+            et n'entre dans aucun total ci-dessus.
+          </p>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Caisse</th>
+                  <th>Point de vente</th>
+                  <th>Fermée le</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of nonComptees(); track c.session_caisse_id) {
+                  <tr>
+                    <td class="td-primary">{{ c.caisse }}</td>
+                    <td>{{ c.point_de_vente }}</td>
+                    <td>{{ c.fermee_le | date: 'short' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    }
+
+    <div class="report-grid">
+      <div class="panel card span-all">
+        <div class="panel-head"><h2 class="panel-title">Caisses en service</h2></div>
+        @if (caissesOuvertes().length === 0) {
+          <div class="empty-state">
+            <span class="empty-message">Aucune session de caisse ouverte.</span>
+          </div>
+        } @else {
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Caisse</th>
+                  <th>Point de vente</th>
+                  <th>Caissier</th>
+                  <th>Ouverte le</th>
+                  <th class="num">Attendu en tiroir</th>
+                  <th class="num">Dont dû aux serveurs</th>
+                  <th class="num">Hors tiroir</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of caissesOuvertes(); track c.session_caisse_id) {
+                  <tr>
+                    <td class="td-primary">{{ c.caisse }}</td>
+                    <td>{{ c.point_de_vente }}</td>
+                    <td>{{ c.caissier || '—' }}</td>
+                    <td>{{ c.ouverte_le | date: 'short' }}</td>
+                    <td class="num td-mono">{{ fMontant(c.en_tiroir) }}</td>
+                    <td class="num td-mono">{{ fMontant(c.pourboires_dus) }}</td>
+                    <td class="num td-mono">{{ fMontant(c.hors_tiroir) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="report-grid">
+      <div class="panel card span-all">
+        <div class="panel-head"><h2 class="panel-title">Tiroirs au repos</h2></div>
+        <p class="panel-note">
+          <!-- C'est ce que la prochaine session devrait retrouver en s'ouvrant :
+               de l'argent qu'on détient toujours. -->
+          Dernier compte constaté, moins les versements faits depuis la fermeture.
+        </p>
+        @if (caissesAuRepos().length === 0) {
+          <div class="empty-state">
+            <span class="empty-message">Aucun tiroir au repos sur le périmètre.</span>
+          </div>
+        } @else {
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Caisse</th>
+                  <th>Point de vente</th>
+                  <th>Fermée le</th>
+                  <th class="num">Reste en tiroir</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of caissesAuRepos(); track c.session_caisse_id) {
+                  <tr>
+                    <td class="td-primary">{{ c.caisse }}</td>
+                    <td>{{ c.point_de_vente }}</td>
+                    <td>{{ c.fermee_le | date: 'short' }}</td>
+                    <td class="num td-mono">{{ fMontant(c.reste_en_tiroir) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
