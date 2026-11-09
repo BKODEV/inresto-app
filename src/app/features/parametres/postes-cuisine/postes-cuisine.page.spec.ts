@@ -3,6 +3,7 @@ import { of } from 'rxjs';
 
 import { PostesCuisinePage } from './postes-cuisine.page';
 import { PosteCuisine } from '../../../core/api/poste-cuisine/poste-cuisine.model';
+import { CategorieProduit } from '../../../core/api/categorie-produit/categorie-produit.model';
 import { PosteCuisineService } from '../../../core/api/poste-cuisine/poste-cuisine.service';
 import { CategorieProduitService } from '../../../core/api/categorie-produit/categorie-produit.service';
 import { PointDeVenteService } from '../../../core/api/point-de-vente/point-de-vente.service';
@@ -43,9 +44,7 @@ describe('PostesCuisinePage — la brigade du poste', () => {
   function creer(items: PosteCuisine[] = [poste()]) {
     const update = vi.fn().mockReturnValue(of(poste()));
     const create = vi.fn().mockReturnValue(of(poste()));
-    const personnel = vi
-      .fn()
-      .mockImplementation((pdvId: number) => of(PERSONNEL[pdvId] ?? []));
+    const personnel = vi.fn().mockImplementation((pdvId: number) => of(PERSONNEL[pdvId] ?? []));
 
     TestBed.configureTestingModule({
       providers: [
@@ -149,5 +148,56 @@ describe('PostesCuisinePage — la brigade du poste', () => {
     const { page } = creer();
 
     expect(page.libellesMembres(poste({ membres: [] }))).toBe('—');
+  });
+
+  // ───────────────────────── bons de cuisine ─────────────────────────
+
+  /**
+   * Sur un bon, un plat ne va qu'à un poste : une catégorie déjà produite
+   * ailleurs sur le même pass ne se coche pas ici.
+   */
+  it('grise les catégories déjà produites par un autre poste du pass', () => {
+    const grill = { id: 30, libelle: 'Grillades' } as CategorieProduit;
+    const { page } = creer([
+      poste({ id: 5, libelle: 'Chaud', categories: [grill] }),
+      poste({ id: 6, libelle: 'Froid', categories: [] }),
+      poste({ id: 7, point_de_vente_id: 2, libelle: 'Bar', categories: [] }),
+    ]);
+
+    page.openEdit(poste({ id: 6, libelle: 'Froid', categories: [] }));
+    expect(page.posteQuiProduit(grill)).toBe('Chaud');
+
+    // Le poste qui la produit peut toujours la reposer.
+    page.openEdit(poste({ id: 5, libelle: 'Chaud', categories: [grill] }));
+    expect(page.posteQuiProduit(grill)).toBeNull();
+
+    // Un autre pass n'est pas concerné.
+    page.openEdit(poste({ id: 7, point_de_vente_id: 2, libelle: 'Bar', categories: [] }));
+    expect(page.posteQuiProduit(grill)).toBeNull();
+  });
+
+  it('ne demande la charge par défaut que pour la confier', () => {
+    const { page, update } = creer([
+      poste({ id: 5, par_defaut: true }),
+      poste({ id: 6, par_defaut: false }),
+    ]);
+
+    page.openEdit(poste({ id: 5, par_defaut: true }));
+    expect(page.form.controls.par_defaut.disabled).toBe(true);
+    page.save();
+    expect(update.mock.calls[0][1]).not.toHaveProperty('par_defaut');
+
+    page.openEdit(poste({ id: 6, par_defaut: false }));
+    page.form.controls.par_defaut.setValue(true);
+    page.save();
+    expect(update.mock.calls[1][1]).toMatchObject({ par_defaut: true });
+  });
+
+  it('coche d’office le premier poste d’un point de vente', () => {
+    const { page } = creer([]);
+
+    page.openCreate();
+
+    expect(page.form.controls.par_defaut.value).toBe(true);
   });
 });

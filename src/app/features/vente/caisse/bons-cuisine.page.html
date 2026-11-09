@@ -1,0 +1,183 @@
+<div class="param-page">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Bons cuisine</h1>
+      <p class="page-subtitle">
+        Bons envoyés par les serveurs, à imprimer puis déposer à chaque poste.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" type="button" [disabled]="refreshing()" (click)="refresh()">
+        @if (refreshing()) {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Rafraîchir
+      </button>
+      <button
+        class="btn btn-primary"
+        type="button"
+        [disabled]="enAttente().length === 0 || impressionEnCours() !== null"
+        (click)="imprimerTout()"
+      >
+        @if (impressionEnCours() === 'tout') {
+          <span class="spinner" style="width: 14px; height: 14px"></span>
+        }
+        Imprimer tout ({{ enAttente().length }})
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-row">
+      <div class="spinner"></div>
+      <span>Chargement…</span>
+    </div>
+  } @else if (pdvs().length === 0) {
+    <div class="empty-state">
+      <span class="empty-title">Aucun point de vente</span>
+      <span class="empty-message">
+        @if (currentSite(); as site) {
+          Le site « {{ site.nom }} » n'a pas de point de vente.
+        } @else {
+          Choisissez le site à afficher.
+        }
+      </span>
+    </div>
+  } @else {
+    <div class="toolbar">
+      @if (sites().length > 1) {
+        <label class="field-label">
+          <span class="field-text">Site</span>
+          <select
+            class="field-select"
+            [value]="selectedSiteId()"
+            (change)="onSiteChange($any($event.target).value)"
+          >
+            @for (site of sites(); track site.id) {
+              <option [value]="site.id">{{ site.nom }}</option>
+            }
+          </select>
+        </label>
+      }
+
+      <label class="field-label">
+        <span class="field-text">Point de vente</span>
+        <select
+          class="field-select"
+          [value]="selectedPdvId()"
+          (change)="onPdvChange($any($event.target).value)"
+        >
+          @for (pdv of pdvs(); track pdv.id) {
+            <option [value]="pdv.id">{{ pdv.nom }}</option>
+          }
+        </select>
+      </label>
+    </div>
+
+    <h2 class="section-title">À imprimer</h2>
+    @if (enAttente().length === 0) {
+      <div class="empty-state">
+        <span class="empty-title">Rien en attente</span>
+        <span class="empty-message">Tous les bons envoyés ont été imprimés.</span>
+      </div>
+    } @else {
+      <!-- Le bon tel qu'il sortira : le poste en tête, c'est ce qui dit au
+           serveur où le déposer. -->
+      <div class="kds-grid">
+        @for (bon of enAttente(); track bon.id) {
+          <div class="kds-card">
+            <div class="kds-head">
+              <span class="kds-table">{{ bon.poste_libelle }}</span>
+              <span class="kds-attente">N° {{ bon.numero }}</span>
+            </div>
+            <div class="kds-ref">
+              Table {{ bon.table_numero ?? '—' }} · {{ heure(bon.emis_le) }}
+              @if (bon.serveur) {
+                · {{ bon.serveur }}
+              }
+              @if (bon.parties > 1) {
+                · bon {{ bon.partie }}/{{ bon.parties }}
+              }
+            </div>
+            @if (bon.type !== 'envoi') {
+              <div>
+                <span class="badge" [class]="badgeType(bon)">{{ bon.type_libelle }}</span>
+              </div>
+            }
+            <div class="kds-lignes">
+              @for (l of bon.lignes ?? []; track l.id) {
+                <div class="kds-ligne">
+                  <span class="q">{{ l.quantite }}×</span>
+                  <span class="kds-nom">{{ l.produit_libelle }}</span>
+                </div>
+                @if (l.commentaire) {
+                  <div class="kds-time" style="margin-left: 24px">↳ {{ l.commentaire }}</div>
+                }
+              }
+            </div>
+            <button
+              class="btn btn-secondary btn-service"
+              type="button"
+              [disabled]="impressionEnCours() !== null"
+              (click)="imprimerBon(bon)"
+            >
+              @if (impressionEnCours() === bon.id) {
+                <span class="spinner" style="width: 14px; height: 14px"></span>
+              }
+              Imprimer ce bon
+            </button>
+          </div>
+        }
+      </div>
+    }
+
+    <h2 class="section-title">Déjà imprimés aujourd'hui</h2>
+    @if (imprimes().length === 0) {
+      <div class="empty-state">
+        <span class="empty-message">Aucun bon imprimé aujourd'hui.</span>
+      </div>
+    } @else {
+      <div class="card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>N°</th>
+              <th>Heure</th>
+              <th>Table</th>
+              <th>Poste</th>
+              <th>Type</th>
+              <th>Impressions</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (bon of imprimes(); track bon.id) {
+              <tr>
+                <td>{{ bon.numero }}</td>
+                <td>{{ heure(bon.emis_le) }}</td>
+                <td>{{ bon.table_numero ?? '—' }}</td>
+                <td>{{ bon.poste_libelle }}</td>
+                <td>
+                  <span class="badge" [class]="badgeType(bon)">{{ bon.type_libelle }}</span>
+                </td>
+                <td>{{ bon.nombre_impressions }}</td>
+                <td>
+                  <!-- Ressort en DUPLICATA : la cuisine ne le prendra pas pour
+                       une nouvelle commande. -->
+                  <button
+                    class="btn btn-secondary"
+                    type="button"
+                    [disabled]="impressionEnCours() !== null"
+                    (click)="imprimerBon(bon)"
+                  >
+                    Réimprimer
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>

@@ -47,6 +47,9 @@ export class CaisseLayout {
     // Poste de caisse. Gardé par `paiement.create` : sans le droit de saisir un
     // paiement, la file des notes à régler n'est qu'une liste inerte.
     { label: 'À encaisser', route: 'encaissement', permission: 'paiement.create' },
+    // Sans écran en cuisine, la caisse imprime les bons que les serveurs
+    // envoient. Même garde que l'encaissement : c'est le poste du comptoir.
+    { label: 'Bons cuisine', route: 'bons-cuisine', permission: 'paiement.create' },
     // Gardé par `paiement.view` et non `.create` : consulter ce qui a été
     // encaissé n'est pas encaisser. Un responsable qui ne tient pas la caisse
     // doit pouvoir relire le service sans pouvoir saisir de paiement — et le

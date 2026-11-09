@@ -68,3 +68,15 @@
   font-size: var(--text-xs);
   color: var(--text-mute);
 }
+
+/* Catégorie déjà produite par un autre poste du pass : non cochable ici. */
+.cat-case--prise {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cat-poste {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--text-mute);
+}

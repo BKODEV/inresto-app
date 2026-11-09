@@ -95,10 +95,37 @@ export class PostesCuisinePage implements OnInit {
     return this.categories().filter((c) => !affectees.has(c.id));
   });
 
+  /** Le point de vente choisi à la création, suivi en signal pour les calculs. */
+  private readonly pdvEnCreation = signal<number>(0);
+
+  /**
+   * Catégories déjà produites par un AUTRE poste du point de vente en cours
+   * d'édition, avec le nom de ce poste. Sur un bon, un plat ne va qu'à un poste :
+   * l'API refuserait de les rattacher ici, on les grise d'emblée.
+   */
+  readonly categoriesPrises = computed(() => {
+    const pdvId = Number(this.editingItem()?.point_de_vente_id ?? this.pdvEnCreation());
+    const editingId = this.editingItem()?.id ?? null;
+    const prises = new Map<number, string>();
+    for (const poste of this.items()) {
+      if (poste.point_de_vente_id !== pdvId || poste.id === editingId) {
+        continue;
+      }
+      for (const cat of poste.categories ?? []) {
+        prises.set(cat.id, poste.libelle);
+      }
+    }
+    return prises;
+  });
+
+  /** Le poste édité porte déjà la charge : on ne la retire qu'en la confiant à un autre. */
+  readonly estDejaParDefaut = computed(() => this.editingItem()?.par_defaut ?? false);
+
   readonly form = this.fb.nonNullable.group({
     point_de_vente_id: [0, [Validators.required, Validators.min(1)]],
     libelle: ['', [Validators.required, Validators.maxLength(255)]],
     ordre: [0, [Validators.required, Validators.min(0)]],
+    par_defaut: [false],
   });
 
   ngOnInit(): void {
@@ -161,6 +188,10 @@ export class PostesCuisinePage implements OnInit {
     return this.categoriesChoisies().has(categorie.id);
   }
 
+  posteQuiProduit(categorie: CategorieProduit): string | null {
+    return this.categoriesPrises().get(categorie.id) ?? null;
+  }
+
   basculerCategorie(categorie: CategorieProduit): void {
     this.categoriesChoisies.update((set) => {
       const copie = new Set(set);
@@ -175,7 +206,16 @@ export class PostesCuisinePage implements OnInit {
 
   openCreate(): void {
     this.editingItem.set(null);
-    this.form.reset({ point_de_vente_id: this.pdvs()[0]?.id ?? 0, libelle: '', ordre: 0 });
+    const pdvId = this.pdvs()[0]?.id ?? 0;
+    this.form.reset({
+      point_de_vente_id: pdvId,
+      libelle: '',
+      ordre: 0,
+      // Le premier poste d'un pass le devient de toute façon : la case le dit.
+      par_defaut: !this.items().some((p) => p.point_de_vente_id === pdvId),
+    });
+    this.pdvEnCreation.set(pdvId);
+    this.form.controls.par_defaut.enable();
     this.categoriesChoisies.set(new Set());
     this.membresChoisis.set(new Set());
     this.chargerPersonnel(this.pdvs()[0]?.id ?? null);
@@ -189,7 +229,14 @@ export class PostesCuisinePage implements OnInit {
       point_de_vente_id: item.point_de_vente_id,
       libelle: item.libelle,
       ordre: item.ordre,
+      par_defaut: item.par_defaut,
     });
+    // Décocher ne retirerait la charge à personne : on la confie à un autre.
+    if (item.par_defaut) {
+      this.form.controls.par_defaut.disable();
+    } else {
+      this.form.controls.par_defaut.enable();
+    }
     this.categoriesChoisies.set(new Set((item.categories ?? []).map((c) => c.id)));
     this.membresChoisis.set(new Set((item.membres ?? []).map((m) => m.id)));
     this.chargerPersonnel(item.point_de_vente_id);
@@ -203,7 +250,16 @@ export class PostesCuisinePage implements OnInit {
 
   /** Le point de vente change à la création : le personnel proposé aussi. */
   onPdvChoisi(valeur: string): void {
-    this.chargerPersonnel(Number(valeur));
+    const pdvId = Number(valeur);
+    this.pdvEnCreation.set(pdvId);
+    this.form.controls.par_defaut.setValue(
+      !this.items().some((p) => p.point_de_vente_id === pdvId),
+    );
+    // Les catégories déjà prises sur ce pass ne peuvent pas rester cochées.
+    this.categoriesChoisies.update(
+      (set) => new Set([...set].filter((id) => !this.categoriesPrises().has(id))),
+    );
+    this.chargerPersonnel(pdvId);
     // Un membre du site précédent n'a rien à faire sur ce poste, et l'API le
     // refuserait : on repart d'une brigade vide plutôt que d'un 422.
     this.membresChoisis.set(new Set());
@@ -244,7 +300,7 @@ export class PostesCuisinePage implements OnInit {
     this.saving.set(true);
     this.formError.set(null);
 
-    const { point_de_vente_id, libelle, ordre } = this.form.getRawValue();
+    const { point_de_vente_id, libelle, ordre, par_defaut } = this.form.getRawValue();
     const categories = [...this.categoriesChoisies()];
     const membres = [...this.membresChoisis()];
     const editing = this.editingItem();
@@ -252,11 +308,20 @@ export class PostesCuisinePage implements OnInit {
     // Le point de vente n'est pas modifiable : déplacer un poste d'un pass à
     // l'autre emporterait ses catégories dans un contexte différent.
     const request$ = editing
-      ? this.service.update(editing.id, { libelle, ordre, categories, membres })
+      ? this.service.update(editing.id, {
+          libelle,
+          ordre,
+          categories,
+          membres,
+          // N'est envoyé que pour DÉSIGNER ce poste ; le retrait passe par la
+          // désignation d'un autre.
+          ...(par_defaut && !editing.par_defaut ? { par_defaut: true as const } : {}),
+        })
       : this.service.create({
           point_de_vente_id: Number(point_de_vente_id),
           libelle,
           ordre,
+          par_defaut,
           categories,
           membres,
         });
@@ -267,6 +332,16 @@ export class PostesCuisinePage implements OnInit {
           this.items.update((list) => list.map((i) => (i.id === saved.id ? saved : i)));
         } else {
           this.items.update((list) => [...list, saved]);
+        }
+        // Un seul poste par défaut par pass : l'API a retiré la charge à l'ancien.
+        if (saved.par_defaut) {
+          this.items.update((list) =>
+            list.map((i) =>
+              i.point_de_vente_id === saved.point_de_vente_id && i.id !== saved.id
+                ? { ...i, par_defaut: false }
+                : i,
+            ),
+          );
         }
         this.saving.set(false);
         this.drawerOpen.set(false);
@@ -280,7 +355,8 @@ export class PostesCuisinePage implements OnInit {
 
   async delete(item: PosteCuisine): Promise<void> {
     // Rien n'est perdu : les plats du poste supprimé reparaissent sur tous les
-    // écrans, jamais dans le vide.
+    // écrans et partent au poste par défaut sur les bons, jamais dans le vide.
+    // Le poste par défaut lui-même ne part pas tant qu'il en reste d'autres.
     if (!(await this.alertes.confirmerSuppression(item.libelle, { nature: 'le poste' }))) {
       return;
     }
@@ -293,7 +369,10 @@ export class PostesCuisinePage implements OnInit {
           this.items.update((list) => list.filter((i) => i.id !== item.id));
           this.deletingId.set(null);
         },
-        error: () => this.deletingId.set(null),
+        error: (err: HttpErrorResponse) => {
+          this.deletingId.set(null);
+          this.alertes.erreur(apiErrorMessage(err, 'Suppression impossible.'));
+        },
       });
   }
 }

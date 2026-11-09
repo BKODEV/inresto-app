@@ -306,6 +306,14 @@ export const routes: Routes = [
                 title: 'À encaisser',
               },
               {
+                path: 'bons-cuisine',
+                loadComponent: () =>
+                  import('./features/vente/caisse/bons-cuisine.page').then(
+                    (m) => m.BonsCuisinePage,
+                  ),
+                title: 'Bons cuisine',
+              },
+              {
                 path: 'ventes',
                 loadComponent: () =>
                   import('./features/vente/caisse/ventes.page').then((m) => m.VentesPage),

@@ -40,7 +40,17 @@
           @for (item of items(); track item.id) {
             <tr>
               <td class="num td-mono">{{ item.ordre }}</td>
-              <td class="td-primary">{{ item.libelle }}</td>
+              <td class="td-primary">
+                {{ item.libelle }}
+                @if (item.par_defaut) {
+                  <span
+                    class="badge badge-info"
+                    title="Reçoit sur les bons ce que personne d'autre ne produit"
+                  >
+                    Par défaut
+                  </span>
+                }
+              </td>
               <td>{{ nomPdv(item.point_de_vente_id) }}</td>
               <td>{{ libellesCategories(item) }}</td>
               <td>{{ libellesMembres(item) }}</td>
@@ -125,6 +135,22 @@
         <span class="field-hint">Position dans le sélecteur de l'écran cuisine.</span>
       </label>
 
+      <!-- Sur papier, un plat ne va qu'à un poste : ce qui n'est rattaché à
+           personne doit bien partir quelque part. -->
+      <label class="field-label" style="margin-top: 16px">
+        <span class="field-text">
+          <input type="checkbox" formControlName="par_defaut" />
+          Poste par défaut
+        </span>
+        <span class="field-hint">
+          @if (estDejaParDefaut()) {
+            C'est le poste par défaut. Pour changer, cochez la case sur un autre poste.
+          } @else {
+            Reçoit sur les bons les plats qu'aucun poste ne produit. Un seul par point de vente.
+          }
+        </span>
+      </label>
+
       <div class="field-label" style="margin-top: 16px">
         <span class="field-text">Catégories prises en charge</span>
         <span class="field-hint">
@@ -133,13 +159,24 @@
         </span>
         <div class="cat-grille">
           @for (cat of categories(); track cat.id) {
-            <label class="cat-case" [class.cat-case--choisie]="estChoisie(cat)">
+            <label
+              class="cat-case"
+              [class.cat-case--choisie]="estChoisie(cat)"
+              [class.cat-case--prise]="posteQuiProduit(cat) !== null"
+              [title]="
+                posteQuiProduit(cat) ? 'Déjà produite par « ' + posteQuiProduit(cat) + ' »' : ''
+              "
+            >
               <input
                 type="checkbox"
                 [checked]="estChoisie(cat)"
+                [disabled]="posteQuiProduit(cat) !== null"
                 (change)="basculerCategorie(cat)"
               />
               <span>{{ cat.libelle }}</span>
+              @if (posteQuiProduit(cat); as poste) {
+                <span class="cat-poste">{{ poste }}</span>
+              }
             </label>
           }
         </div>
@@ -154,7 +191,8 @@
               {{ cat.libelle }}{{ $last ? '' : ', ' }}
             }
             <br />
-            Leurs plats apparaissent sur tous les écrans de ce point de vente — jamais dans le vide.
+            Leurs plats apparaissent sur tous les écrans de ce point de vente, et partent au poste
+            par défaut sur les bons de cuisine — jamais dans le vide.
           </div>
         }
       </div>
