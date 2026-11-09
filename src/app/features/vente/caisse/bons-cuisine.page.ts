@@ -59,7 +59,10 @@ export class BonsCuisinePage implements OnInit {
 
   /** Ce qui attend d'être sorti, du plus ancien au plus récent. */
   readonly enAttente = signal<BonCuisine[]>([]);
-  /** Déjà sortis aujourd'hui, pour une réimpression : le plus récent en tête. */
+  /**
+   * Traités aujourd'hui — imprimés, ou devenus sans objet avant de l'être —
+   * le plus récent en tête.
+   */
   readonly imprimes = signal<BonCuisine[]>([]);
   readonly loading = signal(true);
   readonly refreshing = signal(false);
@@ -180,6 +183,19 @@ export class BonsCuisinePage implements OnInit {
           this.refresh();
         },
       });
+  }
+
+  /** Ce qui sortira sur le papier : les plats servis ou annulés entre-temps n'y sont plus. */
+  lignesAImprimer(bon: BonCuisine) {
+    return (bon.lignes ?? []).filter((l) => !l.sans_objet);
+  }
+
+  /**
+   * Seul un bon qui a existé en cuisine se réimprime. Celui devenu sans objet
+   * avant d'être sorti n'a rien à mettre sur le papier.
+   */
+  peutReimprimer(bon: BonCuisine): boolean {
+    return bon.imprime_le !== null;
   }
 
   heure(iso: string | null): string {

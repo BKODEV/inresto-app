@@ -105,7 +105,7 @@
               </div>
             }
             <div class="kds-lignes">
-              @for (l of bon.lignes ?? []; track l.id) {
+              @for (l of lignesAImprimer(bon); track l.id) {
                 <div class="kds-ligne">
                   <span class="q">{{ l.quantite }}×</span>
                   <span class="kds-nom">{{ l.produit_libelle }}</span>
@@ -131,10 +131,10 @@
       </div>
     }
 
-    <h2 class="section-title">Déjà imprimés aujourd'hui</h2>
+    <h2 class="section-title">Traités aujourd'hui</h2>
     @if (imprimes().length === 0) {
       <div class="empty-state">
-        <span class="empty-message">Aucun bon imprimé aujourd'hui.</span>
+        <span class="empty-message">Aucun bon traité aujourd'hui.</span>
       </div>
     } @else {
       <div class="card">
@@ -159,19 +159,30 @@
                 <td>{{ bon.poste_libelle }}</td>
                 <td>
                   <span class="badge" [class]="badgeType(bon)">{{ bon.type_libelle }}</span>
+                  @if (bon.sans_objet) {
+                    <span
+                      class="badge badge-neutral"
+                      title="Servi ou annulé avant d'être imprimé : jamais parti en cuisine"
+                    >
+                      Sans objet
+                    </span>
+                  }
                 </td>
                 <td>{{ bon.nombre_impressions }}</td>
                 <td>
                   <!-- Ressort en DUPLICATA : la cuisine ne le prendra pas pour
-                       une nouvelle commande. -->
-                  <button
-                    class="btn btn-secondary"
-                    type="button"
-                    [disabled]="impressionEnCours() !== null"
-                    (click)="imprimerBon(bon)"
-                  >
-                    Réimprimer
-                  </button>
+                       une nouvelle commande. Un bon sans objet n'a jamais été
+                       en cuisine : rien à réimprimer. -->
+                  @if (peutReimprimer(bon)) {
+                    <button
+                      class="btn btn-secondary"
+                      type="button"
+                      [disabled]="impressionEnCours() !== null"
+                      (click)="imprimerBon(bon)"
+                    >
+                      Réimprimer
+                    </button>
+                  }
                 </td>
               </tr>
             }

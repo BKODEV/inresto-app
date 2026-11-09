@@ -10,6 +10,8 @@ export interface LigneBonCuisine {
   produit_libelle: string;
   quantite: number;
   commentaire: string | null;
+  /** Servi ou annulé avant l'impression : ne sortira pas sur le papier. */
+  sans_objet: boolean;
 }
 
 /**
@@ -35,6 +37,12 @@ export interface BonCuisine {
   imprime_le: string | null;
   nombre_impressions: number;
   a_imprimer: boolean;
+  /**
+   * Devenu inutile avant d'être imprimé : ses plats ont été servis ou annulés
+   * sans lui. Il a quitté la file et ne s'imprime plus.
+   */
+  sans_objet: boolean;
+  sans_objet_le: string | null;
   table_numero?: string | null;
   serveur?: string | null;
   emis_par?: string | null;

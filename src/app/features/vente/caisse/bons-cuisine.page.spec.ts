@@ -32,6 +32,8 @@ describe('BonsCuisinePage — file d’impression de la caisse', () => {
       imprime_le: null,
       nombre_impressions: 0,
       a_imprimer: true,
+      sans_objet: false,
+      sans_objet_le: null,
       lignes: [],
       ...surcharge,
     };
@@ -144,5 +146,34 @@ describe('BonsCuisinePage — file d’impression de la caisse', () => {
     expect(alertes.info).toHaveBeenCalled();
     expect(alertes.erreur).not.toHaveBeenCalled();
     expect(page.impressionEnCours()).toBeNull();
+  });
+
+  /**
+   * Un bon devenu sans objet avant d'être sorti n'a jamais existé en cuisine :
+   * le réimprimer n'aurait rien à mettre sur le papier.
+   */
+  it('ne propose la réimpression que des bons réellement sortis', () => {
+    const page = configurer({});
+
+    expect(page.peutReimprimer(bon(1, { imprime_le: new Date().toISOString() }))).toBe(true);
+    expect(
+      page.peutReimprimer(bon(2, { sans_objet: true, sans_objet_le: new Date().toISOString() })),
+    ).toBe(false);
+  });
+
+  it('n’affiche que les plats encore à faire', () => {
+    const page = configurer({});
+    const ligne = (id: number, sansObjet: boolean) => ({
+      id,
+      ligne_commande_client_id: id,
+      produit_libelle: `Plat ${id}`,
+      quantite: 1,
+      commentaire: null,
+      sans_objet: sansObjet,
+    });
+
+    const lignes = page.lignesAImprimer(bon(1, { lignes: [ligne(1, true), ligne(2, false)] }));
+
+    expect(lignes.map((l) => l.id)).toEqual([2]);
   });
 });
