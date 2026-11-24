@@ -138,6 +138,9 @@
           autocomplete="off"
           placeholder="ex : maitre-hotel"
         />
+        @if (editingRole()?.is_system) {
+          <span class="field-hint">Le nom d'un rôle système ne peut pas être modifié.</span>
+        }
       </label>
 
       <label class="field-label" style="margin-top: 16px">

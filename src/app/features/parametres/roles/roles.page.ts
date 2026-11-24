@@ -81,6 +81,7 @@ export class RolesPage implements OnInit {
   openCreate(): void {
     this.editingRole.set(null);
     this.form.reset({ name: '', description: '', niveau: 10 });
+    this.form.controls.name.enable();
     this.selectedPermissions.set([]);
     this.formError.set(null);
     this.drawerOpen.set(true);
@@ -93,6 +94,12 @@ export class RolesPage implements OnInit {
       description: role.description ?? '',
       niveau: role.niveau,
     });
+    // Le nom d'un rôle système est son identifiant côté API : non modifiable.
+    if (role.is_system) {
+      this.form.controls.name.disable();
+    } else {
+      this.form.controls.name.enable();
+    }
     this.formError.set(null);
     this.drawerOpen.set(true);
 
